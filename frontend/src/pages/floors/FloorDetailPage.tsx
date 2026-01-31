@@ -460,10 +460,10 @@ export function FloorDetailPage() {
                                 ? 'bg-success/10 text-success hover:bg-success/20'
                                 : 'bg-primary/10 text-primary hover:bg-primary/20'
                             }`}
-                            title={room.floorplanUrl ? 'Έχει ήδη κάτοψη - Κλικ για αντικατάσταση' : 'Ορισμός κάτοψης από floor plan'}
+                            title={room.floorplanUrl ? 'Has floorplan - Click to replace' : 'Set floorplan from floor plan'}
                           >
                             <Crop size={14} />
-                            <span>{room.floorplanUrl ? 'Έχει' : 'Crop'}</span>
+                            <span>{room.floorplanUrl ? 'Edit' : 'Crop'}</span>
                           </button>
                         </td>
                       )}
