@@ -11,6 +11,8 @@ export interface Room {
   status: RoomStatus;
   notes?: string;
   floorId: string;
+  floorplanUrl?: string | null;
+  floorplanType?: string | null;
   createdAt: string;
   _count?: {
     assets: number;

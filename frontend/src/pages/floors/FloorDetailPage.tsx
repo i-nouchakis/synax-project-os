@@ -68,6 +68,7 @@ export function FloorDetailPage() {
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const [cropModalRoom, setCropModalRoom] = useState<Room | null>(null);
   const [isCropSaving, setIsCropSaving] = useState(false);
+  const [confirmCropRoom, setConfirmCropRoom] = useState<Room | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch floor
@@ -447,13 +448,22 @@ export function FloorDetailPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setCropModalRoom(room);
+                              if (room.floorplanUrl) {
+                                // Room already has floorplan - ask for confirmation
+                                setConfirmCropRoom(room);
+                              } else {
+                                setCropModalRoom(room);
+                              }
                             }}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-body-sm rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                            title="Ορισμός κάτοψης από floor plan"
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-body-sm rounded-md transition-colors ${
+                              room.floorplanUrl
+                                ? 'bg-success/10 text-success hover:bg-success/20'
+                                : 'bg-primary/10 text-primary hover:bg-primary/20'
+                            }`}
+                            title={room.floorplanUrl ? 'Έχει ήδη κάτοψη - Κλικ για αντικατάσταση' : 'Ορισμός κάτοψης από floor plan'}
                           >
                             <Crop size={14} />
-                            <span>Crop</span>
+                            <span>{room.floorplanUrl ? 'Έχει' : 'Crop'}</span>
                           </button>
                         </td>
                       )}
@@ -647,6 +657,45 @@ export function FloorDetailPage() {
           onSave={handleCropSave}
           isSaving={isCropSaving}
         />
+      )}
+
+      {/* Confirm Replace Floorplan Modal */}
+      {confirmCropRoom && (
+        <Modal
+          isOpen={!!confirmCropRoom}
+          onClose={() => setConfirmCropRoom(null)}
+          title="Αντικατάσταση Κάτοψης"
+          icon={<AlertTriangle size={18} />}
+          size="sm"
+          footer={
+            <ModalActions>
+              <Button variant="secondary" onClick={() => setConfirmCropRoom(null)}>
+                Ακύρωση
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setCropModalRoom(confirmCropRoom);
+                  setConfirmCropRoom(null);
+                }}
+              >
+                Συνέχεια
+              </Button>
+            </ModalActions>
+          }
+        >
+          <div className="text-center py-4">
+            <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle size={24} className="text-warning" />
+            </div>
+            <p className="text-body text-text-primary mb-2">
+              Το δωμάτιο <strong>{confirmCropRoom.name}</strong> έχει ήδη κάτοψη.
+            </p>
+            <p className="text-body-sm text-text-secondary">
+              Θέλεις να την αντικαταστήσεις με νέα;
+            </p>
+          </div>
+        </Modal>
       )}
     </div>
   );
