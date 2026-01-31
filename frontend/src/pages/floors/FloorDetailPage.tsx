@@ -14,6 +14,7 @@ import {
   Layers,
   Lock,
   Unlock,
+  Crop,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -31,7 +32,7 @@ import {
   Pagination,
   usePagination,
 } from '@/components/ui';
-import { FloorPlanCanvas } from '@/components/floor-plan';
+import { FloorPlanCanvas, RoomFloorplanCropModal } from '@/components/floor-plan';
 import { floorService, type Room, type CreateRoomData, type UpdateRoomData, type RoomStatus } from '@/services/floor.service';
 import { uploadService } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth.store';
@@ -65,6 +66,8 @@ export function FloorDetailPage() {
   const [pendingPinPosition, setPendingPinPosition] = useState<{ x: number; y: number } | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
+  const [cropModalRoom, setCropModalRoom] = useState<Room | null>(null);
+  const [isCropSaving, setIsCropSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch floor
@@ -132,6 +135,24 @@ export function FloorDetailPage() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  // Handle room floorplan crop save
+  const handleCropSave = async (croppedBlob: Blob) => {
+    if (!cropModalRoom) return;
+
+    setIsCropSaving(true);
+    try {
+      const file = new File([croppedBlob], `room-${cropModalRoom.id}-floorplan.png`, { type: 'image/png' });
+      await uploadService.uploadRoomFloorplan(cropModalRoom.id, file);
+      queryClient.invalidateQueries({ queryKey: ['floor', id] });
+      toast.success('Η κάτοψη του δωματίου αποθηκεύτηκε!');
+      setCropModalRoom(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Αποτυχία αποθήκευσης κάτοψης');
+    } finally {
+      setIsCropSaving(false);
     }
   };
 
@@ -378,6 +399,9 @@ export function FloorDetailPage() {
                     <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Status</th>
                     <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Assets</th>
                     <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Issues</th>
+                    {floor.floorplanUrl && floor.floorplanType !== 'PDF' && (
+                      <th className="text-center text-caption font-medium text-text-secondary px-4 py-3">Κάτοψη</th>
+                    )}
                     <th className="text-right text-caption font-medium text-text-secondary px-4 py-3">Actions</th>
                   </tr>
                 </thead>
@@ -418,6 +442,21 @@ export function FloorDetailPage() {
                           <span className="text-body-sm text-text-tertiary">-</span>
                         )}
                       </td>
+                      {floor.floorplanUrl && floor.floorplanType !== 'PDF' && (
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCropModalRoom(room);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-body-sm rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            title="Ορισμός κάτοψης από floor plan"
+                          >
+                            <Crop size={14} />
+                            <span>Crop</span>
+                          </button>
+                        </td>
+                      )}
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
                           <button
@@ -596,6 +635,18 @@ export function FloorDetailPage() {
             />
           </div>
         </Modal>
+      )}
+
+      {/* Room Floorplan Crop Modal */}
+      {floor.floorplanUrl && floor.floorplanType !== 'PDF' && cropModalRoom && (
+        <RoomFloorplanCropModal
+          isOpen={!!cropModalRoom}
+          onClose={() => setCropModalRoom(null)}
+          floorplanUrl={floor.floorplanUrl}
+          roomName={cropModalRoom.name}
+          onSave={handleCropSave}
+          isSaving={isCropSaving}
+        />
       )}
     </div>
   );
