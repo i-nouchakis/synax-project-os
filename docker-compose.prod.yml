@@ -1,0 +1,123 @@
+services:
+  # Frontend (Nginx + React)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: synax-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - synax-network
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.synax-frontend.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.synax-frontend.entrypoints=websecure"
+      - "traefik.http.routers.synax-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.synax-frontend.loadbalancer.server.port=80"
+
+  # Backend (Node.js API)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: synax-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      REDIS_URL: redis://redis:6379
+      STORAGE_ENDPOINT: minio
+      STORAGE_PORT: 9000
+      STORAGE_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${MINIO_SECRET_KEY}
+      STORAGE_BUCKET: synax-files
+      STORAGE_USE_SSL: "false"
+      STORAGE_PUBLIC_ENDPOINT: ${STORAGE_PUBLIC_ENDPOINT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - synax-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: synax-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-synax}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-synax_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-synax} -d ${POSTGRES_DB:-synax_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - synax-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: synax-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - synax-network
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: synax-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - synax-network
+    labels:
+      - "traefik.enable=true"
+      # MinIO API (for file access)
+      - "traefik.http.routers.synax-minio.rule=Host(`${STORAGE_PUBLIC_ENDPOINT}`)"
+      - "traefik.http.routers.synax-minio.entrypoints=websecure"
+      - "traefik.http.routers.synax-minio.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.synax-minio.service=synax-minio"
+      - "traefik.http.services.synax-minio.loadbalancer.server.port=9000"
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+
+networks:
+  synax-network:
+    driver: bridge
+  dokploy-network:
+    external: true

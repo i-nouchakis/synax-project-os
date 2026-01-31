@@ -55,3 +55,8 @@ temp/
 *.tsbuildinfo
 .eslintcache
 .cache/
+
+# Deployment credentials (NEVER commit!)
+docs/deployment/CREDENTIALS.txt
+*.credentials
+*.secrets
