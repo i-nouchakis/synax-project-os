@@ -1121,4 +1121,33 @@ Centered όλα τα metric cards:
 
 ---
 
-*Τελευταία ενημέρωση: 2026-01-31 (Room Floorplan Crop Feature)*
+## Session: Room Floorplan Button States (2026-01-31)
+
+### Χρήστης
+Θέλω αν έχει κάτοψη το room να είναι άλλο χρώμα και να ρωτάει με popup αν θέλω να συνεχίσω.
+
+### Claude
+Υλοποίησα visual feedback και confirmation:
+
+**Button States:**
+| State | Color | Text | Action |
+|-------|-------|------|--------|
+| Χωρίς κάτοψη | 🔵 Blue | "Crop" | Άνοιγμα crop modal |
+| Με κάτοψη | 🟢 Green | "Edit" | Confirmation → Crop modal |
+
+**Confirmation Modal:**
+- Εμφανίζεται όταν το room έχει ήδη κάτοψη
+- Warning icon με μήνυμα
+- Buttons: "Ακύρωση" / "Συνέχεια"
+
+**Changes:**
+- `FloorDetailPage.tsx` - Button color logic, confirmation modal
+- `floor.service.ts` - Added `floorplanUrl`, `floorplanType` to Room interface
+
+**Build:** ✅ Success
+
+**Status: Room Floorplan Button States COMPLETE ✅**
+
+---
+
+*Τελευταία ενημέρωση: 2026-01-31 (Room Floorplan Button States)*

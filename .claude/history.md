@@ -1735,3 +1735,55 @@ frontend/src/
 
 ---
 
+## [2026-01-31] - GitHub Repository & Room Floorplan Crop Feature
+
+### Περιγραφή
+Upload του project στο GitHub και υλοποίηση Room Floorplan Crop feature για εξαγωγή room κάτοψης από floor plan.
+
+### Tasks Completed
+
+#### GitHub Repository
+- [x] Git init & initial commit
+- [x] Repository: https://github.com/i-nouchakis/synax-project-os
+- [x] 171 files, 58,148 lines of code
+- [x] Public repository
+
+#### Room Floorplan Crop Feature
+- [x] RoomFloorplanCropModal.tsx - Modal με react-image-crop
+  - Zoom in/out controls
+  - Rectangle selection για room boundaries
+  - Reset button
+  - Οδηγίες χρήσης (ελληνικά)
+  - Preview dimensions
+- [x] FloorDetailPage.tsx updates:
+  - Νέο column "Κάτοψη" στο Rooms table
+  - Button color logic (🔵 Crop / 🟢 Edit)
+  - Confirmation modal όταν υπάρχει ήδη κάτοψη
+  - handleCropSave() για upload cropped image
+- [x] floor.service.ts - Added floorplanUrl/floorplanType to Room interface
+
+### Files Created/Modified
+```
+frontend/src/
+├── components/floor-plan/
+│   ├── RoomFloorplanCropModal.tsx (NEW)
+│   └── index.ts (updated)
+├── pages/floors/FloorDetailPage.tsx (updated)
+└── services/floor.service.ts (updated)
+```
+
+### Button States
+| State | Color | Text | Action |
+|-------|-------|------|--------|
+| No floorplan | 🔵 Blue | "Crop" | Opens crop modal |
+| Has floorplan | 🟢 Green | "Edit" | Confirmation → Crop modal |
+
+### Dependencies
+- react-image-crop (already in package.json)
+
+### Status
+**GitHub Repository - COMPLETE ✅**
+**Room Floorplan Crop Feature - COMPLETE ✅**
+
+---
+
