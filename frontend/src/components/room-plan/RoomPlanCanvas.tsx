@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Stage, Layer, Image as KonvaImage, Circle, Text, Group, Rect } from 'react-konva';
+import { Stage, Layer, Image as KonvaImage, Circle, Text, Group, Rect, Path } from 'react-konva';
 import Konva from 'konva';
 import { ZoomIn, ZoomOut, Maximize2, Lock, Unlock, RotateCcw, Wifi, Monitor, Phone, Camera, Router, CreditCard, Tv, X } from 'lucide-react';
 import { Button, Card, CardContent } from '@/components/ui';
@@ -51,6 +51,60 @@ const ASSET_TYPE_ICONS: Record<string, React.FC<{ size?: number; className?: str
   'POS Terminal': CreditCard,
   'Digital Signage': Monitor,
   'Router': Router,
+};
+
+// SVG path data for Konva canvas rendering (from Lucide icons, normalized to 24x24 viewBox)
+const ASSET_TYPE_SVG_PATHS: Record<string, string[]> = {
+  'Access Point': [
+    'M12 20h.01', // dot
+    'M2 8.82a15 15 0 0 1 20 0', // outer arc
+    'M5 12.859a10 10 0 0 1 14 0', // middle arc
+    'M8.5 16.429a5 5 0 0 1 7 0', // inner arc
+  ],
+  'Network Switch': [
+    'M4 14a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H4z', // rect
+    'M6 18h.01', // dot 1
+    'M10 18h.01', // dot 2
+    'M6 6v8', // line 1
+    'M12 4v10', // line 2
+    'M18 6v8', // line 3
+  ],
+  'Smart TV': [
+    'M4 7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H4z', // screen
+    'M17 2l-5 5-5-5', // antenna
+  ],
+  'IP Camera': [
+    'M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z', // body
+    'M12 13m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0', // lens circle
+  ],
+  'VoIP Phone': [
+    'M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z',
+  ],
+  'POS Terminal': [
+    'M1 4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V4z', // body
+    'M5 6h10', // line 1
+    'M5 10h10', // line 2
+    'M5 14h4', // line 3
+    'M14 14h2', // chip
+  ],
+  'Digital Signage': [
+    'M2 5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5z', // screen
+    'M8 21h8', // stand
+    'M12 17v4', // stand pole
+  ],
+  'Router': [
+    'M4 14a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H4z', // body
+    'M6 18h.01', // dot 1
+    'M10 18h.01', // dot 2
+    'M9 6l3-3 3 3', // antenna 1
+    'M12 3v11', // antenna line
+  ],
+  // Default box icon
+  'default': [
+    'M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z', // box outer
+    'M3.3 7L12 12l8.7-5', // box top line
+    'M12 22V12', // box vertical line
+  ],
 };
 
 export function RoomPlanCanvas({
@@ -399,6 +453,20 @@ export function RoomPlanCanvas({
                   shadowOpacity={0.3}
                   shadowOffsetY={2}
                 />
+                {/* Asset type icon - SVG paths are 24x24, scale to ~18x18 to fit in pin */}
+                <Group x={-9} y={-9} scaleX={0.75} scaleY={0.75}>
+                  {(ASSET_TYPE_SVG_PATHS[asset.assetType?.name || ''] || ASSET_TYPE_SVG_PATHS['default']).map((pathData, index) => (
+                    <Path
+                      key={index}
+                      data={pathData}
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  ))}
+                </Group>
                 {/* Pin label */}
                 <Text
                   text={asset.name}

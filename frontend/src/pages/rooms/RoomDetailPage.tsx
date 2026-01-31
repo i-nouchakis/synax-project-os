@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   Hash,
   Globe,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -39,6 +40,7 @@ import {
   usePagination,
 } from '@/components/ui';
 import { RoomPlanCanvas } from '@/components/room-plan';
+import { DownloadFloorplanModal } from '@/components/floor-plan';
 import { assetService, type Asset, type AssetType, type CreateAssetData, type UpdateAssetData, type AssetStatus } from '@/services/asset.service';
 import { roomService } from '@/services/room.service';
 import { uploadService } from '@/services/upload.service';
@@ -86,6 +88,7 @@ export function RoomDetailPage() {
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
   const floorplanInputRef = useRef<HTMLInputElement>(null);
 
@@ -308,6 +311,14 @@ export function RoomDetailPage() {
                   {availableAssets.length} assets to place
                 </span>
               )}
+              <Button
+                size="sm"
+                variant="secondary"
+                leftIcon={<Download size={16} />}
+                onClick={() => setIsDownloadModalOpen(true)}
+              >
+                Download
+              </Button>
               {canManage && (
                 <Button
                   size="sm"
@@ -645,6 +656,29 @@ export function RoomDetailPage() {
             />
           </div>
         </Modal>
+      )}
+
+      {/* Download Floorplan Modal */}
+      {room?.floorplanUrl && room.floorplanType === 'IMAGE' && (
+        <DownloadFloorplanModal
+          isOpen={isDownloadModalOpen}
+          onClose={() => setIsDownloadModalOpen(false)}
+          imageUrl={room.floorplanUrl}
+          fileName={`${room.floor?.project?.name || 'project'}-${room.floor?.name || 'floor'}-${room.name}-floorplan`}
+          projectName={room.floor?.project?.name}
+          floorName={room.floor?.name}
+          roomName={room.name}
+          pins={assets
+            .filter((asset) => asset.pinX !== null && asset.pinY !== null)
+            .map((asset) => ({
+              id: asset.id,
+              name: asset.name,
+              x: asset.pinX!,
+              y: asset.pinY!,
+              status: asset.status,
+            }))}
+          pinType="asset"
+        />
       )}
     </div>
   );

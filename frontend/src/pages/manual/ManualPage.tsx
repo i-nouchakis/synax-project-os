@@ -574,6 +574,25 @@ function RoomsSection() {
           ]}
         />
 
+        <h3 className="text-h3 text-text-primary">Crop Floor Plan from Floor</h3>
+        <p className="text-body text-text-secondary">
+          When a floor has a floor plan uploaded, you can crop a section of it to use as the room's floor plan:
+        </p>
+        <Steps
+          steps={[
+            { title: 'Navigate to Floor', description: 'Go to the floor detail page that has a floor plan.' },
+            { title: 'Find Crop Column', description: 'Look for the "Κάτοψη" column in the Rooms table (visible only when floor has a floor plan).' },
+            { title: 'Click Crop/Edit', description: 'Click "Crop" (blue) for new, or "Edit" (green) if room already has a floor plan.' },
+            { title: 'Select Area', description: 'In the modal, click and drag to select the room area on the floor plan.' },
+            { title: 'Zoom Controls', description: 'Use zoom in/out buttons to adjust the view for precise selection.' },
+            { title: 'Save', description: 'Click "Save Floor Plan" to apply the cropped section to the room.' },
+          ]}
+        />
+        <Tip>
+          If a room already has a floor plan, clicking "Edit" will show a confirmation dialog before proceeding,
+          as the action will replace the existing floor plan.
+        </Tip>
+
         <h3 className="text-h3 text-text-primary">Pin Colors</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-4">
           {[

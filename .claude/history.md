@@ -1787,3 +1787,68 @@ frontend/src/
 
 ---
 
+## [2026-01-31] - Download Floorplan with Preview & Asset SVG Icons
+
+### Περιγραφή
+Υλοποίηση Download Floorplan feature με preview modal, pin selection, και SVG icons για asset types.
+
+### Tasks Completed
+
+#### Download Floorplan Feature
+- [x] DownloadFloorplanModal.tsx - Full-featured modal με:
+  - Format selector (PNG, JPEG, WebP, PDF)
+  - Live canvas preview
+  - Pin selection με checkboxes
+  - Select All / Deselect All buttons
+  - "Created by Synax" branding σε όλα τα formats
+- [x] DownloadFloorplanDropdown.tsx - Original dropdown (deprecated)
+- [x] PDF generation με jsPDF:
+  - Header με project/floor/room name
+  - Date stamp
+  - Footer με Synax branding
+- [x] Image watermark for PNG/JPEG/WebP
+- [x] Integration σε FloorDetailPage και RoomDetailPage
+
+#### Asset Type SVG Icons
+- [x] ASSET_TYPE_SVG_PATHS mapping με Lucide icon paths:
+  - Access Point (WiFi waves)
+  - Network Switch (Router με dots)
+  - Smart TV (TV με antenna)
+  - IP Camera (Camera με lens)
+  - VoIP Phone (Phone handset)
+  - POS Terminal (Card terminal)
+  - Digital Signage (Monitor με stand)
+  - Router (Router με antenna)
+  - Default (3D Box)
+- [x] Konva Path rendering σε RoomPlanCanvas
+- [x] White stroke icons σε colored status background
+
+### Files Created/Modified
+```
+frontend/src/
+├── components/floor-plan/
+│   ├── DownloadFloorplanModal.tsx (NEW)
+│   ├── DownloadFloorplanDropdown.tsx (NEW - deprecated)
+│   └── index.ts (updated)
+├── components/room-plan/
+│   └── RoomPlanCanvas.tsx (updated - SVG icons)
+├── pages/floors/FloorDetailPage.tsx (updated)
+├── pages/rooms/RoomDetailPage.tsx (updated)
+├── pages/manual/ManualPage.tsx (updated - Room Floorplan Crop docs)
+└── vite.config.ts (PWA cache limit increased to 5MB)
+```
+
+### Dependencies Added
+- jspdf (PDF generation)
+- browser-image-compression (image handling)
+
+### Bug Fixes
+- [x] Fixed pin coordinates in download preview (pixel vs percentage)
+- [x] Fixed PWA cache limit for large bundles
+
+### Status
+**Download Floorplan Feature - COMPLETE ✅**
+**Asset Type SVG Icons - COMPLETE ✅**
+
+---
+

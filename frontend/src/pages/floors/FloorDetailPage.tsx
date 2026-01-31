@@ -15,6 +15,7 @@ import {
   Lock,
   Unlock,
   Crop,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -32,7 +33,7 @@ import {
   Pagination,
   usePagination,
 } from '@/components/ui';
-import { FloorPlanCanvas, RoomFloorplanCropModal } from '@/components/floor-plan';
+import { FloorPlanCanvas, RoomFloorplanCropModal, DownloadFloorplanModal } from '@/components/floor-plan';
 import { floorService, type Room, type CreateRoomData, type UpdateRoomData, type RoomStatus } from '@/services/floor.service';
 import { uploadService } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth.store';
@@ -69,6 +70,7 @@ export function FloorDetailPage() {
   const [cropModalRoom, setCropModalRoom] = useState<Room | null>(null);
   const [isCropSaving, setIsCropSaving] = useState(false);
   const [confirmCropRoom, setConfirmCropRoom] = useState<Room | null>(null);
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch floor
@@ -279,6 +281,16 @@ export function FloorDetailPage() {
                 <Badge variant="info" size="sm">
                   Click to add pins | Drag to move
                 </Badge>
+              )}
+              {floor.floorplanType !== 'PDF' && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  leftIcon={<Download size={16} />}
+                  onClick={() => setIsDownloadModalOpen(true)}
+                >
+                  Download
+                </Button>
               )}
               {canManage && (
                 <Button
@@ -696,6 +708,28 @@ export function FloorDetailPage() {
             </p>
           </div>
         </Modal>
+      )}
+
+      {/* Download Floorplan Modal */}
+      {floor.floorplanUrl && floor.floorplanType !== 'PDF' && (
+        <DownloadFloorplanModal
+          isOpen={isDownloadModalOpen}
+          onClose={() => setIsDownloadModalOpen(false)}
+          imageUrl={floor.floorplanUrl}
+          fileName={`${floor.project?.name || 'project'}-${floor.name}-floorplan`}
+          projectName={floor.project?.name}
+          floorName={floor.name}
+          pins={(floor.rooms || [])
+            .filter((room) => room.pinX !== null && room.pinY !== null)
+            .map((room) => ({
+              id: room.id,
+              name: room.name,
+              x: room.pinX!,
+              y: room.pinY!,
+              status: room.status,
+            }))}
+          pinType="room"
+        />
       )}
     </div>
   );

@@ -373,4 +373,19 @@ npm run dev:frontend
 
 ---
 
-*Last Updated: 2026-01-30 (Phase 4 Complete)*
+### 32. Download Floorplan Feature ✅
+- [x] DownloadFloorplanModal.tsx με preview
+- [x] Format selection (PNG, JPEG, WebP, PDF)
+- [x] Pin selection checkboxes
+- [x] "Created by Synax" branding
+- [x] jsPDF for PDF generation
+
+### 33. Asset Type SVG Icons ✅
+- [x] ASSET_TYPE_SVG_PATHS mapping
+- [x] Konva Path rendering
+- [x] 9 asset type icons (Wifi, Router, Camera, TV, Phone, etc.)
+- [x] Default box icon for unknown types
+
+---
+
+*Last Updated: 2026-01-31 (Download Floorplan & Asset Icons)*

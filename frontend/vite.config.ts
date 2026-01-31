@@ -56,6 +56,11 @@ export default defineConfig({
       workbox: {
         // Cache all static assets
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // Increase limit for large bundles (3MB to account for jsPDF and other libs)
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
+        // Skip waiting for old service worker
+        skipWaiting: true,
+        clientsClaim: true,
         // Runtime caching strategies
         runtimeCaching: [
           {

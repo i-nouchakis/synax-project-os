@@ -1150,4 +1150,169 @@ Centered όλα τα metric cards:
 
 ---
 
-*Τελευταία ενημέρωση: 2026-01-31 (Room Floorplan Button States)*
+## Session: Manual Update (2026-01-31)
+
+### Χρήστης
+Ενημέρωσε το manual στο app με όλες τις υπάρχων ήδη πληροφορίες.
+
+### Claude
+Το Manual (`ManualPage.tsx`) είναι ήδη comprehensive με 19 sections. Ωστόσο, η νέα λειτουργία **Room Floorplan Crop** δεν ήταν documented.
+
+**Προσθήκη στο Manual:**
+
+Στο section "Rooms & Floor Plans" προστέθηκε:
+
+| Section | Περιγραφή |
+|---------|-----------|
+| Crop Floor Plan from Floor | Οδηγίες για crop κάτοψης από floor σε room |
+| 6-step guide | Navigate → Find Column → Click → Select → Zoom → Save |
+| Tip | Info για confirmation dialog σε rooms με υπάρχουσα κάτοψη |
+
+**Files:**
+- `frontend/src/pages/manual/ManualPage.tsx` (updated)
+
+**Status: Manual Update COMPLETE ✅**
+
+---
+
+## Session: Download Floorplan Feature (2026-01-31)
+
+### Χρήστης
+Θέλω να μπορώ να κάνω download κατόψεις σε διάφορες μορφές (dropdown). Πάντα με "created by Synax".
+
+### Claude
+Υλοποίησα Download Floorplan feature με dropdown και branding:
+
+**Νέο Component:**
+- `DownloadFloorplanDropdown.tsx` - Dropdown με επιλογές format
+
+**Formats:**
+| Format | Περιγραφή | Υλοποίηση |
+|--------|-----------|-----------|
+| PNG | Original Quality | Canvas API |
+| JPEG | Compressed | Canvas API (92% quality) |
+| WebP | Modern Format | Canvas API |
+| PDF | Print Ready | jsPDF library |
+
+**Branding:**
+- PNG/JPEG/WebP: Watermark "Created by Synax" στο κάτω δεξιά corner
+- PDF: Header με project/floor/room name + date, Footer με "Created by Synax" σε primary color
+
+**Locations:**
+- FloorDetailPage - Floor plan header
+- RoomDetailPage - Room floor plan header
+
+**Dependencies:**
+- `jspdf` - PDF generation
+- `browser-image-compression` - Image handling (ήταν missing)
+
+**Config:**
+- `vite.config.ts` - Αύξηση `maximumFileSizeToCacheInBytes` σε 5MB για PWA caching
+
+**Files:**
+- `frontend/src/components/floor-plan/DownloadFloorplanDropdown.tsx` (NEW)
+- `frontend/src/components/floor-plan/index.ts` (updated)
+- `frontend/src/pages/floors/FloorDetailPage.tsx` (updated)
+- `frontend/src/pages/rooms/RoomDetailPage.tsx` (updated)
+- `frontend/vite.config.ts` (updated)
+
+**Build:** ✅ Success
+
+**Status: Download Floorplan Feature COMPLETE ✅**
+
+---
+
+## Session: Download Preview Modal (2026-01-31)
+
+### Χρήστης
+Θέλω πριν κάνεις download να ανοίγει popup με preview όπου μπορείς να αφαιρέσεις pins!
+
+### Claude
+Αντικατέστησα το dropdown με full-featured preview modal:
+
+**Νέο Component:**
+- `DownloadFloorplanModal.tsx` - Modal με preview & pin selection
+
+**Features:**
+| Feature | Περιγραφή |
+|---------|-----------|
+| Format Selector | PNG, JPEG, WebP, PDF dropdown |
+| Live Preview | Canvas preview με επιλεγμένα pins |
+| Pin Selection | Checkbox για κάθε room/asset |
+| Select All/None | Quick toggle buttons |
+| Status Colors | Pins με χρώματα ανάλογα με status |
+| Branding | "Created by Synax" watermark/footer |
+
+**UI:**
+```
+┌─────────────────────────────────────┐
+│  Download Floor Plan             X  │
+├─────────────────────────────────────┤
+│  Format: [PNG ▼]                    │
+│  ┌─────────────────────────────┐   │
+│  │     [Floorplan Preview]     │   │
+│  │        (με pins)            │   │
+│  └─────────────────────────────┘   │
+│  Rooms to include: (4/6)           │
+│  ☑ Room 101  ☑ Room 102           │
+│  ☐ Room 103  ☑ Room 104           │
+│  [All] [None]                      │
+│         [Cancel]  [Download]       │
+└─────────────────────────────────────┘
+```
+
+**Changes:**
+- Replaced `DownloadFloorplanDropdown` with `DownloadFloorplanModal`
+- FloorDetailPage - uses modal with room pins
+- RoomDetailPage - uses modal with asset pins
+- Canvas drawing includes pin labels & status colors
+
+**Files:**
+- `frontend/src/components/floor-plan/DownloadFloorplanModal.tsx` (NEW)
+- `frontend/src/components/floor-plan/index.ts` (updated)
+- `frontend/src/pages/floors/FloorDetailPage.tsx` (updated)
+- `frontend/src/pages/rooms/RoomDetailPage.tsx` (updated)
+
+**Build:** ✅ Success
+
+**Status: Download Preview Modal COMPLETE ✅**
+
+---
+
+## Session: Asset Type SVG Icons (2026-01-31)
+
+### Χρήστης
+Θέλω τα assets στην κάτοψη να έχουν το αντίστοιχο SVG icon τους αντί για απλά χρωματιστά boxes.
+
+### Claude
+Υλοποίησα SVG icons για κάθε asset type στο RoomPlanCanvas:
+
+**SVG Path Data:**
+| Asset Type | Icon |
+|------------|------|
+| Access Point | WiFi waves |
+| Network Switch | Router with dots |
+| Smart TV | TV screen with antenna |
+| IP Camera | Camera body with lens |
+| VoIP Phone | Phone handset |
+| POS Terminal | Card terminal |
+| Digital Signage | Monitor with stand |
+| Router | Router with antenna |
+| Default | 3D Box |
+
+**Implementation:**
+- Added `Path` import from react-konva
+- Created `ASSET_TYPE_SVG_PATHS` mapping with Lucide icon path data
+- Wrapped paths in Group with scale 0.75 (24x24 → 18x18)
+- White stroke icons on colored status background
+
+**Files:**
+- `frontend/src/components/room-plan/RoomPlanCanvas.tsx` (updated)
+
+**Build:** ✅ Success
+
+**Status: Asset Type SVG Icons COMPLETE ✅**
+
+---
+
+*Τελευταία ενημέρωση: 2026-01-31 (Asset Type SVG Icons)*
