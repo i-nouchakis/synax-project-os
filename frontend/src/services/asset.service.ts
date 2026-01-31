@@ -1,0 +1,153 @@
+import { api } from '@/lib/api';
+
+export type AssetStatus = 'PLANNED' | 'IN_STOCK' | 'INSTALLED' | 'CONFIGURED' | 'VERIFIED' | 'FAULTY';
+
+export interface AssetType {
+  id: string;
+  name: string;
+  icon?: string;
+  checklistTemplate?: {
+    items: Array<{
+      name: string;
+      requiresPhoto: boolean;
+    }>;
+  };
+  _count?: {
+    assets: number;
+  };
+}
+
+export interface Asset {
+  id: string;
+  name: string;
+  model?: string;
+  serialNumber?: string;
+  macAddress?: string;
+  ipAddress?: string;
+  status: AssetStatus;
+  notes?: string;
+  roomId: string;
+  assetTypeId?: string;
+  installedById?: string;
+  installedAt?: string;
+  pinX?: number | null;
+  pinY?: number | null;
+  createdAt: string;
+  updatedAt: string;
+  assetType?: AssetType;
+  room?: {
+    id: string;
+    name: string;
+    floor?: {
+      id: string;
+      name: string;
+      project?: {
+        id: string;
+        name: string;
+      };
+    };
+  };
+  installedBy?: {
+    id: string;
+    name: string;
+    email?: string;
+  };
+  _count?: {
+    checklists: number;
+  };
+}
+
+export interface CreateAssetData {
+  name: string;
+  assetTypeId?: string;
+  model?: string;
+  serialNumber?: string;
+  macAddress?: string;
+  ipAddress?: string;
+  notes?: string;
+}
+
+export interface UpdateAssetData extends Partial<CreateAssetData> {
+  status?: AssetStatus;
+}
+
+interface AssetsResponse {
+  assets: Asset[];
+}
+
+interface AssetResponse {
+  asset: Asset;
+}
+
+interface AssetTypesResponse {
+  assetTypes: AssetType[];
+}
+
+export const assetService = {
+  // Search assets
+  async search(params?: { search?: string; status?: string; assetTypeId?: string }): Promise<Asset[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.assetTypeId) searchParams.set('assetTypeId', params.assetTypeId);
+
+    const query = searchParams.toString();
+    const response = await api.get<AssetsResponse>(`/assets${query ? `?${query}` : ''}`);
+    return response.assets;
+  },
+
+  // Get asset types
+  async getTypes(): Promise<AssetType[]> {
+    const response = await api.get<AssetTypesResponse>('/assets/types');
+    return response.assetTypes;
+  },
+
+  // Get asset by ID
+  async getById(id: string): Promise<Asset> {
+    const response = await api.get<AssetResponse>(`/assets/${id}`);
+    return response.asset;
+  },
+
+  // Get assets in room
+  async getByRoom(roomId: string): Promise<Asset[]> {
+    const response = await api.get<AssetsResponse>(`/assets/rooms/${roomId}`);
+    return response.assets;
+  },
+
+  // Create asset in room
+  async create(roomId: string, data: CreateAssetData): Promise<Asset> {
+    const response = await api.post<AssetResponse>(`/assets/rooms/${roomId}`, data);
+    return response.asset;
+  },
+
+  // Update asset
+  async update(id: string, data: UpdateAssetData): Promise<Asset> {
+    const response = await api.put<AssetResponse>(`/assets/${id}`, data);
+    return response.asset;
+  },
+
+  // Delete asset
+  async delete(id: string): Promise<void> {
+    await api.delete(`/assets/${id}`);
+  },
+
+  // Update asset position on room floor plan
+  async updatePosition(id: string, pinX: number | null, pinY: number | null): Promise<Asset> {
+    const response = await api.put<AssetResponse>(`/assets/${id}/position`, { pinX, pinY });
+    return response.asset;
+  },
+
+  // Search by QR code value (serial number or MAC address)
+  async searchByCode(code: string): Promise<Asset | null> {
+    try {
+      const response = await api.get<AssetResponse>(`/assets/lookup/${encodeURIComponent(code)}`);
+      return response.asset;
+    } catch (err: unknown) {
+      // Return null if not found (404)
+      if (err && typeof err === 'object' && 'status' in err && err.status === 404) {
+        return null;
+      }
+      throw err;
+    }
+  },
+};
