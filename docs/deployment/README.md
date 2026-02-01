@@ -1,7 +1,7 @@
 # Synax - Production Deployment Guide
 
 **Target:** Contabo Server με Dokploy + Traefik
-**Date:** 2026-01-31
+**Date:** 2026-02-01
 
 ---
 
@@ -21,14 +21,14 @@
          ▼          │       ▼          ▼                     │
     ┌─────────┐     │  ┌─────────┐  ┌─────────┐             │
     │Frontend │     │  │ Backend │  │  MinIO  │             │
-    │ (nginx) │     │  │ (Node)  │  │ Console │             │
-    │  :80    │     │  │  :3002  │  │  :9001  │             │
+    │ (nginx) │     │  │ (Node)  │  │   API   │             │
+    │  :80    │     │  │  :3002  │  │  :9000  │             │
     └─────────┘     │  └────┬────┘  └────┬────┘             │
                     │       │            │                   │
                     │       ▼            ▼                   │
                     │  ┌─────────┐  ┌─────────┐             │
                     │  │ Postgres│  │  MinIO  │             │
-                    │  │  :5432  │  │  :9000  │             │
+                    │  │  :5432  │  │  Data   │             │
                     │  └─────────┘  └─────────┘             │
                     │       │                                │
                     │       ▼                                │
@@ -42,129 +42,161 @@
 
 ---
 
+## Quick Start
+
+### 1. Clone Repository
+```bash
+git clone https://github.com/i-nouchakis/synax-project-os.git
+cd synax-project-os
+```
+
+### 2. Configure Environment
+```bash
+cp .env.prod.example .env.prod
+# Edit .env.prod with your values
+```
+
+### 3. Deploy with Dokploy
+See [DOKPLOY_SETUP.md](./DOKPLOY_SETUP.md) for detailed instructions.
+
+---
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `docker-compose.prod.yml` | Production compose file |
+| `.env.prod.example` | Environment template |
+| `frontend/Dockerfile.prod` | Frontend production build |
+| `backend/Dockerfile.prod` | Backend production build |
+| `frontend/nginx.conf` | Nginx config with API proxy |
+
+---
+
 ## Services
 
 | Service | Image | Port | Public |
 |---------|-------|------|--------|
 | Frontend | synax-frontend | 80 | Yes (synax.domain.com) |
-| Backend | synax-backend | 3002 | Yes (/api) |
+| Backend | synax-backend | 3002 | Via nginx proxy (/api) |
 | PostgreSQL | postgres:16-alpine | 5432 | No |
 | Redis | redis:7-alpine | 6379 | No |
 | MinIO | minio/minio | 9000, 9001 | Optional |
 
 ---
 
-## Domain Setup
-
-**Προτεινόμενο:**
-- `synax.yourdomain.com` → Frontend + Backend API
-- `storage.yourdomain.com` → MinIO Console (optional)
-
-**Routing:**
-- `/` → Frontend (nginx)
-- `/api/*` → Backend (Node.js)
-
----
-
 ## Environment Variables
 
-### Backend (.env)
 ```env
-NODE_ENV=production
-PORT=3002
+# Domain (without https://)
+DOMAIN=synax.yourdomain.com
+STORAGE_PUBLIC_ENDPOINT=storage.yourdomain.com
 
-# Database
-DATABASE_URL=postgresql://synax:PASSWORD@postgres:5432/synax_db?schema=public
+# PostgreSQL
+POSTGRES_USER=synax
+POSTGRES_PASSWORD=your_secure_password
+POSTGRES_DB=synax_db
 
-# JWT
-JWT_SECRET=your-super-secret-jwt-key-min-32-chars
-JWT_REFRESH_SECRET=your-super-secret-refresh-key-min-32-chars
-
-# Redis
-REDIS_URL=redis://redis:6379
+# JWT Secrets (min 32 characters each)
+JWT_SECRET=generate_with_openssl_rand_base64_32
+JWT_REFRESH_SECRET=generate_another_secret_here
 
 # MinIO Storage
-STORAGE_ENDPOINT=minio
-STORAGE_PORT=9000
-STORAGE_ACCESS_KEY=minioadmin
-STORAGE_SECRET_KEY=your-minio-secret-key
-STORAGE_BUCKET=synax-files
-STORAGE_USE_SSL=false
-STORAGE_PUBLIC_ENDPOINT=storage.yourdomain.com
+MINIO_ACCESS_KEY=synaxadmin
+MINIO_SECRET_KEY=your_minio_secret
 ```
 
-### Frontend (.env)
-```env
-VITE_API_URL=/api
+**Generate secrets:**
+```bash
+openssl rand -base64 32
 ```
 
 ---
 
-## Deployment Steps
+## Dokploy Configuration
 
-### 1. Dokploy Project Setup
-- [ ] Create new project "Synax" in Dokploy
-- [ ] Connect GitHub repo: `i-nouchakis/synax-project-os`
-- [ ] Set branch: `main`
+| Setting | Value |
+|---------|-------|
+| Project Name | Synax Production |
+| Service Type | Compose |
+| Provider | GitHub |
+| Repository | i-nouchakis/synax-project-os |
+| Branch | main |
+| **Compose Path** | `./docker-compose.prod.yml` |
+| Trigger Type | On Push |
+| Autodeploy | Enabled |
 
-### 2. Database Setup
-- [ ] Add PostgreSQL service in Dokploy
-- [ ] Set credentials
-- [ ] Note the internal hostname
-
-### 3. Redis Setup
-- [ ] Add Redis service in Dokploy
-- [ ] Note the internal hostname
-
-### 4. MinIO Setup
-- [ ] Add MinIO service in Dokploy
-- [ ] Configure access keys
-- [ ] Set up bucket policy (public read)
-
-### 5. Backend Deployment
-- [ ] Create Dockerfile.prod (if needed)
-- [ ] Set environment variables
-- [ ] Configure Traefik labels for /api routing
-- [ ] Run Prisma migrations
-
-### 6. Frontend Deployment
-- [ ] Create Dockerfile.prod with nginx
-- [ ] Set VITE_API_URL
-- [ ] Configure Traefik labels
-
-### 7. SSL/Domain
-- [ ] Point domain DNS to Contabo IP
-- [ ] Traefik auto-generates SSL
+⚠️ **IMPORTANT:** Make sure Compose Path is `./docker-compose.prod.yml`
 
 ---
 
-## Files Created
+## Post-Deployment
 
-```
-synax/
-├── docker-compose.prod.yml      # Main compose file for Dokploy
-├── .env.prod.example            # Environment variables template
-├── frontend/
-│   ├── Dockerfile.prod          # Production build (nginx)
-│   └── nginx.conf               # Nginx config with API proxy
-└── backend/
-    └── Dockerfile.prod          # Production build (Node.js)
+### Run Database Migrations
+```bash
+# In Dokploy terminal for synax-backend container:
+npx prisma migrate deploy
+npx prisma db seed
 ```
 
----
-
-## Status Log
-
-| Time | Action | Status |
-|------|--------|--------|
-| 2026-01-31 | Created production Dockerfiles | ✅ |
-| 2026-01-31 | Created docker-compose.prod.yml | ✅ |
-| 2026-01-31 | Created .env.prod.example | ✅ |
+### Default Users
+| Email | Password | Role |
+|-------|----------|------|
+| admin@synax.app | admin123 | ADMIN |
+| pm@synax.app | pm123456 | PM |
+| tech@synax.app | tech123456 | TECHNICIAN |
 
 ---
 
-## Notes
+## Troubleshooting
 
-(θα προστίθενται notes κατά τη διάρκεια του setup)
+### dokploy-network not found
+```bash
+docker network create dokploy-network
+```
+
+### View Logs
+```bash
+docker logs synax-backend -f
+docker logs synax-frontend -f
+docker logs synax-postgres -f
+```
+
+### Database Connection Issues
+1. Check POSTGRES_PASSWORD is set correctly
+2. Wait for postgres healthcheck to pass
+3. Verify DATABASE_URL format
+
+### Health Check
+```bash
+curl http://localhost:3002/api/health
+```
 
 ---
+
+## Maintenance
+
+### Backup Database
+```bash
+docker exec synax-postgres pg_dump -U synax synax_db > backup_$(date +%Y%m%d).sql
+```
+
+### Restore Database
+```bash
+cat backup.sql | docker exec -i synax-postgres psql -U synax synax_db
+```
+
+### Update Application
+Just push to main branch - Dokploy will auto-deploy.
+
+---
+
+## Documentation
+
+- [DOKPLOY_SETUP.md](./DOKPLOY_SETUP.md) - Detailed Dokploy setup guide
+- [../ARCHITECTURE.md](../ARCHITECTURE.md) - Technical architecture
+- [../API.md](../API.md) - API reference
+
+---
+
+*Last Updated: 2026-02-01*

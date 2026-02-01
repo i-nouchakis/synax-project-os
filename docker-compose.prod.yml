@@ -6,17 +6,12 @@ services:
       dockerfile: Dockerfile.prod
     container_name: synax-frontend
     restart: unless-stopped
+    ports:
+      - "80:80"
     depends_on:
       - backend
     networks:
       - synax-network
-      - dokploy-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.synax-frontend.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.synax-frontend.entrypoints=websecure"
-      - "traefik.http.routers.synax-frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.synax-frontend.loadbalancer.server.port=80"
 
   # Backend (Node.js API)
   backend:
@@ -38,7 +33,7 @@ services:
       STORAGE_SECRET_KEY: ${MINIO_SECRET_KEY}
       STORAGE_BUCKET: synax-files
       STORAGE_USE_SSL: "false"
-      STORAGE_PUBLIC_ENDPOINT: ${STORAGE_PUBLIC_ENDPOINT}
+      STORAGE_PUBLIC_ENDPOINT: ${STORAGE_PUBLIC_ENDPOINT:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,6 +41,12 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3002/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - synax-network
 
@@ -89,6 +90,9 @@ services:
     image: minio/minio:latest
     container_name: synax-minio
     restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
@@ -96,20 +100,13 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
       timeout: 20s
       retries: 3
+      start_period: 30s
     networks:
       - synax-network
-    labels:
-      - "traefik.enable=true"
-      # MinIO API (for file access)
-      - "traefik.http.routers.synax-minio.rule=Host(`${STORAGE_PUBLIC_ENDPOINT}`)"
-      - "traefik.http.routers.synax-minio.entrypoints=websecure"
-      - "traefik.http.routers.synax-minio.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.synax-minio.service=synax-minio"
-      - "traefik.http.services.synax-minio.loadbalancer.server.port=9000"
 
 volumes:
   postgres_data:
@@ -119,5 +116,3 @@ volumes:
 networks:
   synax-network:
     driver: bridge
-  dokploy-network:
-    external: true

@@ -44,10 +44,14 @@ const start = async () => {
       },
     });
 
-    // Health check
-    app.get('/health', async () => {
-      return { status: 'ok', timestamp: new Date().toISOString() };
+    // Health check (both /health and /api/health for flexibility)
+    const healthResponse = async () => ({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
     });
+    app.get('/health', healthResponse);
+    app.get('/api/health', healthResponse);
 
     // API Routes
     await app.register(authRoutes, { prefix: '/api/auth' });
