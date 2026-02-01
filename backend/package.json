@@ -2,6 +2,11 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "Synax Backend API",
+  "author": {
+    "name": "Ioannis Nouchakis",
+    "email": "info@elecnet.gr",
+    "url": "https://elecnet.gr"
+  },
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

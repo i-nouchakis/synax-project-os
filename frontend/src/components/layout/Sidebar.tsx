@@ -187,6 +187,23 @@ export function Sidebar({ collapsed = false, onCollapsedChange }: SidebarProps) 
         ))}
       </nav>
 
+      {/* Credits */}
+      {!isCollapsed && (
+        <div className="px-4 py-2 border-t border-surface-border">
+          <p className="text-tiny text-text-tertiary text-center">
+            Designed & Developed by{' '}
+            <a
+              href="https://elecnet.gr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Ioannis Nouchakis
+            </a>
+          </p>
+        </div>
+      )}
+
       {/* Bottom section */}
       <div className="border-t border-surface-border p-2">
         <NavLink

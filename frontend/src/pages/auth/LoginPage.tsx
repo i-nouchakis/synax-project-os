@@ -120,7 +120,18 @@ export function LoginPage() {
         </Card>
 
         <p className="text-center text-caption text-text-tertiary mt-6">
-          © 2026 Synax by Elecnet. All rights reserved.
+          Designed & Developed by{' '}
+          <a
+            href="https://elecnet.gr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            Ioannis Nouchakis
+          </a>
+        </p>
+        <p className="text-center text-tiny text-text-tertiary mt-1">
+          © 2026 Synax. All rights reserved.
         </p>
       </div>
     </div>
