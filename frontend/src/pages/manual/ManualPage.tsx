@@ -217,6 +217,24 @@ export function ManualPage() {
           {activeSection === 'faq' && <FAQSection />}
         </div>
       </div>
+
+      {/* Credits Footer */}
+      <div className="mt-6 pt-4 border-t border-surface-border text-center">
+        <p className="text-caption text-text-tertiary">
+          Designed & Developed by{' '}
+          <a
+            href="https://elecnet.gr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            Ioannis Nouchakis
+          </a>
+        </p>
+        <p className="text-tiny text-text-tertiary mt-1">
+          © 2026 Synax. All rights reserved.
+        </p>
+      </div>
     </div>
   );
 }
