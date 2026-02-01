@@ -4,6 +4,19 @@ import { Download, Printer, Plus, Trash2, Copy } from 'lucide-react';
 import { Button, Input, Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
+// Fallback for crypto.randomUUID (not available in HTTP)
+const generateUUID = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return generateUUID();
+  }
+  // Fallback UUID generator
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 // Label types
 export type LabelType = 'cable' | 'rack' | 'asset' | 'room';
 
@@ -57,7 +70,7 @@ export function LabelGenerator({ projectName, onGenerate }: LabelGeneratorProps)
       const num = startNumber + i;
       const code = `${finalPrefix}-${String(num).padStart(4, '0')}`;
       newLabels.push({
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         type: labelType,
         title: code,
         subtitle: projectName,
@@ -75,7 +88,7 @@ export function LabelGenerator({ projectName, onGenerate }: LabelGeneratorProps)
   const addSingleLabel = () => {
     const code = prefix || 'LABEL';
     const newLabel: Label = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       type: labelType,
       title: code,
       subtitle: projectName,
@@ -93,7 +106,7 @@ export function LabelGenerator({ projectName, onGenerate }: LabelGeneratorProps)
 
   // Duplicate label
   const duplicateLabel = (label: Label) => {
-    setLabels([...labels, { ...label, id: crypto.randomUUID() }]);
+    setLabels([...labels, { ...label, id: generateUUID() }]);
   };
 
   // Print labels
