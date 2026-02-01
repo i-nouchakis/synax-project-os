@@ -107,15 +107,6 @@ export function LoginPage() {
               </Button>
             </form>
 
-            {/* Demo accounts info */}
-            <div className="mt-6 p-3 rounded-md bg-surface-secondary border border-surface-border">
-              <p className="text-caption text-text-secondary mb-2 font-medium">Demo Accounts:</p>
-              <div className="space-y-1 text-caption text-text-tertiary">
-                <p>admin@synax.app / admin123</p>
-                <p>pm@synax.app / pm123456</p>
-                <p>tech@synax.app / tech123456</p>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
