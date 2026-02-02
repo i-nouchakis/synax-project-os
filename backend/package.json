@@ -16,6 +16,8 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:prod": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:mega": "tsx prisma/seed-projects.ts",
+    "db:seed:ookea": "tsx prisma/seed-ookea.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
