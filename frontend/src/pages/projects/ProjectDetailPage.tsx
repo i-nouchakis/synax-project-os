@@ -24,6 +24,7 @@ import {
   Upload,
   Image,
   X,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -41,7 +42,7 @@ import {
 } from '@/components/ui';
 import { projectService, type ProjectStatus, type UpdateProjectData } from '@/services/project.service';
 import { userService } from '@/services/user.service';
-import { floorService, type CreateFloorData } from '@/services/floor.service';
+import { floorService, type CreateFloorData, type UpdateFloorData, type Floor } from '@/services/floor.service';
 import { reportService } from '@/services/report.service';
 import { uploadService } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth.store';
@@ -64,6 +65,8 @@ export function ProjectDetailPage() {
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isAddFloorModalOpen, setIsAddFloorModalOpen] = useState(false);
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
+  const [editingFloor, setEditingFloor] = useState<Floor | null>(null);
+  const [deletingFloor, setDeletingFloor] = useState<Floor | null>(null);
 
   // Fetch project
   const { data: project, isLoading, error } = useQuery({
@@ -145,6 +148,33 @@ export function ProjectDetailPage() {
     },
     onError: (err: Error) => {
       toast.error(err.message || 'Failed to update project');
+    },
+  });
+
+  // Update floor mutation
+  const updateFloorMutation = useMutation({
+    mutationFn: ({ floorId, data }: { floorId: string; data: UpdateFloorData }) =>
+      floorService.update(floorId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      setEditingFloor(null);
+      toast.success('Floor updated successfully');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to update floor');
+    },
+  });
+
+  // Delete floor mutation
+  const deleteFloorMutation = useMutation({
+    mutationFn: (floorId: string) => floorService.delete(floorId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      setDeletingFloor(null);
+      toast.success('Floor deleted successfully');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to delete floor');
     },
   });
 
@@ -395,7 +425,7 @@ export function ProjectDetailPage() {
                 {project.floors.map((floor) => (
                   <div
                     key={floor.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary hover:bg-surface-hover transition-colors cursor-pointer"
+                    className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary hover:bg-surface-hover transition-colors cursor-pointer group"
                     onClick={() => navigate(`/floors/${floor.id}`)}
                   >
                     <div className="flex items-center gap-3">
@@ -409,6 +439,30 @@ export function ProjectDetailPage() {
                         </p>
                       </div>
                     </div>
+                    {canManage && (
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingFloor(floor as Floor);
+                          }}
+                          className="p-2 rounded hover:bg-surface text-text-secondary hover:text-primary"
+                          title="Edit floor"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeletingFloor(floor as Floor);
+                          }}
+                          className="p-2 rounded hover:bg-surface text-text-secondary hover:text-error"
+                          title="Delete floor"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -499,6 +553,55 @@ export function ProjectDetailPage() {
         isLoading={updateProjectMutation.isPending}
         project={project}
       />
+
+      {/* Edit Floor Modal */}
+      {editingFloor && (
+        <EditFloorModal
+          isOpen={!!editingFloor}
+          onClose={() => setEditingFloor(null)}
+          onSubmit={(data) => updateFloorMutation.mutate({ floorId: editingFloor.id, data })}
+          isLoading={updateFloorMutation.isPending}
+          floor={editingFloor}
+        />
+      )}
+
+      {/* Delete Floor Confirmation Modal */}
+      {deletingFloor && (
+        <Modal
+          isOpen={!!deletingFloor}
+          onClose={() => setDeletingFloor(null)}
+          title="Delete Floor"
+          icon={<AlertTriangle size={18} />}
+          size="sm"
+          footer={
+            <ModalActions>
+              <Button variant="secondary" onClick={() => setDeletingFloor(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => deleteFloorMutation.mutate(deletingFloor.id)}
+                isLoading={deleteFloorMutation.isPending}
+              >
+                Delete Floor
+              </Button>
+            </ModalActions>
+          }
+        >
+          <div className="text-center py-4">
+            <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={24} className="text-error" />
+            </div>
+            <p className="text-body text-text-primary mb-2">
+              Are you sure you want to delete <strong>{deletingFloor.name}</strong>?
+            </p>
+            <p className="text-body-sm text-text-secondary">
+              This will also delete all {deletingFloor._count?.rooms || 0} rooms and their assets.
+              This action cannot be undone.
+            </p>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -877,6 +980,83 @@ function EditProjectModal({ isOpen, onClose, onSubmit, isLoading, project }: Edi
                 min={formData.startDate || undefined}
               />
             </div>
+          </div>
+        </ModalSection>
+      </form>
+    </Modal>
+  );
+}
+
+// Edit Floor Modal
+interface EditFloorModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: UpdateFloorData) => void;
+  isLoading: boolean;
+  floor: Floor;
+}
+
+function EditFloorModal({ isOpen, onClose, onSubmit, isLoading, floor }: EditFloorModalProps) {
+  const [formData, setFormData] = useState({
+    name: floor.name,
+    level: floor.level,
+  });
+
+  // Update form when floor changes
+  if (isOpen && formData.name !== floor.name) {
+    setFormData({
+      name: floor.name,
+      level: floor.level,
+    });
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      name: formData.name,
+      level: formData.level,
+    });
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Edit Floor"
+      icon={<Pencil size={18} />}
+      size="md"
+      footer={
+        <ModalActions>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="edit-floor-form" isLoading={isLoading}>
+            Save Changes
+          </Button>
+        </ModalActions>
+      }
+    >
+      <form id="edit-floor-form" onSubmit={handleSubmit} className="space-y-5">
+        <ModalSection title="Floor Details" icon={<Layers size={14} />}>
+          <div className="space-y-4">
+            <Input
+              label="Floor Name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Ground Floor, 1st Floor, Basement..."
+              required
+              leftIcon={<Layers size={16} />}
+            />
+            <Input
+              type="number"
+              label="Level Number"
+              value={formData.level.toString()}
+              onChange={(e) => setFormData({ ...formData, level: parseInt(e.target.value) || 0 })}
+              placeholder="0"
+            />
+            <p className="text-xs text-text-tertiary">
+              Use negative numbers for basement levels (e.g., -1, -2)
+            </p>
           </div>
         </ModalSection>
       </form>
