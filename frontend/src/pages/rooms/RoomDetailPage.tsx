@@ -45,6 +45,7 @@ import { assetService, type Asset, type AssetType, type CreateAssetData, type Up
 import { roomService } from '@/services/room.service';
 import { uploadService } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth.store';
+import { assetModelService } from '@/services/lookup.service';
 
 const assetStatusOptions = [
   { value: 'PLANNED', label: 'Planned' },
@@ -716,6 +717,48 @@ function AssetFormModal({
     notes: '',
   });
 
+  // Fetch all asset models
+  const { data: assetModelsData } = useQuery({
+    queryKey: ['lookups', 'asset-models'],
+    queryFn: () => assetModelService.getAll(),
+  });
+
+  // Filter models based on selected asset type
+  const filteredModels = assetModelsData?.items?.filter((m) => {
+    // If no type selected, show all models
+    if (!formData.assetTypeId) return true;
+    // If model has no type, show it for all types
+    if (!m.assetTypeId) return true;
+    // Otherwise filter by type
+    return m.assetTypeId === formData.assetTypeId;
+  }) || [];
+
+  const assetModelOptions = [
+    { value: '', label: 'Select model (optional)' },
+    ...filteredModels.map((m) => ({
+      value: `${m.manufacturer?.name} ${m.name}`,
+      label: `${m.manufacturer?.name} - ${m.name}`
+    })),
+  ];
+
+  // Handle type change - clear model if not compatible
+  const handleTypeChange = (newTypeId: string) => {
+    const currentModel = formData.model;
+    const currentModelData = assetModelsData?.items?.find(
+      (m) => `${m.manufacturer?.name} ${m.name}` === currentModel
+    );
+
+    // If current model exists and has a different type, clear it
+    const shouldClearModel = currentModelData?.assetTypeId &&
+      currentModelData.assetTypeId !== newTypeId;
+
+    setFormData({
+      ...formData,
+      assetTypeId: newTypeId,
+      model: shouldClearModel ? '' : formData.model
+    });
+  };
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -796,15 +839,15 @@ function AssetFormModal({
               <Select
                 label="Asset Type"
                 value={formData.assetTypeId || ''}
-                onChange={(e) => setFormData({ ...formData, assetTypeId: e.target.value })}
+                onChange={(e) => handleTypeChange(e.target.value)}
                 options={assetTypeOptions}
               />
             </div>
-            <Input
+            <Select
               label="Model"
               value={formData.model || ''}
               onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              placeholder="Cisco Catalyst 9300"
+              options={assetModelOptions}
             />
           </div>
         </ModalSection>

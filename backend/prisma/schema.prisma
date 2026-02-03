@@ -1,6 +1,3 @@
-// Synax Database Schema
-// Based on PLAN.md specifications
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,39 +7,86 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// Users & Authentication
-// ============================================
+model LookupRoomType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  icon      String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
 
-enum UserRole {
-  ADMIN
-  PM
-  TECHNICIAN
-  CLIENT
+  @@map("lookup_room_types")
+}
+
+model LookupInventoryUnit {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  abbreviation String   @unique
+  order        Int      @default(0)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("lookup_inventory_units")
+}
+
+model LookupIssueCause {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("lookup_issue_causes")
+}
+
+model LookupManufacturer {
+  id        String             @id @default(cuid())
+  name      String             @unique
+  website   String?
+  order     Int                @default(0)
+  isActive  Boolean            @default(true) @map("is_active")
+  createdAt DateTime           @default(now()) @map("created_at")
+  models    LookupAssetModel[]
+
+  @@map("lookup_manufacturers")
+}
+
+model LookupAssetModel {
+  id             String             @id @default(cuid())
+  manufacturerId String             @map("manufacturer_id")
+  name           String
+  icon           String?
+  assetTypeId    String?            @map("asset_type_id")
+  order          Int                @default(0)
+  isActive       Boolean            @default(true) @map("is_active")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  assetType      AssetType?         @relation(fields: [assetTypeId], references: [id])
+  manufacturer   LookupManufacturer @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
+
+  @@unique([manufacturerId, name])
+  @@map("lookup_asset_models")
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash  String    @map("password_hash")
-  name          String
-  role          UserRole  @default(TECHNICIAN)
-  avatar        String?
-  isActive      Boolean   @default(true) @map("is_active")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  projectMembers     ProjectMember[]
-  assignedAssets     Asset[]            @relation("InstalledBy")
-  assignedChecklists Checklist[]        @relation("AssignedTo")
-  createdIssues      Issue[]            @relation("CreatedBy")
-  issueComments      IssueComment[]
-  inventoryLogs      InventoryLog[]
-  signatures         Signature[]
-  generatedReports   GeneratedReport[]  @relation("GeneratedReports")
-  completedChecklistItems ChecklistItem[] @relation("CompletedBy")
-  timeEntries        TimeEntry[]
+  id                      String            @id @default(cuid())
+  email                   String            @unique
+  passwordHash            String            @map("password_hash")
+  name                    String
+  role                    UserRole          @default(TECHNICIAN)
+  avatar                  String?
+  isActive                Boolean           @default(true) @map("is_active")
+  createdAt               DateTime          @default(now()) @map("created_at")
+  updatedAt               DateTime          @updatedAt @map("updated_at")
+  assignedAssets          Asset[]           @relation("InstalledBy")
+  completedChecklistItems ChecklistItem[]   @relation("CompletedBy")
+  assignedChecklists      Checklist[]       @relation("AssignedTo")
+  generatedReports        GeneratedReport[] @relation("GeneratedReports")
+  inventoryLogs           InventoryLog[]
+  issueComments           IssueComment[]
+  createdIssues           Issue[]           @relation("CreatedBy")
+  projectMembers          ProjectMember[]
+  signatures              Signature[]
+  timeEntries             TimeEntry[]
 
   @@map("users")
 }
@@ -58,48 +102,34 @@ model RefreshToken {
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String   @map("user_id")
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String    @map("user_id")
   email     String
-  expiresAt DateTime @map("expires_at")
+  expiresAt DateTime  @map("expires_at")
   usedAt    DateTime? @map("used_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   @@map("password_reset_tokens")
 }
 
-// ============================================
-// Projects & Hierarchy
-// ============================================
-
-enum ProjectStatus {
-  PLANNING
-  IN_PROGRESS
-  ON_HOLD
-  COMPLETED
-  ARCHIVED
-}
-
 model Project {
-  id          String        @id @default(cuid())
-  name        String
-  description String?
-  clientName  String        @map("client_name")
-  location    String?
-  status      ProjectStatus @default(PLANNING)
-  startDate   DateTime?     @map("start_date")
-  endDate     DateTime?     @map("end_date")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-
-  // Relations
-  members          ProjectMember[]
+  id               String            @id @default(cuid())
+  name             String
+  description      String?
+  clientName       String            @map("client_name")
+  location         String?
+  status           ProjectStatus     @default(PLANNING)
+  startDate        DateTime?         @map("start_date")
+  endDate          DateTime?         @map("end_date")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
   floors           Floor[]
-  issues           Issue[]
-  inventory        InventoryItem[]
-  signatures       Signature[]
   generatedReports GeneratedReport[]
+  inventory        InventoryItem[]
+  issues           Issue[]
+  members          ProjectMember[]
+  signatures       Signature[]
   timeEntries      TimeEntry[]
 
   @@map("projects")
@@ -111,10 +141,8 @@ model ProjectMember {
   userId    String   @map("user_id")
   role      UserRole @default(TECHNICIAN)
   joinedAt  DateTime @default(now()) @map("joined_at")
-
-  // Relations
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
   @@map("project_members")
@@ -126,69 +154,44 @@ model Floor {
   name          String
   level         Int      @default(0)
   floorplanUrl  String?  @map("floorplan_url")
-  floorplanType String?  @map("floorplan_type") // 'pdf', 'dwg', 'svg', 'image'
+  floorplanType String?  @map("floorplan_type")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  rooms   Room[]
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  rooms         Room[]
 
   @@map("floors")
 }
 
-enum RoomStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  COMPLETED
-  BLOCKED
-}
-
 model Room {
-  id            String     @id @default(cuid())
-  floorId       String     @map("floor_id")
+  id            String      @id @default(cuid())
+  floorId       String      @map("floor_id")
   name          String
-  type          String?    // 'server_room', 'office', 'meeting_room', etc.
-  pinX          Float?     @map("pin_x")
-  pinY          Float?     @map("pin_y")
-  status        RoomStatus @default(NOT_STARTED)
+  type          String?
+  pinX          Float?      @map("pin_x")
+  pinY          Float?      @map("pin_y")
+  status        RoomStatus  @default(NOT_STARTED)
   notes         String?
-  floorplanUrl  String?    @map("floorplan_url")
-  floorplanType String?    @map("floorplan_type") // 'IMAGE' or 'PDF'
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @updatedAt @map("updated_at")
-
-  // Relations
-  floor       Floor       @relation(fields: [floorId], references: [id], onDelete: Cascade)
-  assets      Asset[]
-  issues      Issue[]
-  signatures  Signature[]
-  timeEntries TimeEntry[]
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  floorplanType String?     @map("floorplan_type")
+  floorplanUrl  String?     @map("floorplan_url")
+  assets        Asset[]
+  issues        Issue[]
+  floor         Floor       @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  signatures    Signature[]
+  timeEntries   TimeEntry[]
 
   @@map("rooms")
 }
 
-// ============================================
-// Assets & Equipment
-// ============================================
-
-enum AssetStatus {
-  PLANNED
-  IN_STOCK
-  INSTALLED
-  CONFIGURED
-  VERIFIED
-  FAULTY
-}
-
 model AssetType {
-  id                String  @id @default(cuid())
-  name              String  @unique
+  id                String             @id @default(cuid())
+  name              String             @unique
   icon              String?
-  checklistTemplate Json?   @map("checklist_template")
-
-  // Relations
-  assets Asset[]
+  checklistTemplate Json?              @map("checklist_template")
+  assets            Asset[]
+  models            LookupAssetModel[]
 
   @@map("asset_types")
 }
@@ -206,24 +209,225 @@ model Asset {
   installedById String?     @map("installed_by_id")
   installedAt   DateTime?   @map("installed_at")
   notes         String?
-  pinX          Float?      @map("pin_x")  // Position on room floor plan
-  pinY          Float?      @map("pin_y")  // Position on room floor plan
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
-
-  // Relations
-  room        Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  assetType   AssetType?  @relation(fields: [assetTypeId], references: [id])
-  installedBy User?       @relation("InstalledBy", fields: [installedById], references: [id])
-  checklists  Checklist[]
-  timeEntries TimeEntry[]
+  pinX          Float?      @map("pin_x")
+  pinY          Float?      @map("pin_y")
+  assetType     AssetType?  @relation(fields: [assetTypeId], references: [id])
+  installedBy   User?       @relation("InstalledBy", fields: [installedById], references: [id])
+  room          Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  checklists    Checklist[]
+  timeEntries   TimeEntry[]
 
   @@map("assets")
 }
 
-// ============================================
-// Checklists
-// ============================================
+model Checklist {
+  id           String          @id @default(cuid())
+  assetId      String          @map("asset_id")
+  type         ChecklistType
+  status       ChecklistStatus @default(NOT_STARTED)
+  assignedToId String?         @map("assigned_to_id")
+  completedAt  DateTime?       @map("completed_at")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  items        ChecklistItem[]
+  asset        Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  assignedTo   User?           @relation("AssignedTo", fields: [assignedToId], references: [id])
+
+  @@map("checklists")
+}
+
+model ChecklistItem {
+  id            String           @id @default(cuid())
+  checklistId   String           @map("checklist_id")
+  name          String
+  description   String?
+  isRequired    Boolean          @default(true) @map("is_required")
+  requiresPhoto Boolean          @default(false) @map("requires_photo")
+  completed     Boolean          @default(false)
+  completedById String?          @map("completed_by_id")
+  completedAt   DateTime?        @map("completed_at")
+  order         Int              @default(0)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  checklist     Checklist        @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  completedBy   User?            @relation("CompletedBy", fields: [completedById], references: [id])
+  photos        ChecklistPhoto[]
+
+  @@map("checklist_items")
+}
+
+model ChecklistPhoto {
+  id              String        @id @default(cuid())
+  checklistItemId String        @map("checklist_item_id")
+  photoUrl        String        @map("photo_url")
+  caption         String?
+  uploadedAt      DateTime      @default(now()) @map("uploaded_at")
+  checklistItem   ChecklistItem @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
+
+  @@map("checklist_photos")
+}
+
+model Issue {
+  id          String         @id @default(cuid())
+  projectId   String         @map("project_id")
+  roomId      String?        @map("room_id")
+  title       String
+  description String?
+  causedBy    String?        @map("caused_by")
+  priority    IssuePriority  @default(MEDIUM)
+  status      IssueStatus    @default(OPEN)
+  createdById String         @map("created_by_id")
+  resolvedAt  DateTime?      @map("resolved_at")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  comments    IssueComment[]
+  photos      IssuePhoto[]
+  createdBy   User           @relation("CreatedBy", fields: [createdById], references: [id])
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  room        Room?          @relation(fields: [roomId], references: [id])
+
+  @@map("issues")
+}
+
+model IssuePhoto {
+  id         String   @id @default(cuid())
+  issueId    String   @map("issue_id")
+  photoUrl   String   @map("photo_url")
+  caption    String?
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+  issue      Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@map("issue_photos")
+}
+
+model IssueComment {
+  id        String   @id @default(cuid())
+  issueId   String   @map("issue_id")
+  userId    String   @map("user_id")
+  comment   String
+  createdAt DateTime @default(now()) @map("created_at")
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("issue_comments")
+}
+
+model InventoryItem {
+  id               String         @id @default(cuid())
+  projectId        String         @map("project_id")
+  itemType         String         @map("item_type")
+  description      String
+  unit             String         @default("pcs")
+  quantityReceived Int            @default(0) @map("quantity_received")
+  quantityUsed     Int            @default(0) @map("quantity_used")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  project          Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  logs             InventoryLog[]
+
+  @@map("inventory_items")
+}
+
+model InventoryLog {
+  id            String          @id @default(cuid())
+  itemId        String          @map("item_id")
+  action        InventoryAction
+  quantity      Int
+  serialNumbers String[]        @map("serial_numbers")
+  notes         String?
+  userId        String          @map("user_id")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  item          InventoryItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user          User            @relation(fields: [userId], references: [id])
+
+  @@map("inventory_logs")
+}
+
+model Signature {
+  id            String        @id @default(cuid())
+  projectId     String        @map("project_id")
+  roomId        String?       @map("room_id")
+  type          SignatureType
+  signatureData String        @map("signature_data")
+  signedByName  String        @map("signed_by_name")
+  signedById    String?       @map("signed_by_id")
+  signedAt      DateTime      @default(now()) @map("signed_at")
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  room          Room?         @relation(fields: [roomId], references: [id])
+  signedBy      User?         @relation(fields: [signedById], references: [id])
+
+  @@map("signatures")
+}
+
+model TimeEntry {
+  id          String        @id @default(cuid())
+  projectId   String        @map("project_id")
+  userId      String        @map("user_id")
+  roomId      String?       @map("room_id")
+  assetId     String?       @map("asset_id")
+  type        TimeEntryType @default(OTHER)
+  description String?
+  date        DateTime      @default(now())
+  startTime   DateTime?     @map("start_time")
+  endTime     DateTime?     @map("end_time")
+  hours       Float
+  notes       String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  asset       Asset?        @relation(fields: [assetId], references: [id])
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  room        Room?         @relation(fields: [roomId], references: [id])
+  user        User          @relation(fields: [userId], references: [id])
+
+  @@map("time_entries")
+}
+
+model GeneratedReport {
+  id            String     @id @default(cuid())
+  projectId     String     @map("project_id")
+  type          ReportType
+  title         String
+  fileUrl       String     @map("file_url")
+  fileSize      Int        @map("file_size")
+  generatedById String     @map("generated_by_id")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  generatedBy   User       @relation("GeneratedReports", fields: [generatedById], references: [id])
+  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("generated_reports")
+}
+
+enum UserRole {
+  ADMIN
+  PM
+  TECHNICIAN
+  CLIENT
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+enum RoomStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+enum AssetStatus {
+  PLANNED
+  IN_STOCK
+  INSTALLED
+  CONFIGURED
+  VERIFIED
+  FAULTY
+}
 
 enum ChecklistStatus {
   NOT_STARTED
@@ -237,62 +441,6 @@ enum ChecklistType {
   CONFIG
   DOCUMENTATION
 }
-
-model Checklist {
-  id           String          @id @default(cuid())
-  assetId      String          @map("asset_id")
-  type         ChecklistType
-  status       ChecklistStatus @default(NOT_STARTED)
-  assignedToId String?         @map("assigned_to_id")
-  completedAt  DateTime?       @map("completed_at")
-  createdAt    DateTime        @default(now()) @map("created_at")
-  updatedAt    DateTime        @updatedAt @map("updated_at")
-
-  // Relations
-  asset      Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  assignedTo User?           @relation("AssignedTo", fields: [assignedToId], references: [id])
-  items      ChecklistItem[]
-
-  @@map("checklists")
-}
-
-model ChecklistItem {
-  id            String    @id @default(cuid())
-  checklistId   String    @map("checklist_id")
-  name          String
-  description   String?
-  isRequired    Boolean   @default(true) @map("is_required")
-  requiresPhoto Boolean   @default(false) @map("requires_photo")
-  completed     Boolean   @default(false)
-  completedById String?   @map("completed_by_id")
-  completedAt   DateTime? @map("completed_at")
-  order         Int       @default(0)
-  createdAt     DateTime  @default(now()) @map("created_at")
-
-  // Relations
-  checklist   Checklist        @relation(fields: [checklistId], references: [id], onDelete: Cascade)
-  completedBy User?            @relation("CompletedBy", fields: [completedById], references: [id])
-  photos      ChecklistPhoto[]
-
-  @@map("checklist_items")
-}
-
-model ChecklistPhoto {
-  id              String   @id @default(cuid())
-  checklistItemId String   @map("checklist_item_id")
-  photoUrl        String   @map("photo_url")
-  caption         String?
-  uploadedAt      DateTime @default(now()) @map("uploaded_at")
-
-  // Relations
-  checklistItem ChecklistItem @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
-
-  @@map("checklist_photos")
-}
-
-// ============================================
-// Issues / Snag Tracking
-// ============================================
 
 enum IssuePriority {
   LOW
@@ -308,61 +456,6 @@ enum IssueStatus {
   CLOSED
 }
 
-model Issue {
-  id          String        @id @default(cuid())
-  projectId   String        @map("project_id")
-  roomId      String?       @map("room_id")
-  title       String
-  description String?
-  causedBy    String?       @map("caused_by") // Third party responsible
-  priority    IssuePriority @default(MEDIUM)
-  status      IssueStatus   @default(OPEN)
-  createdById String        @map("created_by_id")
-  resolvedAt  DateTime?     @map("resolved_at")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-
-  // Relations
-  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  room      Room?          @relation(fields: [roomId], references: [id])
-  createdBy User           @relation("CreatedBy", fields: [createdById], references: [id])
-  photos    IssuePhoto[]
-  comments  IssueComment[]
-
-  @@map("issues")
-}
-
-model IssuePhoto {
-  id         String   @id @default(cuid())
-  issueId    String   @map("issue_id")
-  photoUrl   String   @map("photo_url")
-  caption    String?
-  uploadedAt DateTime @default(now()) @map("uploaded_at")
-
-  // Relations
-  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
-
-  @@map("issue_photos")
-}
-
-model IssueComment {
-  id        String   @id @default(cuid())
-  issueId   String   @map("issue_id")
-  userId    String   @map("user_id")
-  comment   String
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Relations
-  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id])
-
-  @@map("issue_comments")
-}
-
-// ============================================
-// Inventory
-// ============================================
-
 enum InventoryAction {
   RECEIVED
   CONSUMED
@@ -370,72 +463,11 @@ enum InventoryAction {
   ADJUSTED
 }
 
-model InventoryItem {
-  id               String   @id @default(cuid())
-  projectId        String   @map("project_id")
-  itemType         String   @map("item_type")
-  description      String
-  unit             String   @default("pcs")
-  quantityReceived Int      @default(0) @map("quantity_received")
-  quantityUsed     Int      @default(0) @map("quantity_used")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  project Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  logs    InventoryLog[]
-
-  @@map("inventory_items")
-}
-
-model InventoryLog {
-  id            String          @id @default(cuid())
-  itemId        String          @map("item_id")
-  action        InventoryAction
-  quantity      Int
-  serialNumbers String[]        @map("serial_numbers")
-  notes         String?
-  userId        String          @map("user_id")
-  createdAt     DateTime        @default(now()) @map("created_at")
-
-  // Relations
-  item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  user User          @relation(fields: [userId], references: [id])
-
-  @@map("inventory_logs")
-}
-
-// ============================================
-// Signatures
-// ============================================
-
 enum SignatureType {
   ROOM_HANDOVER
   STAGE_COMPLETION
   FINAL_ACCEPTANCE
 }
-
-model Signature {
-  id            String        @id @default(cuid())
-  projectId     String        @map("project_id")
-  roomId        String?       @map("room_id")
-  type          SignatureType
-  signatureData String        @map("signature_data") // Base64 or URL
-  signedByName  String        @map("signed_by_name")
-  signedById    String?       @map("signed_by_id")
-  signedAt      DateTime      @default(now()) @map("signed_at")
-
-  // Relations
-  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  room     Room?   @relation(fields: [roomId], references: [id])
-  signedBy User?   @relation(fields: [signedById], references: [id])
-
-  @@map("signatures")
-}
-
-// ============================================
-// Time Tracking
-// ============================================
 
 enum TimeEntryType {
   INSTALLATION
@@ -447,55 +479,9 @@ enum TimeEntryType {
   OTHER
 }
 
-model TimeEntry {
-  id          String        @id @default(cuid())
-  projectId   String        @map("project_id")
-  userId      String        @map("user_id")
-  roomId      String?       @map("room_id")
-  assetId     String?       @map("asset_id")
-  type        TimeEntryType @default(OTHER)
-  description String?
-  date        DateTime      @default(now())
-  startTime   DateTime?     @map("start_time")
-  endTime     DateTime?     @map("end_time")
-  hours       Float         // Manual entry or calculated from start/end
-  notes       String?
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-
-  // Relations
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id])
-  room    Room?   @relation(fields: [roomId], references: [id])
-  asset   Asset?  @relation(fields: [assetId], references: [id])
-
-  @@map("time_entries")
-}
-
-// ============================================
-// Generated Reports
-// ============================================
-
 enum ReportType {
   SUMMARY
   CLIENT
   INTERNAL
   ASSETS
-}
-
-model GeneratedReport {
-  id          String     @id @default(cuid())
-  projectId   String     @map("project_id")
-  type        ReportType
-  title       String
-  fileUrl     String     @map("file_url")
-  fileSize    Int        @map("file_size")
-  generatedById String   @map("generated_by_id")
-  createdAt   DateTime   @default(now()) @map("created_at")
-
-  // Relations
-  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  generatedBy User    @relation("GeneratedReports", fields: [generatedById], references: [id])
-
-  @@map("generated_reports")
 }

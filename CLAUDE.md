@@ -1,4 +1,4 @@
-# Claude Protocol - Συνεργασία & Αποφυγή Λαθών
+EL# Claude Protocol - Συνεργασία & Αποφυγή Λαθών
 
 ## Φιλοσοφία
 
@@ -19,16 +19,16 @@
 | `CLAUDE.md` | Project rules & instructions |
 | `.claude/todo.md` | Τρέχουσες εργασίες |
 | `.claude/history.md` | Ιστορικό όλων των εργασιών |
-| `chat-history.md` | Πλήρες ιστορικό συνομιλίας |
-| `PLAN.md` | Αρχιτεκτονική, modules, database, API |
-| `STYLE-GUIDE.md` | UI/UX design system, colors, components |
+| `.claude/chat-history.md` | Πλήρες ιστορικό συνομιλίας |
+| `docs/PLAN.md` | Αρχιτεκτονική, modules, database, API |
+| `docs/STYLE-GUIDE.md` | UI/UX design system, colors, components |
 
 ---
 
 ## Κανόνας Chat History
 
 **ΜΕΤΑ ΑΠΟ ΚΑΘΕ ΑΠΑΝΤΗΣΗ:**
-1. Ενημερώνω το `chat-history.md` με τη νέα συνομιλία
+1. Ενημερώνω το `.claude/chat-history.md` με τη νέα συνομιλία
 2. Προσθέτω τι είπε ο χρήστης
 3. Προσθέτω τι απάντησα
 4. Ενημερώνω την "Τρέχουσα Κατάσταση"
@@ -66,6 +66,7 @@
 ## Αμετάκλητοι Κανόνες
 
 ### ΠΟΤΕ
+- ❌ **Git commit/push χωρίς ρητή εντολή από τον χρήστη**
 - ❌ Deploy χωρίς επιβεβαίωση server
 - ❌ Edit χωρίς να διαβάσω πρώτα
 - ❌ Destructive εντολή χωρίς έγκριση
@@ -83,9 +84,9 @@
 - ✅ Ενημερώνω `.claude/todo.md` & `.claude/history.md`
 - ✅ Διαβάζω όλα τα md μετά από compress/start
 - ✅ Ανακοινώνω "ΕΝΗΜΕΡΩΘΗΚΑ ΑΠΟ ΤΑ MD"
-- ✅ **Ενημερώνω το chat-history.md μετά από ΚΑΘΕ απάντηση**
-- ✅ **Ακολουθώ το STYLE-GUIDE.md για UI components & styling**
-- ✅ **Συμβουλεύομαι το PLAN.md για αρχιτεκτονικές αποφάσεις**
+- ✅ **Ενημερώνω το `.claude/chat-history.md` μετά από ΚΑΘΕ απάντηση**
+- ✅ **Ακολουθώ το `docs/STYLE-GUIDE.md` για UI components & styling**
+- ✅ **Συμβουλεύομαι το `docs/PLAN.md` για αρχιτεκτονικές αποφάσεις**
 
 ---
 
@@ -93,13 +94,23 @@
 
 ```
 synax/
-├── CLAUDE.md           # Αυτό το αρχείο - κανόνες
-├── PLAN.md             # Πλήρες σχέδιο project (αρχιτεκτονική, DB, API)
-├── STYLE-GUIDE.md      # UI/UX design system (colors, components, layouts)
-├── chat-history.md     # Ιστορικό συνομιλίας (ΕΝΗΜΕΡΩΝΕΤΑΙ ΠΑΝΤΑ)
-├── .claude/
-│   ├── todo.md         # Τρέχουσες εργασίες
-│   └── history.md      # Ιστορικό ολοκληρωμένων
-├── project.txt         # Αρχικό specification
-└── template/           # Screenshots από Katalyst template (reference)
+├── CLAUDE.md                    # Αυτό το αρχείο - κανόνες
+├── README.md                    # Main project readme
+├── .claude/                     # Development files
+│   ├── todo.md                  # Τρέχουσες εργασίες
+│   ├── history.md               # Ιστορικό ολοκληρωμένων
+│   ├── chat-history.md          # Ιστορικό συνομιλίας (ΕΝΗΜΕΡΩΝΕΤΑΙ ΠΑΝΤΑ)
+│   └── protocol-original.md     # Αρχικό protocol document
+├── docs/                        # Project documentation
+│   ├── PLAN.md                  # Αρχιτεκτονική, DB, API
+│   ├── STYLE-GUIDE.md           # UI/UX design system
+│   ├── ARCHITECTURE.md          # System architecture
+│   ├── DATABASE.md              # Database schema
+│   ├── API.md                   # API reference
+│   ├── FEATURES.md              # Feature documentation
+│   ├── WORKFLOWS.md             # User workflows
+│   ├── user-guides/             # Role-specific guides
+│   └── deployment/              # Deployment guides
+├── project.txt                  # Αρχικό specification
+└── template/                    # Screenshots από Katalyst template
 ```

@@ -1,14 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, Wifi, WifiOff, RefreshCw, LogOut, User, Settings, CloudOff, QrCode } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Search, Bell, Wifi, WifiOff, RefreshCw, LogOut, User, Settings, CloudOff, QrCode, AlertTriangle, CheckCircle2, Box, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui';
 import { QRScannerModal } from '@/components/qr';
 import { useAuthStore } from '@/stores/auth.store';
 import { useOfflineStore } from '@/stores/offline.store';
+import { api } from '@/lib/api';
 
 interface HeaderProps {
   sidebarCollapsed?: boolean;
+}
+
+interface ActivityItem {
+  id: string;
+  type: 'issue' | 'checklist' | 'asset';
+  title: string;
+  description: string;
+  timestamp: string;
+  projectName?: string;
 }
 
 export function Header({ sidebarCollapsed = false }: HeaderProps) {
@@ -16,14 +27,28 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
   const { user, logout } = useAuthStore();
   const { isOnline, isSyncing, pendingMutations, syncNow } = useOfflineStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
-  // Close menu when clicking outside
+  // Fetch recent activity
+  const { data: activityData } = useQuery({
+    queryKey: ['dashboard', 'activity'],
+    queryFn: () => api.get<{ items: ActivityItem[] }>('/dashboard/activity'),
+    staleTime: 30000, // 30 seconds
+  });
+
+  const notifications = activityData?.items?.slice(0, 5) || [];
+
+  // Close menus when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -50,6 +75,36 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
   const formatRole = (role: string | undefined) => {
     if (!role) return '';
     return role.charAt(0) + role.slice(1).toLowerCase();
+  };
+
+  // Format time ago
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const date = new Date(timestamp);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Get icon for activity type
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'issue':
+        return <AlertTriangle size={16} className="text-warning" />;
+      case 'checklist':
+        return <CheckCircle2 size={16} className="text-success" />;
+      case 'asset':
+        return <Box size={16} className="text-primary" />;
+      default:
+        return <Clock size={16} className="text-text-tertiary" />;
+    }
   };
 
   return (
@@ -115,10 +170,76 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
         </button>
 
         {/* Notifications */}
-        <button className="relative p-2 rounded-md hover:bg-surface-hover text-text-secondary">
-          <Bell size={20} />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full" />
-        </button>
+        <div className="relative" ref={notificationsRef}>
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative p-2 rounded-md hover:bg-surface-hover text-text-secondary"
+            title="Notifications"
+          >
+            <Bell size={20} />
+            {notifications.length > 0 && (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full" />
+            )}
+          </button>
+
+          {/* Notifications Dropdown */}
+          {showNotifications && (
+            <div className="absolute right-0 top-full mt-2 w-80 bg-surface border border-surface-border rounded-lg shadow-lg overflow-hidden z-50">
+              <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">
+                <span className="text-body-sm font-medium text-text-primary">Recent Activity</span>
+                {notifications.length > 0 && (
+                  <span className="text-caption text-text-tertiary">{notifications.length} new</span>
+                )}
+              </div>
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-8 text-center">
+                    <Bell size={24} className="mx-auto text-text-tertiary mb-2" />
+                    <p className="text-body-sm text-text-tertiary">No recent activity</p>
+                  </div>
+                ) : (
+                  notifications.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setShowNotifications(false);
+                        if (item.type === 'issue') navigate('/issues');
+                        else if (item.type === 'asset') navigate('/assets');
+                        else if (item.type === 'checklist') navigate('/checklists');
+                      }}
+                      className="w-full px-4 py-3 flex items-start gap-3 hover:bg-surface-hover border-b border-surface-border/50 last:border-0 text-left"
+                    >
+                      <div className="mt-0.5">{getActivityIcon(item.type)}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-body-sm text-text-primary truncate">{item.title}</p>
+                        <p className="text-caption text-text-tertiary truncate">{item.description}</p>
+                        {item.projectName && (
+                          <p className="text-caption text-text-tertiary mt-1">{item.projectName}</p>
+                        )}
+                      </div>
+                      <span className="text-tiny text-text-tertiary whitespace-nowrap">
+                        {formatTimeAgo(item.timestamp)}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+              {notifications.length > 0 && (
+                <div className="px-4 py-2 border-t border-surface-border">
+                  <button
+                    onClick={() => {
+                      setShowNotifications(false);
+                      navigate('/dashboard');
+                    }}
+                    className="w-full text-center text-body-sm text-primary hover:text-primary-600"
+                  >
+                    View all activity
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* User Menu */}
         <div className="relative" ref={menuRef}>

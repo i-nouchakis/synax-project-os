@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma.js';
-import { authenticate } from '../middleware/auth.middleware.js';
+import { authenticate, requireRole } from '../middleware/auth.middleware.js';
 
 const createChecklistSchema = z.object({
   type: z.enum(['CABLING', 'EQUIPMENT', 'CONFIG', 'DOCUMENTATION']),
@@ -361,8 +361,10 @@ export async function checklistRoutes(app: FastifyInstance) {
     }
   });
 
-  // DELETE /api/checklists/photos/:photoId - Delete photo
-  app.delete('/photos/:photoId', async (request: FastifyRequest, reply: FastifyReply) => {
+  // DELETE /api/checklists/photos/:photoId - Delete photo (Admin, PM, Technician)
+  app.delete('/photos/:photoId', {
+    preHandler: [requireRole(['ADMIN', 'PM', 'TECHNICIAN'])],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { photoId } = request.params as { photoId: string };
 
     await prisma.checklistPhoto.delete({ where: { id: photoId } });
@@ -370,8 +372,10 @@ export async function checklistRoutes(app: FastifyInstance) {
     return reply.send({ message: 'Photo deleted' });
   });
 
-  // DELETE /api/checklists/:id - Delete checklist
-  app.delete('/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  // DELETE /api/checklists/:id - Delete checklist (Admin, PM only)
+  app.delete('/:id', {
+    preHandler: [requireRole(['ADMIN', 'PM'])],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
 
     await prisma.checklist.delete({ where: { id } });

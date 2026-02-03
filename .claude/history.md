@@ -1852,3 +1852,45 @@ frontend/src/
 
 ---
 
+## [2026-02-02] - LookupsPage Improvements & App-wide Fixes
+
+### Περιγραφή
+Μετάφραση του LookupsPage στα Αγγλικά, αφαίρεση toggle icons, date picker validation, dropdown improvements, και app zoom out.
+
+### Tasks Completed
+
+#### LookupsPage Translation & Cleanup
+- [x] Μετάφραση όλων των Greek strings σε English
+- [x] Αφαίρεση toggle icons (activate/deactivate) από όλα τα lookup items
+- [x] Cleanup unused toggleMutation hooks
+
+#### Date Picker Validation
+- [x] ProjectsPage.tsx - Added min/max constraints to prevent start > end date
+- [x] ProjectDetailPage.tsx - Same date validation
+- [x] TimeTrackingPage.tsx - Same date validation for filters
+
+#### Form Dropdown Improvements
+- [x] IssuesPage.tsx - Changed "Caused By" from text input to dropdown using Issue Causes lookup
+
+#### App Zoom Out
+- [x] index.css - Reduced base font size from 15px to 14px
+
+### Files Modified
+```
+frontend/src/
+├── pages/lookups/LookupsPage.tsx (translation + toggle removal)
+├── pages/projects/ProjectsPage.tsx (date validation)
+├── pages/projects/ProjectDetailPage.tsx (date validation)
+├── pages/time-tracking/TimeTrackingPage.tsx (date validation)
+├── pages/issues/IssuesPage.tsx (Issue Causes dropdown)
+└── index.css (font size 15px → 14px)
+```
+
+### Status
+**LookupsPage Improvements - COMPLETE ✅**
+**Date Picker Validation - COMPLETE ✅**
+**Dropdown Improvements - COMPLETE ✅**
+**App Zoom Out - COMPLETE ✅**
+
+---
+

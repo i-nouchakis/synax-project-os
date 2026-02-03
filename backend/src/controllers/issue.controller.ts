@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma.js';
-import { authenticate } from '../middleware/auth.middleware.js';
+import { authenticate, requireRole } from '../middleware/auth.middleware.js';
 
 const createIssueSchema = z.object({
   projectId: z.string(),
@@ -185,8 +185,10 @@ export async function issueRoutes(app: FastifyInstance) {
     }
   });
 
-  // DELETE /api/issues/:id - Delete issue
-  app.delete('/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  // DELETE /api/issues/:id - Delete issue (Admin, PM only)
+  app.delete('/:id', {
+    preHandler: [requireRole(['ADMIN', 'PM'])],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
 
     await prisma.issue.delete({ where: { id } });
@@ -232,9 +234,22 @@ export async function issueRoutes(app: FastifyInstance) {
     }
   });
 
-  // DELETE /api/issues/comments/:commentId - Delete comment
-  app.delete('/comments/:commentId', async (request: FastifyRequest, reply: FastifyReply) => {
+  // DELETE /api/issues/comments/:commentId - Delete comment (Admin, PM, or owner)
+  app.delete('/comments/:commentId', {
+    preHandler: [requireRole(['ADMIN', 'PM', 'TECHNICIAN'])],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { commentId } = request.params as { commentId: string };
+    const user = request.user as { id: string; role: string };
+
+    // Check if user is owner or admin/PM
+    const comment = await prisma.issueComment.findUnique({ where: { id: commentId } });
+    if (!comment) {
+      return reply.status(404).send({ error: 'Comment not found' });
+    }
+
+    if (user.role === 'TECHNICIAN' && comment.userId !== user.id) {
+      return reply.status(403).send({ error: 'You can only delete your own comments' });
+    }
 
     await prisma.issueComment.delete({ where: { id: commentId } });
 
@@ -275,8 +290,10 @@ export async function issueRoutes(app: FastifyInstance) {
     }
   });
 
-  // DELETE /api/issues/photos/:photoId - Delete photo
-  app.delete('/photos/:photoId', async (request: FastifyRequest, reply: FastifyReply) => {
+  // DELETE /api/issues/photos/:photoId - Delete photo (Admin, PM only)
+  app.delete('/photos/:photoId', {
+    preHandler: [requireRole(['ADMIN', 'PM'])],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { photoId } = request.params as { photoId: string };
 
     await prisma.issuePhoto.delete({ where: { id: photoId } });

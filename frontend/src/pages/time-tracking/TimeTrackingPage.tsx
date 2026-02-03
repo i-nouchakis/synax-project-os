@@ -404,6 +404,7 @@ export function TimeTrackingPage() {
                 value={filterStartDate}
                 onChange={(e) => setFilterStartDate(e.target.value)}
                 className="w-40"
+                max={filterEndDate || undefined}
               />
               <span className="text-text-secondary">to</span>
               <Input
@@ -411,6 +412,7 @@ export function TimeTrackingPage() {
                 value={filterEndDate}
                 onChange={(e) => setFilterEndDate(e.target.value)}
                 className="w-40"
+                min={filterStartDate || undefined}
               />
             </div>
             {(filterProjectId || filterStartDate || filterEndDate) && (

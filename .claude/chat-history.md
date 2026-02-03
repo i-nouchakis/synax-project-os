@@ -1315,4 +1315,222 @@ Centered όλα τα metric cards:
 
 ---
 
-*Τελευταία ενημέρωση: 2026-01-31 (Asset Type SVG Icons)*
+## Session: Repository Overview (2026-02-02)
+
+### Χρήστης
+Θέλω να διαβάσεις όλο το repository.
+
+### Claude
+Διάβασα και ανέλυσα ολόκληρο το repository με τον Explore agent.
+
+**ΕΝΗΜΕΡΩΘΗΚΑ ΑΠΟ ΤΑ MD**
+
+**Project Summary:**
+- **Synax** - Project & Asset Management Platform για ICT εγκαταστάσεις
+- **Version:** 1.0.0
+- **Author:** Ioannis Nouchakis
+
+**Tech Stack:**
+| Layer | Technologies |
+|-------|-------------|
+| Frontend | React 19, TypeScript, Vite, TailwindCSS 4, Konva.js, Zustand, Dexie.js |
+| Backend | Node.js, Fastify, TypeScript, Prisma ORM |
+| Database | PostgreSQL 16 |
+| Infrastructure | Docker, Redis, MinIO (S3) |
+
+**Codebase Stats:**
+- 17 Database tables
+- 14 Backend controllers
+- 20 Frontend pages
+- 50+ Components
+- 80+ API endpoints
+
+**All Phases COMPLETE:**
+- Phase 1: Foundation ✅
+- Phase 2: Core Features ✅
+- Phase 2.5: Documentation ✅
+- Phase 3: Field Features (PWA, QR, Photos) ✅
+- Phase 4: Reporting & Polish (Signatures, Labels) ✅
+
+**Τρέχουσα Κατάσταση:** Production-ready
+
+---
+
+## Session: Repository Reorganization (2026-02-02)
+
+### Χρήστης
+Θέλω να μαζέψεις σε ένα αρχείο development όλα τα αρχεία .md τα οποία αφορούν το development και όσα αρχεία αφορούν την κατανόηση του έργου σε ένα άλλο. Έλεγξε αν κάπου είναι αποθηκευμένο το κάθε repository path και με την μετακίνηση δημιουργηθεί θέμα!
+
+### Claude
+Ανέλυσα όλα τα .md αρχεία και τα references τους. Υλοποίησα την αναδιοργάνωση:
+
+**Μετακινήσεις:**
+| Αρχείο | Από | Προς |
+|--------|-----|------|
+| `chat-history.md` | root | `.claude/chat-history.md` |
+| `PLAN.md` | root | `docs/PLAN.md` |
+| `STYLE-GUIDE.md` | root | `docs/STYLE-GUIDE.md` |
+| `General - claude-protocol.md` | root | `.claude/protocol-original.md` |
+
+**Νέα Δομή:**
+```
+synax/
+├── CLAUDE.md                    # Project rules (ΜΕΝΕΙ στο root)
+├── README.md                    # Main readme (ΜΕΝΕΙ στο root)
+├── .claude/                     # DEVELOPMENT FILES
+│   ├── todo.md
+│   ├── history.md
+│   ├── chat-history.md          # ← MOVED
+│   ├── protocol-original.md     # ← RENAMED & MOVED
+│   ├── todo-realistic-data.md
+│   └── todo-future-features.md
+└── docs/                        # PROJECT DOCUMENTATION
+    ├── PLAN.md                  # ← MOVED
+    ├── STYLE-GUIDE.md           # ← MOVED
+    ├── README.md
+    ├── ARCHITECTURE.md
+    ├── DATABASE.md
+    ├── API.md
+    ├── FEATURES.md
+    ├── WORKFLOWS.md
+    ├── user-guides/
+    └── deployment/
+```
+
+**Ενημερώσεις στο CLAUDE.md:**
+- Session Persistence table: νέα paths
+- Κανόνας Chat History: `.claude/chat-history.md`
+- Project Files section: πλήρης νέα δομή
+- Αμετάκλητοι Κανόνες: ενημερωμένα paths
+
+**References Checked:**
+- `tailwind.config.js`: Μόνο comment, δεν επηρεάζεται
+- `.claude/settings.local.json`: Historical git commands, δεν επηρεάζεται
+
+**Status: Repository Reorganization COMPLETE ✅**
+
+---
+
+## Session: Delete Operations Audit & Fixes (2026-02-02)
+
+### Χρήστης
+Θέλω να κάνουμε ελέγχους σε όλα τα delete buttons αν λειτουργούν και αν μετά την επιλογή τους διαγράφονται σωστά τα δεδομένα από την βάση! Πρώτα Code Review, μετά Αποσφαλμάτωση, μετά Automated Tests.
+
+### Claude
+
+**1. Code Review - Ολοκληρώθηκε**
+
+Βρέθηκαν 17 delete endpoints. 7 endpoints είχαν **security issues** (missing authorization):
+
+| Endpoint | Πρόβλημα |
+|----------|----------|
+| `DELETE /api/floors/:floorId/rooms/:roomId` | No auth check |
+| `DELETE /api/issues/:id` | No auth check |
+| `DELETE /api/issues/comments/:commentId` | No auth check |
+| `DELETE /api/issues/photos/:photoId` | No auth check |
+| `DELETE /api/checklists/:id` | No auth check |
+| `DELETE /api/checklists/photos/:photoId` | No auth check |
+| `DELETE /api/inventory/:id` | No auth check |
+
+**2. Αποσφαλμάτωση - Ολοκληρώθηκε**
+
+Προστέθηκαν authorization checks σε όλα τα endpoints:
+
+| Controller | Changes |
+|------------|---------|
+| floor.controller.ts | Added `requireRole(['ADMIN', 'PM'])` to room delete |
+| issue.controller.ts | Added auth to issue, comment (owner check), photo deletes |
+| checklist.controller.ts | Added auth to checklist and photo deletes |
+| inventory.controller.ts | Added `requireRole(['ADMIN', 'PM'])` |
+
+**3. Automated Tests - Ολοκληρώθηκε**
+
+Δημιουργήθηκαν 18 integration tests:
+
+| Test Category | Tests |
+|---------------|-------|
+| Inventory Delete | 4 tests (ADMIN, PM, TECH reject, CLIENT reject) |
+| Issue Delete | 4 tests (ADMIN, PM, TECH reject, cascade delete) |
+| Checklist Delete | 3 tests (ADMIN, PM, TECH reject) |
+| Room Delete | 4 tests (ADMIN, PM, TECH reject, cascade) |
+| Project Delete | 2 tests (ADMIN only, cascade) |
+| Unauthenticated | 1 test |
+
+**Files Created:**
+- `backend/vitest.config.ts`
+- `backend/src/__tests__/helpers/test-setup.ts`
+- `backend/src/__tests__/delete-operations.test.ts`
+
+**Test Results:** ✅ All 18 tests passed
+
+**Commands:**
+```bash
+npm test           # Run tests
+npm run test:watch # Watch mode
+```
+
+**Status: Delete Operations Audit & Fixes COMPLETE ✅**
+
+---
+
+## Session: Dynamic Dropdowns System (2026-02-02)
+
+### Χρήστης
+Θέλω να ελέγξεις ποιες πληροφορίες (π.χ. model, κατασκευαστές) θα έπρεπε να είναι dropdown. Επίσης θέλω interface για προβολή και επεξεργασία - αν δεν έχει κάποιο να μπορεί να το προσθέσει!
+
+### Claude
+
+**Ανάλυση πεδίων:**
+- Room Type → Dropdown (20 τύποι)
+- Inventory Unit → Dropdown (12 μονάδες)
+- Issue Caused By → Dropdown (14 αιτίες)
+- Manufacturer → Dropdown (19 κατασκευαστές)
+- Asset Model → Dropdown (21 μοντέλα, linked to Manufacturer)
+
+**Υλοποίηση:**
+
+**1. Database (5 νέα tables):**
+- `lookup_room_types`
+- `lookup_inventory_units`
+- `lookup_issue_causes`
+- `lookup_manufacturers`
+- `lookup_asset_models` (linked to manufacturers)
+
+**2. Backend:**
+- `lookup.controller.ts` - Full CRUD API για όλα τα lookups
+- Routes: `/api/lookups/room-types`, `/inventory-units`, `/issue-causes`, `/manufacturers`, `/asset-models`
+- Authorization: GET για όλους, CRUD μόνο ADMIN
+
+**3. Frontend:**
+- `lookup.service.ts` - API service
+- `LookupsPage.tsx` - Σελίδα διαχείρισης με 5 tabs
+- Sidebar: "Dropdowns" link στο Admin section
+- Route: `/lookups` (Admin only)
+
+**4. Seed Data:**
+- `seed-lookups.ts` - Αρχικές τιμές (86 συνολικά)
+
+**Features:**
+- ✅ Create/Edit/Delete για κάθε lookup
+- ✅ Toggle Active/Inactive
+- ✅ Manufacturer → Models relationship
+- ✅ Search/Filter ready
+- ✅ Greek UI
+
+**Files Created:**
+- `backend/prisma/schema.prisma` (5 models added)
+- `backend/src/controllers/lookup.controller.ts`
+- `backend/prisma/seed-lookups.ts`
+- `frontend/src/services/lookup.service.ts`
+- `frontend/src/pages/lookups/LookupsPage.tsx`
+
+**Commands:**
+```bash
+npm run db:seed:lookups  # Populate initial data
+```
+
+**Status: Dynamic Dropdowns System COMPLETE ✅**
+
+---
+
+*Τελευταία ενημέρωση: 2026-02-02 (Dynamic Dropdowns System)*

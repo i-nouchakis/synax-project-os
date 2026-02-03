@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma.js';
-import { authenticate } from '../middleware/auth.middleware.js';
+import { authenticate, requireRole } from '../middleware/auth.middleware.js';
 
 const createItemSchema = z.object({
   projectId: z.string(),
@@ -154,8 +154,10 @@ export async function inventoryRoutes(app: FastifyInstance) {
     }
   });
 
-  // DELETE /api/inventory/:id - Delete inventory item
-  app.delete('/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  // DELETE /api/inventory/:id - Delete inventory item (Admin, PM only)
+  app.delete('/:id', {
+    preHandler: [requireRole(['ADMIN', 'PM'])],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
 
     await prisma.inventoryItem.delete({ where: { id } });

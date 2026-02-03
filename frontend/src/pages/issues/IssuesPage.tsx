@@ -50,6 +50,7 @@ import {
   statusColors,
 } from '@/services/issue.service';
 import { projectService } from '@/services/project.service';
+import { issueCauseService } from '@/services/lookup.service';
 
 const statusOptions = [
   { value: '', label: 'All Statuses' },
@@ -97,6 +98,16 @@ export function IssuesPage() {
     queryKey: ['projects'],
     queryFn: () => projectService.getAll(),
   });
+
+  // Fetch issue causes for create modal
+  const { data: issueCausesData } = useQuery({
+    queryKey: ['lookups', 'issue-causes'],
+    queryFn: () => issueCauseService.getAll(),
+  });
+  const issueCauseOptions = [
+    { value: '', label: 'Select cause (optional)' },
+    ...(issueCausesData?.items?.map((c) => ({ value: c.name, label: c.name })) || []),
+  ];
 
   // Create issue mutation
   const createMutation = useMutation({
@@ -410,6 +421,7 @@ export function IssuesPage() {
         projects={projects}
         onSubmit={handleCreate}
         isLoading={createMutation.isPending}
+        issueCauseOptions={issueCauseOptions}
       />
 
       {/* Issue Detail Modal */}
@@ -433,9 +445,10 @@ interface CreateIssueModalProps {
   projects: { id: string; name: string }[];
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   isLoading: boolean;
+  issueCauseOptions: { value: string; label: string }[];
 }
 
-function CreateIssueModal({ isOpen, onClose, projects, onSubmit, isLoading }: CreateIssueModalProps) {
+function CreateIssueModal({ isOpen, onClose, projects, onSubmit, isLoading, issueCauseOptions }: CreateIssueModalProps) {
   return (
     <Modal
       isOpen={isOpen}
@@ -496,10 +509,10 @@ function CreateIssueModal({ isOpen, onClose, projects, onSubmit, isLoading }: Cr
                 placeholder="Provide detailed information about the issue..."
               />
             </div>
-            <Input
+            <Select
               label="Caused By (Optional)"
               name="causedBy"
-              placeholder="Third party responsible (e.g., Electrical contractor)"
+              options={issueCauseOptions}
             />
           </div>
         </ModalSection>

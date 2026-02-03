@@ -867,12 +867,14 @@ function EditProjectModal({ isOpen, onClose, onSubmit, isLoading, project }: Edi
                 label="Start Date"
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                max={formData.endDate || undefined}
               />
               <Input
                 type="date"
                 label="End Date"
                 value={formData.endDate}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                min={formData.startDate || undefined}
               />
             </div>
           </div>

@@ -93,7 +93,7 @@
 @layer base {
   html {
     scroll-behavior: smooth;
-    font-size: 15px; /* Base size - slightly larger than default 14px */
+    font-size: 14px; /* Base size - standard default */
   }
 
   body {

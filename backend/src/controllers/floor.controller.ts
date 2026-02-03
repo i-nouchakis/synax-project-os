@@ -191,8 +191,10 @@ export async function floorRoutes(app: FastifyInstance) {
     }
   });
 
-  // DELETE /api/floors/:floorId/rooms/:roomId - Delete room
-  app.delete('/:floorId/rooms/:roomId', async (request: FastifyRequest, reply: FastifyReply) => {
+  // DELETE /api/floors/:floorId/rooms/:roomId - Delete room (Admin, PM only)
+  app.delete('/:floorId/rooms/:roomId', {
+    preHandler: [requireRole(['ADMIN', 'PM'])],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { roomId } = request.params as { floorId: string; roomId: string };
 
     await prisma.room.delete({ where: { id: roomId } });

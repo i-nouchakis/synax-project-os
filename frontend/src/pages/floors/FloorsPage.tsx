@@ -74,22 +74,21 @@ export function FloorsPage() {
     );
   }, [filteredFloors]);
 
-  // Initialize all projects as expanded on first load
+  // Initialize first project as expanded on first load
   useState(() => {
     if (projectGroups.length > 0 && expandedProjects.size === 0) {
-      setExpandedProjects(new Set(projectGroups.map(g => g.projectId)));
+      setExpandedProjects(new Set([projectGroups[0].projectId]));
     }
   });
 
   const toggleProject = (projectId: string) => {
     setExpandedProjects(prev => {
-      const next = new Set(prev);
-      if (next.has(projectId)) {
-        next.delete(projectId);
-      } else {
-        next.add(projectId);
+      // If already expanded, just close it
+      if (prev.has(projectId)) {
+        return new Set();
       }
-      return next;
+      // Otherwise, close all and open only this one (accordion behavior)
+      return new Set([projectId]);
     });
   };
 
@@ -177,7 +176,7 @@ export function FloorsPage() {
                       <FolderKanban size={20} className="text-primary" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-text-primary">{group.projectName}</h3>
+                      <h3 className="text-body font-semibold text-text-primary">{group.projectName}</h3>
                       {group.clientName && (
                         <p className="text-body-sm text-text-secondary">{group.clientName}</p>
                       )}

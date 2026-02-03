@@ -27,6 +27,7 @@ import { SettingsPage } from '@/pages/settings';
 import { ManualPage } from '@/pages/manual';
 import { LabelsPage } from '@/pages/labels';
 import { TimeTrackingPage } from '@/pages/time-tracking';
+import { LookupsPage } from '@/pages/lookups';
 import { useAuthStore } from '@/stores/auth.store';
 import { useThemeStore } from '@/stores/theme.store';
 import { useOfflineStore } from '@/stores/offline.store';
@@ -148,6 +149,14 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['ADMIN']}>
                     <UsersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lookups"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <LookupsPage />
                   </ProtectedRoute>
                 }
               />

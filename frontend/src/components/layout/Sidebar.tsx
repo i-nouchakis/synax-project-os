@@ -19,6 +19,7 @@ import {
   Book,
   Tags,
   Clock,
+  ListFilter,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { api } from '@/lib/api';
@@ -80,6 +81,7 @@ const getNavigation = (openIssuesCount: number): NavSection[] => [
     adminOnly: true,
     items: [
       { label: 'Users', icon: <Users size={20} />, href: '/users', adminOnly: true },
+      { label: 'Dropdowns', icon: <ListFilter size={20} />, href: '/lookups', adminOnly: true },
     ],
   },
 ];

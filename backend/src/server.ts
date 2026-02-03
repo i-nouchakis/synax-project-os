@@ -18,6 +18,7 @@ import { settingsRoutes } from './controllers/settings.controller.js';
 import { dashboardRoutes } from './controllers/dashboard.controller.js';
 import { signatureRoutes } from './controllers/signature.controller.js';
 import { timeEntryRoutes } from './controllers/timeentry.controller.js';
+import { lookupRoutes } from './controllers/lookup.controller.js';
 
 const app = Fastify({
   logger: {
@@ -69,6 +70,7 @@ const start = async () => {
     await app.register(dashboardRoutes, { prefix: '/api/dashboard' });
     await app.register(signatureRoutes, { prefix: '/api/signatures' });
     await app.register(timeEntryRoutes, { prefix: '/api/time-entries' });
+    await app.register(lookupRoutes, { prefix: '/api/lookups' });
 
     // Start listening
     await app.listen({ port: config.port, host: config.host });
