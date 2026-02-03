@@ -1852,6 +1852,69 @@ frontend/src/
 
 ---
 
+## [2026-02-03] - Master Plan Feature Implementation
+
+### Περιγραφή
+Υλοποίηση Master Plan feature για τα Projects - παρόμοια λειτουργία με τα Floor Plans που έχουν Room pins, τώρα τα Projects μπορούν να έχουν Masterplan με Floor pins.
+
+### Tasks Completed
+
+#### Database Changes
+- [x] Added `masterplanUrl` and `masterplanType` to Project model
+- [x] Added `pinX` and `pinY` to Floor model for masterplan positioning
+- [x] Migration: `20260203113320_add_masterplan_to_project`
+
+#### Backend Endpoints
+- [x] POST /api/upload/masterplan/:projectId - Upload project masterplan
+- [x] PUT /api/floors/:id/position - Update floor position on masterplan
+
+#### Frontend Services
+- [x] uploadService.uploadMasterplan() - Masterplan upload
+- [x] floorService.updatePosition() - Floor position update
+- [x] Updated Project interface with masterplanUrl, masterplanType
+- [x] Updated Floor interface with pinX, pinY
+
+#### ProjectDetailPage Updates
+- [x] Masterplan Card section above Floors/Team
+- [x] FloorPlanCanvas integration for masterplan visualization
+- [x] Floor pins on masterplan (blue color, no legend)
+- [x] Upload/Change masterplan button
+- [x] Edit Pins mode for floor positioning
+- [x] Hide/Show toggle for masterplan
+- [x] Click pin to navigate to floor detail
+- [x] Drag pins to reposition floors
+
+### Files Created/Modified
+```
+backend/
+├── prisma/schema.prisma (Project masterplan fields, Floor pin fields)
+├── prisma/migrations/20260203113320_add_masterplan_to_project/
+├── src/controllers/upload.controller.ts (masterplan endpoint)
+└── src/controllers/floor.controller.ts (position endpoint)
+
+frontend/src/
+├── services/project.service.ts (updated interfaces)
+├── services/floor.service.ts (updatePosition method)
+├── services/upload.service.ts (uploadMasterplan method)
+└── pages/projects/ProjectDetailPage.tsx (masterplan UI)
+```
+
+### Features
+- Upload masterplan image (PNG, JPG, PDF)
+- Place floors on masterplan with drag-and-drop
+- Floor pins with blue color (IN_PROGRESS status)
+- Click floor pin to navigate to floor detail
+- Edit mode for repositioning floors
+- Hide/Show masterplan section
+- PDF masterplan opens in new tab
+- **Full Screen Modal** με edit capabilities
+- **Download** button (PNG, JPEG, WebP, PDF) με pin selection
+
+### Status
+**Master Plan Feature - COMPLETE ✅**
+
+---
+
 ## [2026-02-02] - LookupsPage Improvements & App-wide Fixes
 
 ### Περιγραφή
@@ -1891,6 +1954,207 @@ frontend/src/
 **Date Picker Validation - COMPLETE ✅**
 **Dropdown Improvements - COMPLETE ✅**
 **App Zoom Out - COMPLETE ✅**
+
+---
+
+## [2026-02-03] - Place All Items Feature
+
+### Περιγραφή
+Υλοποίηση δυνατότητας τοποθέτησης όλων των items (floors/rooms/assets) που δεν έχουν pins μέσω click-to-place dropdown.
+
+### Tasks Completed
+
+#### FloorPlanCanvas Enhancements
+- [x] Added `availableItems?: AvailableItem[]` prop
+- [x] Added `onPlaceItem?: (itemId, x, y)` callback
+- [x] Click-to-Place dropdown με διαθέσιμα items
+- [x] Εμφάνιση level number για floors
+
+#### ProjectDetailPage Updates
+- [x] Pass availableItems (floors without pins) to FloorPlanCanvas
+- [x] onPlaceItem handler για floor positioning
+- [x] Badge "X floors to place" όταν υπάρχουν unplaced floors
+- [x] Full screen modal με ίδια functionality
+
+#### FloorDetailPage Updates
+- [x] Pass availableItems (rooms without pins) to FloorPlanCanvas
+- [x] onPlaceItem handler για room positioning
+- [x] Badge "X rooms to place" όταν υπάρχουν unplaced rooms
+- [x] Full screen modal με ίδια functionality
+
+#### Bug Fix
+- [x] RoomDetailPage - Added hidden file input (Change button wasn't working)
+
+### Files Modified
+```
+frontend/src/
+├── components/floor-plan/FloorPlanCanvas.tsx
+├── pages/projects/ProjectDetailPage.tsx
+├── pages/floors/FloorDetailPage.tsx
+└── pages/rooms/RoomDetailPage.tsx
+```
+
+### Workflow
+```
+1. Upload masterplan/floor plan
+2. Click "Edit Pins" button
+3. See "X floors/rooms to place" indicator
+4. Click anywhere on canvas
+5. Dropdown appears with available items
+6. Select item → placed at click position
+7. Toast: "Floor/Room placed on plan"
+```
+
+### Status
+**Place All Items Feature - COMPLETE ✅**
+
+---
+
+## [2026-02-03] - Checklist Templates System
+
+### Περιγραφή
+Υλοποίηση πλήρους Checklist Templates system με auto-sync λειτουργικότητα. Τα templates επιτρέπουν τη δημιουργία επαναχρησιμοποιήσιμων checklist patterns που συγχρονίζονται αυτόματα με τα linked checklists.
+
+### Tasks Completed
+
+#### Database Schema
+- [x] ChecklistTemplateType enum (GENERAL, CABLING, EQUIPMENT, CONFIG, DOCUMENTATION)
+- [x] ChecklistTemplate model με name, description, type, assetTypeId, isDefault, isActive
+- [x] ChecklistTemplateItem model με name, description, requiresPhoto, isRequired, order
+- [x] Updated Checklist model με templateId reference
+- [x] Updated ChecklistItem model με sourceItemId και isArchived για sync tracking
+- [x] Migration: `20260203131131_add_checklist_templates`
+
+#### Backend API (checklist-template.controller.ts)
+- [x] GET /api/checklist-templates - List templates with filters (type, assetTypeId, activeOnly)
+- [x] GET /api/checklist-templates/:id - Get template by ID
+- [x] POST /api/checklist-templates - Create template with items
+- [x] PUT /api/checklist-templates/:id - Update template
+- [x] DELETE /api/checklist-templates/:id - Delete/deactivate template
+- [x] POST /api/checklist-templates/:id/items - Add item with auto-sync to linked checklists
+- [x] PUT /api/checklist-templates/items/:itemId - Update item with auto-sync (uncompleted only)
+- [x] DELETE /api/checklist-templates/items/:itemId - Delete item with soft-delete on linked items
+- [x] POST /api/checklist-templates/items/reorder - Reorder template items
+
+#### Auto-Sync Logic
+- [x] Add item to template → Creates item in all linked checklists
+- [x] Update template item → Updates uncompleted linked items only
+- [x] Delete template item → Sets isArchived=true on linked items (soft delete)
+- [x] Completed items never affected by template changes
+
+#### Frontend Service (checklist-template.service.ts)
+- [x] Full CRUD operations for templates
+- [x] Item management methods (add, update, delete, reorder)
+- [x] Type helpers (templateTypeLabels, templateTypeColors)
+
+#### Frontend Page (ChecklistTemplatesPage.tsx)
+- [x] Templates list with expand/collapse for items
+- [x] Filter by template type
+- [x] Create/Edit template modal with type, assetType, isDefault options
+- [x] Add/Edit item modal with requiresPhoto, isRequired options
+- [x] Delete confirmation with soft-delete info
+- [x] Duplicate template functionality
+- [x] In-use indicator (_count.checklists)
+- [x] Default template star indicator
+
+#### Checklist Creation Flow (ChecklistPanel.tsx)
+- [x] "Add Checklist" button (replaces Generate All)
+- [x] Step 1: Select checklist type
+- [x] Step 2: Choose mode (Template vs Custom)
+- [x] Step 3: Select template from available list
+- [x] Backend creates checklist with sourceItemId linking
+
+### Files Created/Modified
+```
+backend/
+├── prisma/schema.prisma (Template models, ChecklistItem updates)
+├── prisma/migrations/20260203131131_add_checklist_templates/
+├── src/controllers/checklist-template.controller.ts (NEW)
+├── src/controllers/checklist.controller.ts (template support)
+└── src/server.ts (registered routes)
+
+frontend/src/
+├── services/checklist-template.service.ts (NEW)
+├── services/checklist.service.ts (templateId support)
+├── pages/checklist-templates/
+│   ├── ChecklistTemplatesPage.tsx (NEW)
+│   └── index.ts (NEW)
+├── components/checklists/ChecklistPanel.tsx (template selection)
+├── components/layout/Sidebar.tsx (Templates link)
+└── App.tsx (route added)
+```
+
+### Features Summary
+| Feature | Description |
+|---------|-------------|
+| Template Types | GENERAL (any), CABLING, EQUIPMENT, CONFIG, DOCUMENTATION |
+| Auto-Sync | Template changes propagate to linked checklists |
+| Soft Delete | Archived items preserved in history |
+| Protected Items | Completed items never modified |
+| Default Templates | Auto-selected for new checklists |
+| Asset Type Linking | Optional specific asset type association |
+
+### Routes
+- `/checklist-templates` - Template management (Admin/PM only)
+
+### Status
+**Checklist Templates System - COMPLETE ✅**
+
+---
+
+## [2026-02-03] - Docker Fix & Templates Testing
+
+### Περιγραφή
+Διόρθωση Prisma client issue στο Docker container και πλήρης testing του Checklist Templates system.
+
+### Problem
+Μετά το rebuild του backend container, το Prisma client δεν αναγνώριζε τα νέα models (`checklistTemplate`, `checklistTemplateItem`). Η εντολή "Generate All Checklists" επέστρεφε:
+```
+Cannot read properties of undefined (reading 'findFirst')
+```
+
+### Root Cause
+Το `synax_backend_node_modules` named volume στο docker-compose.dev.yml διατηρούσε το παλιό node_modules με το old Prisma client, ακόμα και μετά από rebuild.
+
+### Solution
+```bash
+# Stop container and remove stale volume
+docker volume rm synax_backend_node_modules
+
+# Rebuild and start
+docker compose -f docker-compose.dev.yml build --no-cache backend
+docker compose -f docker-compose.dev.yml up -d backend
+```
+
+### Verification
+```bash
+docker exec synax-backend node -e \
+  "const { PrismaClient } = require('@prisma/client'); \
+   const p = new PrismaClient(); \
+   console.log('checklistTemplate exists:', 'checklistTemplate' in p);"
+# checklistTemplate exists: true
+```
+
+### Testing Results
+| Test Case | Result |
+|-----------|--------|
+| GET /api/checklist-templates | ✅ Returns 6 templates |
+| POST checklist with templateId | ✅ Creates 8 items from template |
+| Template item auto-sync (add) | ✅ syncedChecklists: 1 |
+| Template item auto-sync (delete) | ✅ archivedItems: 1 |
+| Items have sourceItemId | ✅ Correctly linked |
+| requiresPhoto/isRequired | ✅ Correctly copied |
+
+### Example Templates (Seed Data)
+1. Basic Installation Checklist (GENERAL) - 6 items
+2. Network Cabling Standard (CABLING) - 8 items [DEFAULT]
+3. Network Equipment Setup (EQUIPMENT) - 7 items [DEFAULT]
+4. Device Configuration Checklist (CONFIG) - 9 items [DEFAULT]
+5. Project Documentation (DOCUMENTATION) - 7 items [DEFAULT]
+6. WiFi Access Point Installation (EQUIPMENT) - 9 items
+
+### Status
+**Docker Fix & Templates Testing - COMPLETE ✅**
 
 ---
 

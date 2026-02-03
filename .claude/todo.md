@@ -1,7 +1,8 @@
-c
+    c
 
 
-# Session Todo - Synax Project
+
+
 
 ## Τρέχουσα Κατάσταση
 **Phase 1: Foundation - COMPLETED ✅**
@@ -113,6 +114,25 @@ c
 - [x] 4 types: CABLING, EQUIPMENT, CONFIG, DOCUMENTATION
 - [x] Item completion tracking with checkboxes
 - [x] Photo upload with preview gallery
+
+### 12a. Checklist Templates ✅
+- [x] Database: ChecklistTemplate & ChecklistTemplateItem models
+- [x] Database: Template types (GENERAL, CABLING, EQUIPMENT, CONFIG, DOCUMENTATION)
+- [x] Database: Template-to-Checklist linking (templateId, sourceItemId)
+- [x] Backend: checklist-template.controller.ts with full CRUD
+- [x] Backend: Auto-sync on template item add/update/delete
+- [x] Backend: Soft delete for archived items (isArchived flag)
+- [x] Backend: Create checklist with template option
+- [x] Frontend: checklist-template.service.ts
+- [x] Frontend: ChecklistTemplatesPage with full management UI
+- [x] Frontend: ChecklistPanel with template vs custom selection
+- [x] Route: /checklist-templates (Admin only)
+- [x] Sidebar: Templates link in Admin section
+- [x] Docker: Fixed Prisma client issue (removed stale node_modules volume)
+- [x] Seed: 6 example templates with 46 items total
+- [x] Testing: API endpoints verified working
+- [x] Multi-Template: Select multiple templates when creating checklist
+- [x] Multi-Template: Items merged from all selected templates
 
 ### 12b. FloorsPage Improvements ✅
 - [x] Backend: GET /api/floors (all floors endpoint)
@@ -388,4 +408,4 @@ npm run dev:frontend
 
 ---
 
-*Last Updated: 2026-01-31 (Download Floorplan & Asset Icons)*
+*Last Updated: 2026-02-03 (Checklist Templates System Tested)*
