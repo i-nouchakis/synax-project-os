@@ -201,6 +201,7 @@ model Asset {
   roomId        String      @map("room_id")
   assetTypeId   String?     @map("asset_type_id")
   name          String
+  labelCode     String?     @unique @map("label_code")
   model         String?
   serialNumber  String?     @map("serial_number")
   macAddress    String?     @map("mac_address")

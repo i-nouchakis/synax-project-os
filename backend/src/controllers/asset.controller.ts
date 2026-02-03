@@ -5,6 +5,7 @@ import { authenticate, requireRole } from '../middleware/auth.middleware.js';
 
 const createAssetSchema = z.object({
   name: z.string().min(1),
+  labelCode: z.string().optional(),
   assetTypeId: z.string().optional(),
   model: z.string().optional(),
   serialNumber: z.string().optional(),
@@ -43,6 +44,7 @@ export async function assetRoutes(app: FastifyInstance) {
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
+        { labelCode: { contains: search, mode: 'insensitive' } },
         { serialNumber: { contains: search, mode: 'insensitive' } },
         { macAddress: { contains: search, mode: 'insensitive' } },
         { model: { contains: search, mode: 'insensitive' } },
@@ -123,6 +125,41 @@ export async function assetRoutes(app: FastifyInstance) {
 
     if (!asset) {
       return reply.status(404).send({ error: 'Asset not found' });
+    }
+
+    return reply.send({ asset });
+  });
+
+  // GET /api/assets/by-label/:labelCode - Lookup asset by label code (for QR scan)
+  app.get('/by-label/:labelCode', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { labelCode } = request.params as { labelCode: string };
+
+    const asset = await prisma.asset.findFirst({
+      where: {
+        labelCode: { equals: labelCode, mode: 'insensitive' },
+      },
+      include: {
+        assetType: true,
+        room: {
+          include: {
+            floor: {
+              include: {
+                project: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
+        installedBy: { select: { id: true, name: true } },
+        checklists: {
+          include: {
+            items: { orderBy: { order: 'asc' } },
+          },
+        },
+      },
+    });
+
+    if (!asset) {
+      return reply.status(404).send({ error: 'Asset not found with this label code' });
     }
 
     return reply.send({ asset });

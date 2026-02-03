@@ -1533,4 +1533,65 @@ npm run db:seed:lookups  # Populate initial data
 
 ---
 
-*Τελευταία ενημέρωση: 2026-02-02 (Dynamic Dropdowns System)*
+## Session: Label Code for Assets (2026-02-03)
+
+### Χρήστης
+Θέλω να ελέγξεις τα labels σαν λογική και να μου πεις πως θα μπορούσαμε να τα συνδέσουμε με τα assets.
+
+### Claude
+Ανέλυσα το Labels system. Πρότεινα 3 options:
+1. **Προσθήκη labelCode στο Asset** - unique, searchable
+2. Σύνδεση με database schema (πολύπλοκο)
+3. QR στο Label page με asset link
+
+### Χρήστης
+Θέλω το 1 αλλά να αφήσουμε και το labels όπως είναι.
+
+### Claude
+Υλοποίησα τo `labelCode` field στο Asset model:
+
+**Database:**
+- `backend/prisma/schema.prisma` - Added `labelCode String? @unique @map("label_code")`
+- Migration: `20260203122316_add_label_code_to_asset`
+
+**Backend:**
+- `asset.controller.ts`:
+  - Added `labelCode` to createAssetSchema
+  - Added labelCode to search OR clause
+  - New endpoint: `GET /api/assets/by-label/:labelCode` for QR scan
+
+**Frontend:**
+- `asset.service.ts`:
+  - Added `labelCode?: string` to Asset interface
+  - Added `labelCode?: string` to CreateAssetData
+  - Added `getByLabelCode()` method
+
+- `RoomDetailPage.tsx` (AssetFormModal):
+  - Added `labelCode` to formData initial state
+  - Added `labelCode` to useEffect (initialData loading)
+  - Added Input field for Label Code in "Identifiers" section
+  - Added `labelCode` to handleSubmit data object
+
+**UI:**
+```
+┌─ Identifiers ──────────────────────────────────┐
+│  Label Code          Serial Number             │
+│  [SYN-001-AP____]   [FCW2345L0AB____]         │
+│  ↳ Unique code for QR label scanning          │
+│                                                │
+│  MAC Address         IP Address                │
+│  [00:1A:2B:3C:4D:5E] [192.168.1.1____]        │
+└────────────────────────────────────────────────┘
+```
+
+**Build:** ✅ Success
+
+**Pending on Server:**
+- Run `npx prisma migrate deploy` for labelCode field
+- Run seed-dropdowns.ts if needed
+
+**Status: Label Code for Assets COMPLETE ✅**
+
+---
+
+*Τελευταία ενημέρωση: 2026-02-03 (Label Code for Assets)*

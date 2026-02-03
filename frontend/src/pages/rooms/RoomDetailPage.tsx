@@ -709,6 +709,7 @@ function AssetFormModal({
 }: AssetFormModalProps) {
   const [formData, setFormData] = useState<CreateAssetData & { status?: AssetStatus }>({
     name: '',
+    labelCode: '',
     assetTypeId: '',
     model: '',
     serialNumber: '',
@@ -763,6 +764,7 @@ function AssetFormModal({
     if (initialData) {
       setFormData({
         name: initialData.name,
+        labelCode: initialData.labelCode || '',
         assetTypeId: initialData.assetTypeId || '',
         model: initialData.model || '',
         serialNumber: initialData.serialNumber || '',
@@ -774,6 +776,7 @@ function AssetFormModal({
     } else {
       setFormData({
         name: '',
+        labelCode: '',
         assetTypeId: '',
         model: '',
         serialNumber: '',
@@ -788,6 +791,7 @@ function AssetFormModal({
     e.preventDefault();
     const data: CreateAssetData & { status?: AssetStatus } = {
       name: formData.name,
+      labelCode: formData.labelCode || undefined,
       assetTypeId: formData.assetTypeId || undefined,
       model: formData.model || undefined,
       serialNumber: formData.serialNumber || undefined,
@@ -854,12 +858,21 @@ function AssetFormModal({
 
         <ModalSection title="Identifiers" icon={<Hash size={14} />}>
           <div className="space-y-4">
-            <Input
-              label="Serial Number"
-              value={formData.serialNumber || ''}
-              onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
-              placeholder="FCW2345L0AB"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Label Code"
+                value={formData.labelCode || ''}
+                onChange={(e) => setFormData({ ...formData, labelCode: e.target.value })}
+                placeholder="SYN-001-AP"
+                helperText="Unique code for QR label scanning"
+              />
+              <Input
+                label="Serial Number"
+                value={formData.serialNumber || ''}
+                onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
+                placeholder="FCW2345L0AB"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="MAC Address"

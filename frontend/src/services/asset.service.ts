@@ -20,6 +20,7 @@ export interface AssetType {
 export interface Asset {
   id: string;
   name: string;
+  labelCode?: string;
   model?: string;
   serialNumber?: string;
   macAddress?: string;
@@ -59,6 +60,7 @@ export interface Asset {
 
 export interface CreateAssetData {
   name: string;
+  labelCode?: string;
   assetTypeId?: string;
   model?: string;
   serialNumber?: string;
@@ -141,6 +143,20 @@ export const assetService = {
   async searchByCode(code: string): Promise<Asset | null> {
     try {
       const response = await api.get<AssetResponse>(`/assets/lookup/${encodeURIComponent(code)}`);
+      return response.asset;
+    } catch (err: unknown) {
+      // Return null if not found (404)
+      if (err && typeof err === 'object' && 'status' in err && err.status === 404) {
+        return null;
+      }
+      throw err;
+    }
+  },
+
+  // Search by label code (for QR scan)
+  async getByLabelCode(labelCode: string): Promise<Asset | null> {
+    try {
+      const response = await api.get<AssetResponse>(`/assets/by-label/${encodeURIComponent(labelCode)}`);
       return response.asset;
     } catch (err: unknown) {
       // Return null if not found (404)
