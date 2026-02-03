@@ -22,7 +22,7 @@ interface DownloadFloorplanModalProps {
   floorName?: string;
   roomName?: string;
   pins: Pin[];
-  pinType?: 'room' | 'asset';
+  pinType?: 'room' | 'asset' | 'floor';
 }
 
 const formatOptions = [
@@ -409,7 +409,7 @@ export function DownloadFloorplanModal({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-body-sm text-text-secondary">
-                  {pinType === 'room' ? 'Rooms' : 'Assets'} to include ({selectedPins.size}/{pins.length})
+                  {pinType === 'room' ? 'Rooms' : pinType === 'floor' ? 'Floors' : 'Assets'} to include ({selectedPins.size}/{pins.length})
                 </label>
                 <div className="flex gap-2">
                   <Button

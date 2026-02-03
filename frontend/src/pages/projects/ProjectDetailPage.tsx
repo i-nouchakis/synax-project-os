@@ -25,6 +25,10 @@ import {
   Image,
   X,
   Trash2,
+  Lock,
+  Unlock,
+  Map,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -46,6 +50,7 @@ import { floorService, type CreateFloorData, type UpdateFloorData, type Floor } 
 import { reportService } from '@/services/report.service';
 import { uploadService } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth.store';
+import { FloorPlanCanvas, DownloadFloorplanModal } from '@/components/floor-plan';
 
 const statusBadgeVariants: Record<ProjectStatus, 'info' | 'primary' | 'warning' | 'success' | 'default'> = {
   PLANNING: 'info',
@@ -67,6 +72,16 @@ export function ProjectDetailPage() {
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [editingFloor, setEditingFloor] = useState<Floor | null>(null);
   const [deletingFloor, setDeletingFloor] = useState<Floor | null>(null);
+
+  // Masterplan state
+  const [showMasterplan, setShowMasterplan] = useState(true);
+  const [isMasterplanEditMode, setIsMasterplanEditMode] = useState(false);
+  const [isUploadingMasterplan, setIsUploadingMasterplan] = useState(false);
+  const [selectedFloorId, setSelectedFloorId] = useState<string | null>(null);
+  const [isMasterplanFullScreenOpen, setIsMasterplanFullScreenOpen] = useState(false);
+  const [isDownloadMasterplanModalOpen, setIsDownloadMasterplanModalOpen] = useState(false);
+  const [pendingFloorPinPosition, setPendingFloorPinPosition] = useState<{ x: number; y: number } | null>(null);
+  const masterplanInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch project
   const { data: project, isLoading, error } = useQuery({
@@ -104,6 +119,7 @@ export function ProjectDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       setIsAddFloorModalOpen(false);
+      setPendingFloorPinPosition(null);
       toast.success('Floor created successfully');
     },
     onError: (err: Error) => {
@@ -177,6 +193,38 @@ export function ProjectDetailPage() {
       toast.error(err.message || 'Failed to delete floor');
     },
   });
+
+  // Update floor position mutation (for masterplan pins)
+  const updateFloorPositionMutation = useMutation({
+    mutationFn: ({ floorId, pinX, pinY }: { floorId: string; pinX: number | null; pinY: number | null }) =>
+      floorService.updatePosition(floorId, pinX, pinY),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to update floor position');
+    },
+  });
+
+  // Handle masterplan upload
+  const handleMasterplanUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+
+    setIsUploadingMasterplan(true);
+    try {
+      await uploadService.uploadMasterplan(id, file);
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      toast.success('Masterplan uploaded successfully');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload masterplan');
+    } finally {
+      setIsUploadingMasterplan(false);
+      if (masterplanInputRef.current) {
+        masterplanInputRef.current.value = '';
+      }
+    }
+  };
 
   if (isLoading) {
     return (
@@ -399,6 +447,164 @@ export function ProjectDetailPage() {
         </Card>
       )}
 
+      {/* Masterplan Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Map size={20} />
+            Master Plan
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {/* Hidden file input for masterplan upload */}
+            <input
+              ref={masterplanInputRef}
+              type="file"
+              accept="image/*,.pdf"
+              onChange={handleMasterplanUpload}
+              className="hidden"
+            />
+            {project.masterplanUrl && project.masterplanType !== 'PDF' && canManage && isMasterplanEditMode && (
+              <>
+                {(project.floors || []).filter(f => f.pinX === null || f.pinY === null).length > 0 && (
+                  <span className="text-caption text-text-secondary">
+                    {(project.floors || []).filter(f => f.pinX === null || f.pinY === null).length} floors to place
+                  </span>
+                )}
+                <Badge variant="info" size="sm">
+                  Click to add | Drag to move
+                </Badge>
+              </>
+            )}
+            {canManage && (
+              <Button
+                size="sm"
+                variant="secondary"
+                leftIcon={<Upload size={16} />}
+                onClick={() => masterplanInputRef.current?.click()}
+                isLoading={isUploadingMasterplan}
+              >
+                {project.masterplanUrl ? 'Change' : 'Upload'}
+              </Button>
+            )}
+            {project.masterplanUrl && project.masterplanType !== 'PDF' && (
+              <Button
+                size="sm"
+                variant="secondary"
+                leftIcon={<Download size={16} />}
+                onClick={() => setIsDownloadMasterplanModalOpen(true)}
+              >
+                Download
+              </Button>
+            )}
+            {project.masterplanUrl && project.masterplanType !== 'PDF' && canManage && (
+              <Button
+                size="sm"
+                variant={isMasterplanEditMode ? 'primary' : 'secondary'}
+                leftIcon={isMasterplanEditMode ? <Unlock size={16} /> : <Lock size={16} />}
+                onClick={() => setIsMasterplanEditMode(!isMasterplanEditMode)}
+              >
+                {isMasterplanEditMode ? 'Editing' : 'Edit Pins'}
+              </Button>
+            )}
+            {project.masterplanUrl && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowMasterplan(!showMasterplan)}
+              >
+                {showMasterplan ? 'Hide' : 'Show'}
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        {project.masterplanUrl ? (
+          showMasterplan && (
+            <CardContent>
+              {project.masterplanType === 'PDF' ? (
+                <div className="text-center py-8 bg-surface-secondary rounded-lg">
+                  <p className="text-text-secondary mb-4">PDF masterplan uploaded</p>
+                  <a
+                    href={project.masterplanUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Open PDF in new tab
+                  </a>
+                </div>
+              ) : (
+                <div className="h-[500px]">
+                  <FloorPlanCanvas
+                    imageUrl={project.masterplanUrl}
+                    pins={(project.floors || [])
+                      .filter((floor) => floor.pinX !== null && floor.pinY !== null)
+                      .map((floor) => ({
+                        id: floor.id,
+                        x: floor.pinX!,
+                        y: floor.pinY!,
+                        name: floor.name,
+                        status: 'IN_PROGRESS' as const, // Use blue for floor pins
+                      }))}
+                    availableItems={isMasterplanEditMode ? (project.floors || [])
+                      .filter((floor) => floor.pinX === null || floor.pinY === null)
+                      .map((floor) => ({
+                        id: floor.id,
+                        name: floor.name,
+                        level: floor.level,
+                      })) : []}
+                    selectedPinId={selectedFloorId}
+                    isEditable={isMasterplanEditMode}
+                    showLegend={false}
+                    onPinClick={(pin) => {
+                      setSelectedFloorId(pin.id);
+                      navigate(`/floors/${pin.id}`);
+                    }}
+                    onPinMove={(pinId, x, y) => {
+                      updateFloorPositionMutation.mutate({
+                        floorId: pinId,
+                        pinX: Math.round(x),
+                        pinY: Math.round(y),
+                      });
+                    }}
+                    onPlaceItem={(floorId, x, y) => {
+                      updateFloorPositionMutation.mutate({
+                        floorId,
+                        pinX: Math.round(x),
+                        pinY: Math.round(y),
+                      });
+                      toast.success('Floor placed on masterplan');
+                    }}
+                    onAddPin={(x, y) => {
+                      setPendingFloorPinPosition({ x: Math.round(x), y: Math.round(y) });
+                      setIsAddFloorModalOpen(true);
+                    }}
+                    onMaximize={() => setIsMasterplanFullScreenOpen(true)}
+                  />
+                </div>
+              )}
+            </CardContent>
+          )
+        ) : (
+          <CardContent className="py-12 text-center">
+            <Image size={48} className="mx-auto text-text-tertiary mb-4" />
+            <h3 className="text-h3 text-text-primary mb-2">No Master Plan</h3>
+            <p className="text-body text-text-secondary mb-4">
+              Upload a master plan to visualize floor locations
+            </p>
+            {canManage && (
+              <Button
+                variant="secondary"
+                leftIcon={<Upload size={18} />}
+                onClick={() => masterplanInputRef.current?.click()}
+                isLoading={isUploadingMasterplan}
+              >
+                Upload Master Plan
+              </Button>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Floors */}
@@ -530,10 +736,14 @@ export function ProjectDetailPage() {
       {/* Add Floor Modal */}
       <AddFloorModal
         isOpen={isAddFloorModalOpen}
-        onClose={() => setIsAddFloorModalOpen(false)}
+        onClose={() => {
+          setIsAddFloorModalOpen(false);
+          setPendingFloorPinPosition(null);
+        }}
         onSubmit={(data) => createFloorMutation.mutate({ ...data, projectId: id! })}
         isLoading={createFloorMutation.isPending}
         existingLevels={project.floors?.map(f => f.level) || []}
+        pendingPinPosition={pendingFloorPinPosition}
       />
 
       {/* Add Member Modal */}
@@ -601,6 +811,113 @@ export function ProjectDetailPage() {
             </p>
           </div>
         </Modal>
+      )}
+
+      {/* Full Screen Masterplan Modal */}
+      {project.masterplanUrl && project.masterplanType !== 'PDF' && (
+        <Modal
+          isOpen={isMasterplanFullScreenOpen}
+          onClose={() => setIsMasterplanFullScreenOpen(false)}
+          title={`${project.name} - Master Plan`}
+          icon={<Map size={18} />}
+          size="full"
+        >
+          {/* Edit mode toggle in fullscreen */}
+          {canManage && (
+            <div className="flex items-center justify-end gap-2 mb-2 -mt-2">
+              {isMasterplanEditMode && (
+                <>
+                  {(project.floors || []).filter(f => f.pinX === null || f.pinY === null).length > 0 && (
+                    <span className="text-caption text-text-secondary">
+                      {(project.floors || []).filter(f => f.pinX === null || f.pinY === null).length} floors to place
+                    </span>
+                  )}
+                  <Badge variant="info" size="sm">
+                    Click to add | Drag to move
+                  </Badge>
+                </>
+              )}
+              <Button
+                size="sm"
+                variant={isMasterplanEditMode ? 'primary' : 'secondary'}
+                leftIcon={isMasterplanEditMode ? <Unlock size={16} /> : <Lock size={16} />}
+                onClick={() => setIsMasterplanEditMode(!isMasterplanEditMode)}
+              >
+                {isMasterplanEditMode ? 'Editing' : 'Edit Pins'}
+              </Button>
+            </div>
+          )}
+          <div className="h-[calc(95vh-120px)] -mx-6 -mb-6">
+            <FloorPlanCanvas
+              imageUrl={project.masterplanUrl}
+              pins={(project.floors || [])
+                .filter((floor) => floor.pinX !== null && floor.pinY !== null)
+                .map((floor) => ({
+                  id: floor.id,
+                  x: floor.pinX!,
+                  y: floor.pinY!,
+                  name: floor.name,
+                  status: 'IN_PROGRESS' as const,
+                }))}
+              availableItems={isMasterplanEditMode ? (project.floors || [])
+                .filter((floor) => floor.pinX === null || floor.pinY === null)
+                .map((floor) => ({
+                  id: floor.id,
+                  name: floor.name,
+                  level: floor.level,
+                })) : []}
+              selectedPinId={selectedFloorId}
+              isEditable={isMasterplanEditMode}
+              showMaximize={false}
+              showLegend={false}
+              onPinClick={(pin) => {
+                setSelectedFloorId(pin.id);
+                navigate(`/floors/${pin.id}`);
+              }}
+              onPinMove={(pinId, x, y) => {
+                updateFloorPositionMutation.mutate({
+                  floorId: pinId,
+                  pinX: Math.round(x),
+                  pinY: Math.round(y),
+                });
+              }}
+              onPlaceItem={(floorId, x, y) => {
+                updateFloorPositionMutation.mutate({
+                  floorId,
+                  pinX: Math.round(x),
+                  pinY: Math.round(y),
+                });
+                toast.success('Floor placed on masterplan');
+              }}
+              onAddPin={(x, y) => {
+                setPendingFloorPinPosition({ x: Math.round(x), y: Math.round(y) });
+                setIsAddFloorModalOpen(true);
+              }}
+            />
+          </div>
+        </Modal>
+      )}
+
+      {/* Download Masterplan Modal */}
+      {project.masterplanUrl && project.masterplanType !== 'PDF' && (
+        <DownloadFloorplanModal
+          isOpen={isDownloadMasterplanModalOpen}
+          onClose={() => setIsDownloadMasterplanModalOpen(false)}
+          imageUrl={project.masterplanUrl}
+          fileName={`${project.name}-masterplan`}
+          projectName={project.name}
+          floorName="Master Plan"
+          pins={(project.floors || [])
+            .filter((floor) => floor.pinX !== null && floor.pinY !== null)
+            .map((floor) => ({
+              id: floor.id,
+              name: floor.name,
+              x: floor.pinX!,
+              y: floor.pinY!,
+              status: 'IN_PROGRESS' as const,
+            }))}
+          pinType="floor"
+        />
       )}
     </div>
   );
@@ -690,12 +1007,13 @@ function AddMemberModal({ isOpen, onClose, onSubmit, isLoading, existingMemberId
 interface AddFloorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { name: string; level: number; floorplanFile?: File }) => void;
+  onSubmit: (data: { name: string; level: number; floorplanFile?: File; pinX?: number; pinY?: number }) => void;
   isLoading: boolean;
   existingLevels: number[];
+  pendingPinPosition?: { x: number; y: number } | null;
 }
 
-function AddFloorModal({ isOpen, onClose, onSubmit, isLoading, existingLevels }: AddFloorModalProps) {
+function AddFloorModal({ isOpen, onClose, onSubmit, isLoading, existingLevels, pendingPinPosition }: AddFloorModalProps) {
   const [name, setName] = useState('');
   const [level, setLevel] = useState(0);
   const [floorplanFile, setFloorplanFile] = useState<File | null>(null);
@@ -732,7 +1050,13 @@ function AddFloorModal({ isOpen, onClose, onSubmit, isLoading, existingLevels }:
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ name, level, floorplanFile: floorplanFile || undefined });
+    onSubmit({
+      name,
+      level,
+      floorplanFile: floorplanFile || undefined,
+      pinX: pendingPinPosition?.x,
+      pinY: pendingPinPosition?.y,
+    });
     setName('');
     setLevel(suggestedLevel);
     setFloorplanFile(null);

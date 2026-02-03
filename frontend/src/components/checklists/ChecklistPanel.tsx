@@ -14,6 +14,9 @@ import {
   Package,
   Settings,
   FileText,
+  ClipboardList,
+  Sparkles,
+  Star,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, Badge, Modal, ModalSection, ModalActions } from '@/components/ui';
@@ -25,6 +28,11 @@ import {
   checklistTypeLabels,
 } from '@/services/checklist.service';
 import { uploadService } from '@/services/upload.service';
+import {
+  checklistTemplateService,
+  templateTypeLabels,
+  type ChecklistTemplateType,
+} from '@/services/checklist-template.service';
 
 interface ChecklistPanelProps {
   assetId: string;
@@ -51,11 +59,40 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
   const [viewingPhotos, setViewingPhotos] = useState<ChecklistItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Create checklist modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedType, setSelectedType] = useState<ChecklistType | null>(null);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
+  const [createMode, setCreateMode] = useState<'template' | 'custom'>('template');
+
   // Fetch checklists
   const { data: checklists = [], isLoading } = useQuery({
     queryKey: ['checklists', assetId],
     queryFn: () => checklistService.getByAsset(assetId),
   });
+
+  // Fetch templates for the selected type
+  const { data: templates = [] } = useQuery({
+    queryKey: ['checklist-templates', selectedType],
+    queryFn: () => checklistTemplateService.getAll({
+      type: selectedType as ChecklistTemplateType || undefined,
+      activeOnly: true,
+    }),
+    enabled: showCreateModal && !!selectedType,
+  });
+
+  // Also fetch GENERAL templates
+  const { data: generalTemplates = [] } = useQuery({
+    queryKey: ['checklist-templates', 'GENERAL'],
+    queryFn: () => checklistTemplateService.getAll({
+      type: 'GENERAL',
+      activeOnly: true,
+    }),
+    enabled: showCreateModal && !!selectedType,
+  });
+
+  // Combine and sort templates (type-specific first, then general)
+  const availableTemplates = [...templates.filter(t => t.type === selectedType), ...generalTemplates];
 
   // Generate all checklists mutation
   const generateMutation = useMutation({
@@ -68,6 +105,64 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
       toast.error(err.message || 'Failed to generate checklists');
     },
   });
+
+  // Create single checklist mutation
+  const createChecklistMutation = useMutation({
+    mutationFn: (data: { type: ChecklistType; templateIds?: string[] }) =>
+      checklistService.create(assetId, data.type, undefined, data.templateIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['checklists', assetId] });
+      toast.success('Checklist created');
+      closeCreateModal();
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to create checklist');
+    },
+  });
+
+  // Helpers for create modal
+  const openCreateModal = () => {
+    setShowCreateModal(true);
+    setSelectedType(null);
+    setSelectedTemplateIds([]);
+    setCreateMode('template');
+  };
+
+  const closeCreateModal = () => {
+    setShowCreateModal(false);
+    setSelectedType(null);
+    setSelectedTemplateIds([]);
+    setCreateMode('template');
+  };
+
+  const handleCreateChecklist = () => {
+    if (!selectedType) return;
+    createChecklistMutation.mutate({
+      type: selectedType,
+      templateIds: createMode === 'template' && selectedTemplateIds.length > 0 ? selectedTemplateIds : undefined,
+    });
+  };
+
+  // Toggle template selection
+  const toggleTemplateSelection = (templateId: string) => {
+    setSelectedTemplateIds(prev =>
+      prev.includes(templateId)
+        ? prev.filter(id => id !== templateId)
+        : [...prev, templateId]
+    );
+  };
+
+  // Calculate total items from selected templates
+  const getTotalSelectedItems = () => {
+    return availableTemplates
+      .filter(t => selectedTemplateIds.includes(t.id))
+      .reduce((sum, t) => sum + t.items.length, 0);
+  };
+
+  // Get existing checklist types
+  const existingTypes = checklists.map(c => c.type);
+  const availableTypes: ChecklistType[] = ['CABLING', 'EQUIPMENT', 'CONFIG', 'DOCUMENTATION']
+    .filter(t => !existingTypes.includes(t as ChecklistType)) as ChecklistType[];
 
   // Toggle item mutation
   const toggleMutation = useMutation({
@@ -145,14 +240,13 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
           <ListChecks size={20} />
           Checklists
         </h3>
-        {checklists.length === 0 && (
+        {availableTypes.length > 0 && (
           <Button
             size="sm"
-            onClick={() => generateMutation.mutate()}
-            isLoading={generateMutation.isPending}
+            onClick={openCreateModal}
             leftIcon={<Plus size={16} />}
           >
-            Generate Checklists
+            Add Checklist
           </Button>
         )}
       </div>
@@ -162,7 +256,7 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
         <div className="text-center py-8 text-text-secondary">
           <ListChecks size={32} className="mx-auto mb-2 opacity-50" />
           <p>No checklists yet</p>
-          <p className="text-caption">Click "Generate Checklists" to create them</p>
+          <p className="text-caption">Click "Add Checklist" to create one</p>
         </div>
       )}
 
@@ -380,6 +474,183 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
           </ModalSection>
         </Modal>
       )}
+
+      {/* Create Checklist Modal */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={closeCreateModal}
+        title="Create Checklist"
+        icon={<ClipboardList size={18} />}
+        size="md"
+        footer={
+          <ModalActions>
+            <Button variant="secondary" onClick={closeCreateModal}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateChecklist}
+              isLoading={createChecklistMutation.isPending}
+              disabled={!selectedType}
+            >
+              Create Checklist
+            </Button>
+          </ModalActions>
+        }
+      >
+        <div className="space-y-5">
+          {/* Step 1: Select Type */}
+          <ModalSection title="1. Select Checklist Type">
+            <div className="grid grid-cols-2 gap-2">
+              {availableTypes.map((type) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    setSelectedType(type);
+                    setSelectedTemplateIds([]);
+                  }}
+                  className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                    selectedType === type
+                      ? 'border-primary bg-primary/10'
+                      : 'border-surface-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center">
+                    {typeIcons[type]}
+                  </div>
+                  <span className="text-body font-medium text-text-primary">
+                    {checklistTypeLabels[type]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </ModalSection>
+
+          {/* Step 2: Choose Mode */}
+          {selectedType && (
+            <ModalSection title="2. Choose Mode">
+              <div className="space-y-2">
+                <button
+                  onClick={() => setCreateMode('template')}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                    createMode === 'template'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-surface-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <ClipboardList size={18} className="text-primary" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-body font-medium text-text-primary">Use Template</p>
+                    <p className="text-caption text-text-tertiary">
+                      Start with a predefined template with auto-sync
+                    </p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setCreateMode('custom');
+                    setSelectedTemplateIds([]);
+                  }}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                    createMode === 'custom'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-surface-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center">
+                    <Sparkles size={18} className="text-text-secondary" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-body font-medium text-text-primary">Custom (Empty)</p>
+                    <p className="text-caption text-text-tertiary">
+                      Create an empty checklist and add items manually
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </ModalSection>
+          )}
+
+          {/* Step 3: Select Templates (Multi-select) */}
+          {selectedType && createMode === 'template' && (
+            <ModalSection
+              title={
+                <div className="flex items-center justify-between w-full">
+                  <span>3. Select Templates</span>
+                  {selectedTemplateIds.length > 0 && (
+                    <Badge variant="primary" size="sm">
+                      {selectedTemplateIds.length} selected • {getTotalSelectedItems()} items
+                    </Badge>
+                  )}
+                </div>
+              }
+            >
+              {availableTemplates.length === 0 ? (
+                <div className="text-center py-6 text-text-secondary">
+                  <ClipboardList size={32} className="mx-auto mb-2 opacity-50" />
+                  <p className="text-body">No templates available</p>
+                  <p className="text-caption">Create one in Settings → Templates</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  <p className="text-caption text-text-tertiary mb-2">
+                    Select one or more templates. Items will be merged into the checklist.
+                  </p>
+                  {availableTemplates.map((template) => {
+                    const isSelected = selectedTemplateIds.includes(template.id);
+                    return (
+                      <button
+                        key={template.id}
+                        onClick={() => toggleTemplateSelection(template.id)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                          isSelected
+                            ? 'border-primary bg-primary/10'
+                            : 'border-surface-border hover:border-primary/50'
+                        }`}
+                      >
+                        {/* Checkbox */}
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                          isSelected
+                            ? 'bg-primary border-primary'
+                            : 'border-surface-border'
+                        }`}>
+                          {isSelected && (
+                            <CheckCircle2 size={14} className="text-white" />
+                          )}
+                        </div>
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-body font-medium text-text-primary truncate">
+                              {template.name}
+                            </p>
+                            {template.isDefault && (
+                              <Star size={14} className="text-warning fill-warning flex-shrink-0" />
+                            )}
+                            <Badge variant="default" size="sm" className="flex-shrink-0">
+                              {templateTypeLabels[template.type]}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-caption text-text-tertiary">
+                              {template.items.length} items
+                            </p>
+                            {template.description && (
+                              <p className="text-caption text-text-tertiary truncate">
+                                • {template.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </ModalSection>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

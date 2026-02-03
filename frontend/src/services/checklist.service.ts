@@ -89,11 +89,17 @@ export const checklistService = {
     return response.checklist;
   },
 
-  // Create checklist for asset
-  async create(assetId: string, type: ChecklistType, assignedToId?: string): Promise<Checklist> {
+  // Create checklist for asset (supports multiple templates)
+  async create(
+    assetId: string,
+    type: ChecklistType,
+    assignedToId?: string,
+    templateIds?: string[]
+  ): Promise<Checklist> {
     const response = await api.post<ChecklistResponse>(`/checklists/asset/${assetId}`, {
       type,
       assignedToId,
+      templateIds: templateIds?.length ? templateIds : undefined,
     });
     return response.checklist;
   },

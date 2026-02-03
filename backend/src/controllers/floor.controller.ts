@@ -7,6 +7,8 @@ const createFloorSchema = z.object({
   projectId: z.string(),
   name: z.string().min(1),
   level: z.number().int().optional(),
+  pinX: z.number().optional(),
+  pinY: z.number().optional(),
 });
 
 const updateFloorSchema = z.object({
@@ -80,6 +82,8 @@ export async function floorRoutes(app: FastifyInstance) {
           projectId: data.projectId,
           name: data.name,
           level: data.level ?? 0,
+          pinX: data.pinX,
+          pinY: data.pinY,
         },
         include: {
           project: { select: { id: true, name: true } },
@@ -200,5 +204,20 @@ export async function floorRoutes(app: FastifyInstance) {
     await prisma.room.delete({ where: { id: roomId } });
 
     return reply.send({ message: 'Room deleted' });
+  });
+
+  // PUT /api/floors/:id/position - Update floor position on masterplan
+  app.put('/:id/position', {
+    preHandler: [requireRole(['ADMIN', 'PM'])],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const { pinX, pinY } = request.body as { pinX: number | null; pinY: number | null };
+
+    const floor = await prisma.floor.update({
+      where: { id },
+      data: { pinX, pinY },
+    });
+
+    return reply.send({ floor });
   });
 }

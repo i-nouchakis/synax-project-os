@@ -67,6 +67,8 @@ export interface CreateAssetData {
   macAddress?: string;
   ipAddress?: string;
   notes?: string;
+  pinX?: number;
+  pinY?: number;
 }
 
 export interface UpdateAssetData extends Partial<CreateAssetData> {

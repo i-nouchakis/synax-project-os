@@ -101,7 +101,7 @@ export function Modal({
    ======================================== */
 
 interface ModalSectionProps {
-  title?: string;
+  title?: React.ReactNode;
   icon?: React.ReactNode;
   children: React.ReactNode;
   className?: string;

@@ -26,6 +26,8 @@ export interface Floor {
   level: number;
   floorplanUrl?: string;
   floorplanType?: string;
+  pinX?: number | null;
+  pinY?: number | null;
   projectId: string;
   createdAt: string;
   project?: {
@@ -43,6 +45,8 @@ export interface CreateFloorData {
   projectId: string;
   name: string;
   level?: number;
+  pinX?: number;
+  pinY?: number;
 }
 
 export interface UpdateFloorData {
@@ -131,5 +135,11 @@ export const floorService = {
   // Delete room
   async deleteRoom(floorId: string, roomId: string): Promise<void> {
     await api.delete(`/floors/${floorId}/rooms/${roomId}`);
+  },
+
+  // Update floor position on masterplan
+  async updatePosition(id: string, pinX: number | null, pinY: number | null): Promise<Floor> {
+    const response = await api.put<FloorResponse>(`/floors/${id}/position`, { pinX, pinY });
+    return response.floor;
   },
 };

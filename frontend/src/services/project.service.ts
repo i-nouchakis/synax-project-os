@@ -23,6 +23,8 @@ export interface Project {
   status: ProjectStatus;
   startDate?: string;
   endDate?: string;
+  masterplanUrl?: string;
+  masterplanType?: string;
   createdAt: string;
   updatedAt: string;
   _count?: {
@@ -34,6 +36,8 @@ export interface Project {
     id: string;
     name: string;
     level: number;
+    pinX?: number | null;
+    pinY?: number | null;
     _count: { rooms: number };
   }>;
   members?: ProjectMember[];

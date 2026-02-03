@@ -6,6 +6,8 @@ import { authenticate, requireRole } from '../middleware/auth.middleware.js';
 const createChecklistSchema = z.object({
   type: z.enum(['CABLING', 'EQUIPMENT', 'CONFIG', 'DOCUMENTATION']),
   assignedToId: z.string().optional(),
+  templateId: z.string().optional(), // Optional: use a single checklist template (legacy)
+  templateIds: z.array(z.string()).optional(), // Optional: use multiple templates (items merged)
 });
 
 const updateChecklistItemSchema = z.object({
@@ -141,22 +143,100 @@ export async function checklistRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: `Checklist of type ${data.type} already exists for this asset` });
       }
 
-      // Get template items from asset type
-      const template = asset.assetType?.checklistTemplate as { items?: Array<{ name: string; requiresPhoto?: boolean }> } | null;
-      const templateItems = template?.items || [];
+      // Determine items to create
+      let itemsToCreate: Array<{
+        name: string;
+        description?: string;
+        requiresPhoto: boolean;
+        isRequired: boolean;
+        order: number;
+        sourceItemId?: string;
+      }> = [];
+      let templateId: string | undefined;
 
-      // Create checklist with items from template
+      // Handle multiple templates (new way) or single template (legacy)
+      const templateIdsToUse = data.templateIds || (data.templateId ? [data.templateId] : []);
+
+      if (templateIdsToUse.length > 0) {
+        // Fetch all specified templates
+        const templates = await prisma.checklistTemplate.findMany({
+          where: { id: { in: templateIdsToUse } },
+          include: { items: { orderBy: { order: 'asc' } } },
+        });
+
+        if (templates.length !== templateIdsToUse.length) {
+          const foundIds = templates.map(t => t.id);
+          const missingIds = templateIdsToUse.filter(id => !foundIds.includes(id));
+          return reply.status(400).send({ error: `Templates not found: ${missingIds.join(', ')}` });
+        }
+
+        // If single template, store templateId for sync purposes
+        if (templates.length === 1) {
+          templateId = templates[0].id;
+        }
+
+        // Merge items from all templates, maintaining order
+        let currentOrder = 0;
+        for (const template of templates) {
+          for (const item of template.items) {
+            itemsToCreate.push({
+              name: item.name,
+              description: item.description || undefined,
+              requiresPhoto: item.requiresPhoto,
+              isRequired: item.isRequired,
+              order: currentOrder++,
+              sourceItemId: item.id, // Link to template item for sync
+            });
+          }
+        }
+      } else {
+        // Try to find a default template for this type
+        const defaultTemplate = await prisma.checklistTemplate.findFirst({
+          where: {
+            type: data.type,
+            isDefault: true,
+            isActive: true,
+            OR: [
+              { assetTypeId: asset.assetTypeId },
+              { assetTypeId: null },
+            ],
+          },
+          include: { items: { orderBy: { order: 'asc' } } },
+          orderBy: { assetTypeId: 'desc' }, // Prefer specific asset type templates
+        });
+
+        if (defaultTemplate) {
+          templateId = defaultTemplate.id;
+          itemsToCreate = defaultTemplate.items.map((item) => ({
+            name: item.name,
+            description: item.description || undefined,
+            requiresPhoto: item.requiresPhoto,
+            isRequired: item.isRequired,
+            order: item.order,
+            sourceItemId: item.id,
+          }));
+        } else {
+          // Fallback to old asset type template (legacy)
+          const legacyTemplate = asset.assetType?.checklistTemplate as { items?: Array<{ name: string; requiresPhoto?: boolean }> } | null;
+          const legacyItems = legacyTemplate?.items || [];
+          itemsToCreate = legacyItems.map((item, index) => ({
+            name: item.name,
+            requiresPhoto: item.requiresPhoto || false,
+            isRequired: true,
+            order: index,
+          }));
+        }
+      }
+
+      // Create checklist with items
       const checklist = await prisma.checklist.create({
         data: {
           assetId,
           type: data.type,
           assignedToId: data.assignedToId,
+          templateId,
           items: {
-            create: templateItems.map((item, index) => ({
-              name: item.name,
-              requiresPhoto: item.requiresPhoto || false,
-              order: index,
-            })),
+            create: itemsToCreate,
           },
         },
         include: {
@@ -164,6 +244,7 @@ export async function checklistRoutes(app: FastifyInstance) {
             orderBy: { order: 'asc' },
           },
           assignedTo: { select: { id: true, name: true } },
+          template: { select: { id: true, name: true } },
         },
       });
 

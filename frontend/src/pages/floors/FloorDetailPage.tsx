@@ -71,6 +71,7 @@ export function FloorDetailPage() {
   const [isCropSaving, setIsCropSaving] = useState(false);
   const [confirmCropRoom, setConfirmCropRoom] = useState<Room | null>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [showFloorPlan, setShowFloorPlan] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch floor
@@ -217,26 +218,9 @@ export function FloorDetailPage() {
           </div>
         </div>
         {canManage && (
-          <div className="flex gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,.pdf"
-              onChange={handleFloorPlanUpload}
-              className="hidden"
-            />
-            <Button
-              variant="secondary"
-              leftIcon={<Upload size={18} />}
-              onClick={() => fileInputRef.current?.click()}
-              isLoading={isUploading}
-            >
-              Upload Floor Plan
-            </Button>
-            <Button leftIcon={<Plus size={18} />} onClick={() => setIsCreateRoomModalOpen(true)}>
-              Add Room
-            </Button>
-          </div>
+          <Button leftIcon={<Plus size={18} />} onClick={() => setIsCreateRoomModalOpen(true)}>
+            Add Room
+          </Button>
         )}
       </div>
 
@@ -268,6 +252,15 @@ export function FloorDetailPage() {
         </Card>
       </div>
 
+      {/* Hidden file input for floor plan upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.pdf"
+        onChange={handleFloorPlanUpload}
+        className="hidden"
+      />
+
       {/* Floor Plan Viewer */}
       {floor.floorplanUrl ? (
         <Card>
@@ -278,9 +271,27 @@ export function FloorDetailPage() {
             </CardTitle>
             <div className="flex items-center gap-2">
               {canManage && isEditMode && (
-                <Badge variant="info" size="sm">
-                  Click to add pins | Drag to move
-                </Badge>
+                <>
+                  {(floor.rooms || []).filter(r => r.pinX === null || r.pinY === null).length > 0 && (
+                    <span className="text-caption text-text-secondary">
+                      {(floor.rooms || []).filter(r => r.pinX === null || r.pinY === null).length} rooms to place
+                    </span>
+                  )}
+                  <Badge variant="info" size="sm">
+                    Click to add | Drag to move
+                  </Badge>
+                </>
+              )}
+              {canManage && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  leftIcon={<Upload size={16} />}
+                  onClick={() => fileInputRef.current?.click()}
+                  isLoading={isUploading}
+                >
+                  Change
+                </Button>
               )}
               {floor.floorplanType !== 'PDF' && (
                 <Button
@@ -302,8 +313,16 @@ export function FloorDetailPage() {
                   {isEditMode ? 'Editing' : 'Edit Pins'}
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFloorPlan(!showFloorPlan)}
+              >
+                {showFloorPlan ? 'Hide' : 'Show'}
+              </Button>
             </div>
           </CardHeader>
+          {showFloorPlan && (
           <CardContent>
             {floor.floorplanType === 'PDF' ? (
               <div className="text-center py-8 bg-surface-secondary rounded-lg">
@@ -318,7 +337,7 @@ export function FloorDetailPage() {
                 </a>
               </div>
             ) : (
-              <div className="h-[600px]">
+              <div className="h-[500px]">
                 <FloorPlanCanvas
                   imageUrl={floor.floorplanUrl}
                   pins={(floor.rooms || [])
@@ -330,6 +349,12 @@ export function FloorDetailPage() {
                       name: room.name,
                       status: room.status,
                     }))}
+                  availableItems={isEditMode ? (floor.rooms || [])
+                    .filter((room) => room.pinX === null || room.pinY === null)
+                    .map((room) => ({
+                      id: room.id,
+                      name: room.name,
+                    })) : []}
                   selectedPinId={selectedRoomId}
                   isEditable={isEditMode}
                   onPinClick={(pin) => {
@@ -345,6 +370,13 @@ export function FloorDetailPage() {
                       data: { pinX: Math.round(x), pinY: Math.round(y) },
                     });
                   }}
+                  onPlaceItem={(roomId, x, y) => {
+                    updateRoomMutation.mutate({
+                      roomId,
+                      data: { pinX: Math.round(x), pinY: Math.round(y) },
+                    });
+                    toast.success('Room placed on floor plan');
+                  }}
                   onAddPin={(x, y) => {
                     setPendingPinPosition({ x: Math.round(x), y: Math.round(y) });
                     setIsCreateRoomModalOpen(true);
@@ -354,6 +386,7 @@ export function FloorDetailPage() {
               </div>
             )}
           </CardContent>
+          )}
         </Card>
       ) : (
         <Card>
@@ -607,9 +640,16 @@ export function FloorDetailPage() {
           {canManage && (
             <div className="flex items-center justify-end gap-2 mb-2 -mt-2">
               {isEditMode && (
-                <Badge variant="info" size="sm">
-                  Click to add pins | Drag to move
-                </Badge>
+                <>
+                  {(floor.rooms || []).filter(r => r.pinX === null || r.pinY === null).length > 0 && (
+                    <span className="text-caption text-text-secondary">
+                      {(floor.rooms || []).filter(r => r.pinX === null || r.pinY === null).length} rooms to place
+                    </span>
+                  )}
+                  <Badge variant="info" size="sm">
+                    Click to add | Drag to move
+                  </Badge>
+                </>
               )}
               <Button
                 size="sm"
@@ -633,6 +673,12 @@ export function FloorDetailPage() {
                   name: room.name,
                   status: room.status,
                 }))}
+              availableItems={isEditMode ? (floor.rooms || [])
+                .filter((room) => room.pinX === null || room.pinY === null)
+                .map((room) => ({
+                  id: room.id,
+                  name: room.name,
+                })) : []}
               selectedPinId={selectedRoomId}
               isEditable={isEditMode}
               showMaximize={false}
@@ -649,6 +695,13 @@ export function FloorDetailPage() {
                   roomId: pinId,
                   data: { pinX: Math.round(x), pinY: Math.round(y) },
                 });
+              }}
+              onPlaceItem={(roomId, x, y) => {
+                updateRoomMutation.mutate({
+                  roomId,
+                  data: { pinX: Math.round(x), pinY: Math.round(y) },
+                });
+                toast.success('Room placed on floor plan');
               }}
               onAddPin={(x, y) => {
                 setPendingPinPosition({ x: Math.round(x), y: Math.round(y) });

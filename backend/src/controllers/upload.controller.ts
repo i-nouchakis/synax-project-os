@@ -215,4 +215,68 @@ export async function uploadRoutes(app: FastifyInstance) {
 
     return reply.send(result);
   });
+
+  // POST /api/upload/masterplan/:projectId - Upload project master plan
+  app.post('/masterplan/:projectId', {
+    preHandler: [requireRole(['ADMIN', 'PM'])],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { projectId } = request.params as { projectId: string };
+
+    // Check project exists
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) {
+      return reply.status(404).send({ error: 'Project not found' });
+    }
+
+    const data = await request.file();
+
+    if (!data) {
+      return reply.status(400).send({ error: 'No file uploaded' });
+    }
+
+    // Check if it's a DWG file (by extension or mimetype)
+    const isDwg = isDWGFile(data.filename, data.mimetype);
+
+    if (!isDwg && !ALLOWED_FLOORPLAN_TYPES.includes(data.mimetype)) {
+      return reply.status(400).send({
+        error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, PDF, DWG',
+      });
+    }
+
+    let buffer = await data.toBuffer();
+    let filename = data.filename;
+    let masterplanType = getFloorplanType(data.filename, data.mimetype);
+    let conversionInfo: string | undefined;
+
+    // Try to convert DWG files
+    if (isDwg) {
+      const conversionResult = await dwgService.convertDwgToSvg(buffer, data.filename);
+
+      if (conversionResult.success && conversionResult.format !== 'dwg') {
+        buffer = conversionResult.buffer;
+        masterplanType = conversionResult.format === 'svg' ? 'IMAGE' : 'DWG';
+        filename = data.filename.replace(/\.dwg$/i, `.${conversionResult.format}`);
+        conversionInfo = `Converted from DWG to ${conversionResult.format.toUpperCase()}`;
+      } else {
+        conversionInfo = conversionResult.error || 'DWG stored as-is (no conversion tools available)';
+      }
+    }
+
+    const result = await storageService.uploadFloorPlan(buffer, filename, data.mimetype);
+
+    // Update project with masterplan URL
+    const updatedProject = await prisma.project.update({
+      where: { id: projectId },
+      data: {
+        masterplanUrl: result.url,
+        masterplanType,
+      },
+    });
+
+    return reply.send({
+      project: updatedProject,
+      upload: result,
+      conversion: conversionInfo,
+    });
+  });
 }

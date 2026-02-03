@@ -22,6 +22,7 @@ import {
   Hash,
   Globe,
   Download,
+  Wand2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -90,6 +91,7 @@ export function RoomDetailPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [pendingAssetPinPosition, setPendingAssetPinPosition] = useState<{ x: number; y: number } | null>(null);
 
   const floorplanInputRef = useRef<HTMLInputElement>(null);
 
@@ -130,6 +132,7 @@ export function RoomDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['room', id] });
       setIsCreateModalOpen(false);
+      setPendingAssetPinPosition(null);
       toast.success('Asset created successfully');
     },
     onError: (err: Error) => {
@@ -239,6 +242,15 @@ export function RoomDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Hidden file input for floor plan upload */}
+      <input
+        ref={floorplanInputRef}
+        type="file"
+        accept="image/*,.pdf"
+        onChange={handleFloorplanUpload}
+        className="hidden"
+      />
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -263,34 +275,11 @@ export function RoomDetailPage() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {canManage && (
-            <>
-              <input
-                ref={floorplanInputRef}
-                type="file"
-                accept="image/*,.pdf"
-                onChange={handleFloorplanUpload}
-                className="hidden"
-                id="room-floorplan-upload"
-              />
-              <Button
-                variant="secondary"
-                size="sm"
-                leftIcon={<Upload size={16} />}
-                onClick={() => floorplanInputRef.current?.click()}
-                isLoading={isUploadingFloorplan}
-              >
-                {room?.floorplanUrl ? 'Change Floor Plan' : 'Upload Floor Plan'}
-              </Button>
-            </>
-          )}
-          {canManage && (
-            <Button leftIcon={<Plus size={18} />} onClick={() => setIsCreateModalOpen(true)}>
-              Add Asset
-            </Button>
-          )}
-        </div>
+        {canManage && (
+          <Button leftIcon={<Plus size={18} />} onClick={() => setIsCreateModalOpen(true)}>
+            Add Asset
+          </Button>
+        )}
       </div>
 
       {/* Floor Plan Section */}
@@ -307,10 +296,28 @@ export function RoomDetailPage() {
               )}
             </CardTitle>
             <div className="flex items-center gap-2">
-              {availableAssets.length > 0 && canManage && isEditMode && (
-                <span className="text-caption text-text-secondary">
-                  {availableAssets.length} assets to place
-                </span>
+              {canManage && isEditMode && (
+                <>
+                  {availableAssets.length > 0 && (
+                    <span className="text-caption text-text-secondary">
+                      {availableAssets.length} assets to place
+                    </span>
+                  )}
+                  <Badge variant="info" size="sm">
+                    Click to add | Drag to move
+                  </Badge>
+                </>
+              )}
+              {canManage && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  leftIcon={<Upload size={16} />}
+                  onClick={() => floorplanInputRef.current?.click()}
+                  isLoading={isUploadingFloorplan}
+                >
+                  Change
+                </Button>
               )}
               <Button
                 size="sm"
@@ -349,6 +356,10 @@ export function RoomDetailPage() {
                   onAssetClick={handleAssetClick as any}
                   onAssetMove={handleMoveAsset}
                   onPlaceAsset={handlePlaceAsset}
+                  onAddAsset={(x, y) => {
+                    setPendingAssetPinPosition({ x: Math.round(x), y: Math.round(y) });
+                    setIsCreateModalOpen(true);
+                  }}
                   onRemoveAssetPin={handleRemoveAssetPin}
                   isEditable={isEditMode}
                   selectedAssetId={selectedAssetId}
@@ -547,11 +558,23 @@ export function RoomDetailPage() {
       {/* Create Modal */}
       <AssetFormModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={(data) => createMutation.mutate(data as CreateAssetData)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setPendingAssetPinPosition(null);
+        }}
+        onSubmit={(data) => {
+          const assetData: CreateAssetData = {
+            ...data as CreateAssetData,
+            pinX: pendingAssetPinPosition?.x,
+            pinY: pendingAssetPinPosition?.y,
+          };
+          createMutation.mutate(assetData);
+        }}
         isLoading={createMutation.isPending}
         title="Add New Asset"
         assetTypes={assetTypes}
+        projectName={room?.floor?.project?.name}
+        roomName={room?.name}
       />
 
       {/* Edit Modal */}
@@ -565,6 +588,8 @@ export function RoomDetailPage() {
           assetTypes={assetTypes}
           initialData={editingAsset}
           showStatus
+          projectName={room?.floor?.project?.name}
+          roomName={room?.name}
         />
       )}
 
@@ -617,15 +642,17 @@ export function RoomDetailPage() {
           {/* Edit mode toggle in fullscreen */}
           {canManage && (
             <div className="flex items-center justify-end gap-2 mb-2 -mt-2">
-              {availableAssets.length > 0 && isEditMode && (
-                <span className="text-caption text-text-secondary">
-                  {availableAssets.length} assets to place
-                </span>
-              )}
               {isEditMode && (
-                <Badge variant="info" size="sm">
-                  Click to place asset | Drag to move
-                </Badge>
+                <>
+                  {availableAssets.length > 0 && (
+                    <span className="text-caption text-text-secondary">
+                      {availableAssets.length} assets to place
+                    </span>
+                  )}
+                  <Badge variant="info" size="sm">
+                    Click to add | Drag to move
+                  </Badge>
+                </>
               )}
               <Button
                 size="sm"
@@ -649,6 +676,10 @@ export function RoomDetailPage() {
               }}
               onAssetMove={handleMoveAsset}
               onPlaceAsset={handlePlaceAsset}
+              onAddAsset={(x, y) => {
+                setPendingAssetPinPosition({ x: Math.round(x), y: Math.round(y) });
+                setIsCreateModalOpen(true);
+              }}
               onRemoveAssetPin={handleRemoveAssetPin}
               isEditable={isEditMode}
               selectedAssetId={selectedAssetId}
@@ -695,6 +726,8 @@ interface AssetFormModalProps {
   assetTypes: AssetType[];
   initialData?: Asset;
   showStatus?: boolean;
+  projectName?: string;
+  roomName?: string;
 }
 
 function AssetFormModal({
@@ -706,6 +739,8 @@ function AssetFormModal({
   assetTypes,
   initialData,
   showStatus,
+  projectName,
+  roomName,
 }: AssetFormModalProps) {
   const [formData, setFormData] = useState<CreateAssetData & { status?: AssetStatus }>({
     name: '',
@@ -717,6 +752,51 @@ function AssetFormModal({
     ipAddress: '',
     notes: '',
   });
+
+  // Asset type abbreviations for label code generation
+  const assetTypeAbbreviations: Record<string, string> = {
+    'Access Point': 'AP',
+    'Network Switch': 'SW',
+    'IP Camera': 'CAM',
+    'Smart TV': 'TV',
+    'VoIP Phone': 'VOIP',
+    'POS Terminal': 'POS',
+    'Digital Signage': 'DS',
+    'Router': 'RTR',
+    'Server': 'SRV',
+    'UPS': 'UPS',
+    'Patch Panel': 'PP',
+    'Firewall': 'FW',
+    'NVR': 'NVR',
+    'Controller': 'CTR',
+    'Sensor': 'SNS',
+    'Thermostat': 'THR',
+  };
+
+  // Generate label code
+  const generateLabelCode = () => {
+    // Project prefix (first 3-4 chars, uppercase, no spaces)
+    const projectPrefix = projectName
+      ? projectName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase()
+      : 'SYN';
+
+    // Room prefix (extract numbers or use first chars)
+    const roomPrefix = roomName
+      ? roomName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase()
+      : 'RM';
+
+    // Asset type abbreviation
+    const selectedType = assetTypes.find(t => t.id === formData.assetTypeId);
+    const typeAbbrev = selectedType
+      ? assetTypeAbbreviations[selectedType.name] || selectedType.name.substring(0, 3).toUpperCase()
+      : 'AST';
+
+    // Unique suffix (4 chars alphanumeric)
+    const uniqueSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+    const labelCode = `${projectPrefix}-${roomPrefix}-${typeAbbrev}-${uniqueSuffix}`;
+    setFormData({ ...formData, labelCode });
+  };
 
   // Fetch all asset models
   const { data: assetModelsData } = useQuery({
@@ -859,13 +939,31 @@ function AssetFormModal({
         <ModalSection title="Identifiers" icon={<Hash size={14} />}>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Label Code"
-                value={formData.labelCode || ''}
-                onChange={(e) => setFormData({ ...formData, labelCode: e.target.value })}
-                placeholder="SYN-001-AP"
-                helperText="Unique code for QR label scanning"
-              />
+              <div>
+                <label className="block text-body-sm font-medium text-text-primary mb-1.5">
+                  Label Code
+                </label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={formData.labelCode || ''}
+                    onChange={(e) => setFormData({ ...formData, labelCode: e.target.value })}
+                    placeholder="SYN-RM01-AP-A7B3"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={generateLabelCode}
+                    title="Auto-generate Label Code"
+                    className="shrink-0 h-10 w-10 p-0 flex items-center justify-center"
+                  >
+                    <Wand2 size={18} />
+                  </Button>
+                </div>
+                <p className="text-caption text-text-tertiary mt-1">
+                  Unique code for QR label scanning
+                </p>
+              </div>
               <Input
                 label="Serial Number"
                 value={formData.serialNumber || ''}

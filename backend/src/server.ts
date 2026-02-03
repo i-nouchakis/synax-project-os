@@ -11,6 +11,7 @@ import { uploadRoutes } from './controllers/upload.controller.js';
 import { assetRoutes } from './controllers/asset.controller.js';
 import { roomRoutes } from './controllers/room.controller.js';
 import { checklistRoutes } from './controllers/checklist.controller.js';
+import { checklistTemplateRoutes } from './controllers/checklist-template.controller.js';
 import { issueRoutes } from './controllers/issue.controller.js';
 import { inventoryRoutes } from './controllers/inventory.controller.js';
 import { reportRoutes } from './controllers/report.controller.js';
@@ -63,6 +64,7 @@ const start = async () => {
     await app.register(assetRoutes, { prefix: '/api/assets' });
     await app.register(roomRoutes, { prefix: '/api/rooms' });
     await app.register(checklistRoutes, { prefix: '/api/checklists' });
+    await app.register(checklistTemplateRoutes, { prefix: '/api/checklist-templates' });
     await app.register(issueRoutes, { prefix: '/api/issues' });
     await app.register(inventoryRoutes, { prefix: '/api/inventory' });
     await app.register(reportRoutes, { prefix: '/api/reports' });

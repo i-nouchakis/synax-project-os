@@ -42,6 +42,10 @@
   --color-accent-teal: #14b8a6;
   --color-accent-orange: #f97316;
 
+  /* Colors - Base */
+  --color-white: #ffffff;
+  --color-black: #000000;
+
   /* Theme-dependent colors via CSS variables */
   --color-background: var(--theme-background);
   --color-background-secondary: var(--theme-background-secondary);
@@ -288,7 +292,7 @@
   --theme-surface-active: #21262d;
   --theme-surface-border: #30363d;
   --theme-text-primary: #f1f5f9;
-  --theme-text-secondary: #94a3b8;
+  --theme-text-secondary: #fff;
   --theme-text-tertiary: #64748b;
   --theme-text-disabled: #475569;
   --theme-text-inverse: #0d1117;

@@ -23,6 +23,15 @@ export interface RoomFloorPlanUploadResult {
   upload: UploadResult;
 }
 
+export interface MasterplanUploadResult {
+  project: {
+    id: string;
+    masterplanUrl: string;
+    masterplanType: string;
+  };
+  upload: UploadResult;
+}
+
 const API_BASE = '/api';
 
 export const uploadService = {
@@ -126,6 +135,29 @@ export const uploadService = {
     formData.append('file', file);
 
     const response = await fetch(`${API_BASE}/upload/room-floorplan/${roomId}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('synax_token')}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Upload failed');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Upload project masterplan
+   */
+  async uploadMasterplan(projectId: string, file: File): Promise<MasterplanUploadResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE}/upload/masterplan/${projectId}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${localStorage.getItem('synax_token')}`,

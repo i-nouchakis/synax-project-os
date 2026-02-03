@@ -28,6 +28,7 @@ import { ManualPage } from '@/pages/manual';
 import { LabelsPage } from '@/pages/labels';
 import { TimeTrackingPage } from '@/pages/time-tracking';
 import { LookupsPage } from '@/pages/lookups';
+import { ChecklistTemplatesPage } from '@/pages/checklist-templates';
 import { useAuthStore } from '@/stores/auth.store';
 import { useThemeStore } from '@/stores/theme.store';
 import { useOfflineStore } from '@/stores/offline.store';
@@ -157,6 +158,14 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['ADMIN']}>
                     <LookupsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/checklist-templates"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN', 'PM']}>
+                    <ChecklistTemplatesPage />
                   </ProtectedRoute>
                 }
               />
