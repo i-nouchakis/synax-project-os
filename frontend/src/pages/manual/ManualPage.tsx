@@ -29,6 +29,12 @@ import {
   Camera,
   Download,
   KeyRound,
+  Building2,
+  ListFilter,
+  FileCheck,
+  Move,
+  MousePointer,
+  Square,
 } from 'lucide-react';
 import {
   Card,
@@ -42,10 +48,12 @@ type ManualSection =
   | 'overview'
   | 'dashboard'
   | 'projects'
+  | 'buildings'
   | 'floors'
   | 'rooms'
   | 'assets'
   | 'checklists'
+  | 'checklist-templates'
   | 'issues'
   | 'inventory'
   | 'time-tracking'
@@ -53,6 +61,7 @@ type ManualSection =
   | 'labels'
   | 'signatures'
   | 'reports'
+  | 'lookups'
   | 'pwa-offline'
   | 'settings'
   | 'users'
@@ -71,17 +80,20 @@ const sections: Section[] = [
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, category: 'Getting Started' },
   { id: 'pwa-offline', label: 'PWA & Offline', icon: <Smartphone size={18} />, category: 'Getting Started' },
   { id: 'projects', label: 'Projects', icon: <FolderKanban size={18} />, category: 'Project Management' },
+  { id: 'buildings', label: 'Buildings', icon: <Building2 size={18} />, category: 'Project Management' },
   { id: 'floors', label: 'Floors', icon: <Layers size={18} />, category: 'Project Management' },
   { id: 'rooms', label: 'Rooms & Floor Plans', icon: <MapPin size={18} />, category: 'Project Management' },
   { id: 'assets', label: 'Assets', icon: <Box size={18} />, category: 'Asset Management' },
   { id: 'qr-scanner', label: 'QR Scanner', icon: <QrCode size={18} />, category: 'Asset Management' },
   { id: 'checklists', label: 'Checklists', icon: <ClipboardCheck size={18} />, category: 'Field Work' },
+  { id: 'checklist-templates', label: 'Checklist Templates', icon: <FileCheck size={18} />, category: 'Field Work' },
   { id: 'issues', label: 'Issues', icon: <AlertTriangle size={18} />, category: 'Field Work' },
   { id: 'inventory', label: 'Inventory', icon: <Package size={18} />, category: 'Field Work' },
   { id: 'time-tracking', label: 'Time Tracking', icon: <Clock size={18} />, category: 'Field Work' },
   { id: 'signatures', label: 'Digital Signatures', icon: <PenTool size={18} />, category: 'Field Work' },
   { id: 'reports', label: 'Reports & PDF', icon: <FileText size={18} />, category: 'Reporting' },
   { id: 'labels', label: 'Label Generation', icon: <Tags size={18} />, category: 'Reporting' },
+  { id: 'lookups', label: 'Lookup Tables', icon: <ListFilter size={18} />, category: 'Administration' },
   { id: 'settings', label: 'Settings', icon: <Settings size={18} />, category: 'Administration' },
   { id: 'users', label: 'User Management', icon: <Users size={18} />, category: 'Administration' },
   { id: 'roles', label: 'Roles & Permissions', icon: <Shield size={18} />, category: 'Administration' },
@@ -200,17 +212,20 @@ export function ManualPage() {
           {activeSection === 'dashboard' && <DashboardSection />}
           {activeSection === 'pwa-offline' && <PWAOfflineSection />}
           {activeSection === 'projects' && <ProjectsSection />}
+          {activeSection === 'buildings' && <BuildingsSection />}
           {activeSection === 'floors' && <FloorsSection />}
           {activeSection === 'rooms' && <RoomsSection />}
           {activeSection === 'assets' && <AssetsSection />}
           {activeSection === 'qr-scanner' && <QRScannerSection />}
           {activeSection === 'checklists' && <ChecklistsSection />}
+          {activeSection === 'checklist-templates' && <ChecklistTemplatesSection />}
           {activeSection === 'issues' && <IssuesSection />}
           {activeSection === 'inventory' && <InventorySection />}
           {activeSection === 'time-tracking' && <TimeTrackingSection />}
           {activeSection === 'signatures' && <SignaturesSection />}
           {activeSection === 'reports' && <ReportsSection />}
           {activeSection === 'labels' && <LabelsSection />}
+          {activeSection === 'lookups' && <LookupsSection />}
           {activeSection === 'settings' && <SettingsSection />}
           {activeSection === 'users' && <UsersSection />}
           {activeSection === 'roles' && <RolesSection />}
@@ -502,6 +517,66 @@ function ProjectsSection() {
   );
 }
 
+function BuildingsSection() {
+  return (
+    <ManualSection
+      icon={<Building2 size={24} />}
+      title="Buildings"
+      description="Organize large projects with multiple buildings"
+    >
+      <div className="space-y-6">
+        <p className="text-body text-text-primary">
+          Buildings are an organizational layer between Projects and Floors. For large projects
+          (like hotels or campus sites), you can create multiple buildings, each with its own floors.
+        </p>
+
+        <h3 className="text-h3 text-text-primary">Project Hierarchy</h3>
+        <div className="p-4 bg-surface-secondary rounded-lg my-4">
+          <p className="text-body text-text-primary font-mono text-center">
+            Project → Building → Floor → Room → Asset
+          </p>
+        </div>
+
+        <h3 className="text-h3 text-text-primary">Creating a Building</h3>
+        <Steps
+          steps={[
+            { title: 'Open Project', description: 'Navigate to the project detail page.' },
+            { title: 'Click "Add Building"', description: 'Use the button in the Buildings section.' },
+            { title: 'Enter Details', description: 'Provide building name and optional description.' },
+            { title: 'Save', description: 'Click "Create" to save the building.' },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">Buildings Page</h3>
+        <p className="text-body text-text-secondary">
+          The Buildings page shows all buildings across all projects:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li>Buildings grouped by project (accordion view)</li>
+          <li>Search to filter buildings by name or project</li>
+          <li>Click a building to see its floors</li>
+          <li>Quick stats showing floor and room counts</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Building Detail Page</h3>
+        <p className="text-body text-text-secondary">
+          From the building detail page you can:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li>View and manage floors within the building</li>
+          <li>See total room and asset counts</li>
+          <li>Navigate to individual floors</li>
+        </ul>
+
+        <Tip>
+          For simple projects with just one building, you can still use the hierarchy.
+          The building layer helps organize larger, multi-structure projects.
+        </Tip>
+      </div>
+    </ManualSection>
+  );
+}
+
 function FloorsSection() {
   return (
     <ManualSection
@@ -511,46 +586,96 @@ function FloorsSection() {
     >
       <div className="space-y-6">
         <p className="text-body text-text-primary">
-          Floors represent the physical levels within a project. Each floor can have its own
-          floor plan and contains multiple rooms.
+          Floors represent the physical levels within a building. Each floor can have its own
+          floor plan and contains multiple rooms. Floors belong to a Building within a Project.
         </p>
 
         <h3 className="text-h3 text-text-primary">Adding a Floor</h3>
         <Steps
           steps={[
-            { title: 'Open Project', description: 'Navigate to the project detail page.' },
+            { title: 'Open Building', description: 'Navigate to the building detail page.' },
             { title: 'Click "Add Floor"', description: 'Use the button in the Floors section.' },
-            { title: 'Enter Details', description: 'Provide floor name and level number.' },
-            { title: 'Upload Floor Plan', description: 'Optionally upload a floor plan image or PDF.' },
+            { title: 'Enter Details', description: 'Provide floor name and level number (e.g., -1, 0, 1, 2).' },
+            { title: 'Save', description: 'Click "Create" to save the floor.' },
           ]}
         />
 
-        <h3 className="text-h3 text-text-primary">Floor Plan Features</h3>
+        <h3 className="text-h3 text-text-primary">Floor Plan Upload</h3>
+        <p className="text-body text-text-secondary">
+          After creating a floor, upload a floor plan image:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li>Supported formats: JPG, PNG, PDF, DWG</li>
+          <li>Click "Upload Floor Plan" button</li>
+          <li>The floor plan becomes an interactive canvas</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Edit Mode - Placing Items</h3>
+        <p className="text-body text-text-secondary">
+          In Edit mode, click anywhere on the floor plan to open a popup:
+        </p>
         <FeatureList
           features={[
             {
               icon: <MapPin size={20} />,
-              title: 'Interactive Pins',
-              description: 'Click on the floor plan to place pins marking room locations.',
+              title: 'Add Room',
+              description: 'Place a room pin. Choose "Place Existing" (room without coordinates) or "Create New".',
             },
             {
-              icon: <ChevronRight size={20} />,
-              title: 'Status Colors',
-              description: 'Pins are color-coded based on room status (Not Started, In Progress, Completed, Blocked).',
+              icon: <Square size={20} />,
+              title: 'Add Asset',
+              description: 'Place a floor-level asset. Import equipment from the project inventory.',
             },
           ]}
         />
 
-        <h3 className="text-h3 text-text-primary">Floor Plan Viewer</h3>
+        <h3 className="text-h3 text-text-primary">Floor-Level Assets</h3>
+        <p className="text-body text-text-secondary">
+          Some assets (like main switches, generators, or server racks) don't belong to a specific
+          room but are located on the floor. These can be placed directly on the floor plan:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li>Asset pins appear as <strong>squares</strong> (rooms are circles)</li>
+          <li>Each asset shows an icon based on its type (AP, Switch, Camera, etc.)</li>
+          <li>Click a placed asset pin to view/edit or remove from plan</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Draggable Popups</h3>
+        <p className="text-body text-text-secondary">
+          All popups on the floor plan can be moved:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li>Drag the popup header to reposition it</li>
+          <li>Popup stays in place when navigating between steps</li>
+          <li>Position resets when you click a new location on the canvas</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Pin Colors</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-4">
+          {[
+            { color: 'bg-gray-500', label: 'NOT_STARTED' },
+            { color: 'bg-blue-500', label: 'IN_PROGRESS' },
+            { color: 'bg-green-500', label: 'COMPLETED' },
+            { color: 'bg-red-500', label: 'BLOCKED' },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center gap-2">
+              <div className={`w-4 h-4 rounded-full ${item.color}`} />
+              <span className="text-body-sm text-text-secondary">{item.label}</span>
+            </div>
+          ))}
+        </div>
+
+        <h3 className="text-h3 text-text-primary">Floor Plan Controls</h3>
         <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
           <li><strong>Zoom</strong> - Use mouse scroll or +/- buttons</li>
-          <li><strong>Pan</strong> - Click and drag to move around</li>
-          <li><strong>Click Pin</strong> - View room details</li>
-          <li><strong>Drag Pin</strong> - Reposition room marker</li>
+          <li><strong>Pan</strong> - Click and drag to move around (when not in Edit mode)</li>
+          <li><strong>Edit Mode</strong> - Toggle to place/move pins</li>
+          <li><strong>Drag Pin</strong> - In edit mode, drag pins to reposition</li>
         </ul>
 
         <Tip>
-          Upload high-resolution floor plans for better pin accuracy and visibility.
+          Upload high-resolution floor plans for better pin accuracy. Use the zoom controls
+          to navigate large floor plans.
         </Tip>
       </div>
     </ManualSection>
@@ -579,39 +704,71 @@ function RoomsSection() {
           <li><strong>Floor Plan</strong> - Room-level layout image</li>
         </ul>
 
-        <h3 className="text-h3 text-text-primary">Room Floor Plan</h3>
+        <h3 className="text-h3 text-text-primary">Room Floor Plan - Placing Assets</h3>
         <p className="text-body text-text-secondary">
-          Each room can have its own floor plan showing asset positions:
+          In Edit mode, click on the floor plan to place assets:
         </p>
         <Steps
           steps={[
             { title: 'Upload Floor Plan', description: 'Click "Upload Floor Plan" to add a room layout image.' },
-            { title: 'Place Assets', description: 'Click on the floor plan to open the asset selection dropdown.' },
-            { title: 'Select Asset', description: 'Choose which asset to place at that location.' },
-            { title: 'Reposition', description: 'Drag pins to adjust their positions.' },
+            { title: 'Toggle Edit Mode', description: 'Enable Edit mode using the toggle button.' },
+            { title: 'Click Location', description: 'Click where you want to place an asset. A popup will appear.' },
+            { title: 'Choose Action', description: 'Select "Place Existing" (assets without coordinates) or "Import from Inventory".' },
+            { title: 'Select Asset', description: 'Pick the asset from the list. It will be placed at that location.' },
           ]}
         />
 
+        <h3 className="text-h3 text-text-primary">Import from Inventory</h3>
+        <p className="text-body text-text-secondary">
+          You can import equipment directly from the project inventory:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li>Only equipment with status <strong>IN_STOCK</strong> appears in the list</li>
+          <li>When imported, the equipment is assigned to this room</li>
+          <li>The equipment status changes to <strong>INSTALLED</strong></li>
+          <li>The asset appears as a pin on the room floor plan</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Managing Placed Assets</h3>
+        <p className="text-body text-text-secondary">
+          Click on any placed asset pin to see options:
+        </p>
+        <FeatureList
+          features={[
+            {
+              icon: <MousePointer size={20} />,
+              title: 'View / Edit',
+              description: 'Open the asset detail page to view or edit its properties.',
+            },
+            {
+              icon: <Square size={20} />,
+              title: 'Remove from Plan',
+              description: 'Remove the pin from the floor plan (asset remains in the room, just without coordinates).',
+            },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">Draggable Popups</h3>
+        <p className="text-body text-text-secondary">
+          All popups on the room floor plan can be moved by dragging their header.
+          The popup position is preserved when navigating between steps.
+        </p>
+
         <h3 className="text-h3 text-text-primary">Crop Floor Plan from Floor</h3>
         <p className="text-body text-text-secondary">
-          When a floor has a floor plan uploaded, you can crop a section of it to use as the room's floor plan:
+          When the parent floor has a floor plan, you can crop a section for the room:
         </p>
         <Steps
           steps={[
             { title: 'Navigate to Floor', description: 'Go to the floor detail page that has a floor plan.' },
-            { title: 'Find Crop Column', description: 'Look for the "Κάτοψη" column in the Rooms table (visible only when floor has a floor plan).' },
-            { title: 'Click Crop/Edit', description: 'Click "Crop" (blue) for new, or "Edit" (green) if room already has a floor plan.' },
-            { title: 'Select Area', description: 'In the modal, click and drag to select the room area on the floor plan.' },
-            { title: 'Zoom Controls', description: 'Use zoom in/out buttons to adjust the view for precise selection.' },
-            { title: 'Save', description: 'Click "Save Floor Plan" to apply the cropped section to the room.' },
+            { title: 'Find Crop Column', description: 'Look for the "Κάτοψη" column in the Rooms table.' },
+            { title: 'Click Crop/Edit', description: 'Click "Crop" (blue) for new, or "Edit" (green) to replace.' },
+            { title: 'Select Area', description: 'Click and drag to select the room area on the floor plan.' },
+            { title: 'Save', description: 'Click "Save Floor Plan" to apply.' },
           ]}
         />
-        <Tip>
-          If a room already has a floor plan, clicking "Edit" will show a confirmation dialog before proceeding,
-          as the action will replace the existing floor plan.
-        </Tip>
 
-        <h3 className="text-h3 text-text-primary">Pin Colors</h3>
+        <h3 className="text-h3 text-text-primary">Asset Pin Colors</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-4">
           {[
             { color: 'bg-gray-500', label: 'NOT_STARTED' },
@@ -627,7 +784,8 @@ function RoomsSection() {
         </div>
 
         <Tip>
-          Click an asset pin to view its details and checklists directly from the floor plan.
+          Use "Place Existing" for assets already assigned to the room but without coordinates.
+          Use "Import from Inventory" to bring new equipment from the project inventory.
         </Tip>
       </div>
     </ManualSection>
@@ -767,6 +925,85 @@ function ChecklistsSection() {
   );
 }
 
+function ChecklistTemplatesSection() {
+  return (
+    <ManualSection
+      icon={<FileCheck size={24} />}
+      title="Checklist Templates"
+      description="Create reusable checklist templates for different asset types"
+    >
+      <div className="space-y-6">
+        <p className="text-body text-text-primary">
+          Checklist Templates define the standard tasks that need to be completed for each asset type.
+          When you generate checklists for an asset, they are created from these templates.
+        </p>
+
+        <h3 className="text-h3 text-text-primary">Template Types</h3>
+        <FeatureList
+          features={[
+            {
+              icon: <ClipboardCheck size={20} />,
+              title: 'CABLING',
+              description: 'Cable routing, termination, labeling, and testing steps.',
+            },
+            {
+              icon: <Box size={20} />,
+              title: 'EQUIPMENT',
+              description: 'Physical installation, mounting, and power connection.',
+            },
+            {
+              icon: <Settings size={20} />,
+              title: 'CONFIG',
+              description: 'Network configuration, IP assignment, and testing.',
+            },
+            {
+              icon: <FileText size={20} />,
+              title: 'DOCUMENTATION',
+              description: 'Labels, as-built drawings, and handover documents.',
+            },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">Managing Templates</h3>
+        <p className="text-body text-text-secondary">
+          Access Checklist Templates from the sidebar (Admin/PM only):
+        </p>
+        <Steps
+          steps={[
+            { title: 'View Templates', description: 'See all templates organized by asset type and checklist type.' },
+            { title: 'Edit Template', description: 'Click a template to modify its items.' },
+            { title: 'Add/Remove Items', description: 'Add new checklist items or remove existing ones.' },
+            { title: 'Set Requirements', description: 'Mark items as required and specify if photos are needed.' },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">Template Properties</h3>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li><strong>Asset Type</strong> - Which type of asset this template applies to (AP, Switch, etc.)</li>
+          <li><strong>Checklist Type</strong> - Category (CABLING, EQUIPMENT, CONFIG, DOCUMENTATION)</li>
+          <li><strong>Items</strong> - List of tasks to complete</li>
+          <li><strong>Required</strong> - Whether the item must be completed</li>
+          <li><strong>Photo Required</strong> - Whether a photo is mandatory</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Using Templates</h3>
+        <p className="text-body text-text-secondary">
+          When you add an asset to a room and click "Generate Checklists":
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li>The system finds all templates matching the asset's type</li>
+          <li>Checklists are created from each matching template</li>
+          <li>Technicians can then complete the checklist items</li>
+        </ul>
+
+        <Tip>
+          Create templates before adding assets to ensure consistent checklists across all installations.
+        </Tip>
+      </div>
+    </ManualSection>
+  );
+}
+
 function IssuesSection() {
   return (
     <ManualSection
@@ -836,61 +1073,86 @@ function InventorySection() {
     <ManualSection
       icon={<Package size={24} />}
       title="Inventory"
-      description="Manage stock and materials"
+      description="Manage equipment and materials"
     >
       <div className="space-y-6">
         <p className="text-body text-text-primary">
-          The Inventory module tracks materials and equipment stock levels. Monitor what's
-          available, what's been used, and when to reorder.
+          The Inventory module has two main sections: <strong>Equipment</strong> (network devices,
+          cameras, etc.) and <strong>Materials</strong> (cables, connectors, consumables).
         </p>
 
-        <h3 className="text-h3 text-text-primary">Inventory Item Properties</h3>
-        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
-          <li><strong>Name</strong> - Item name</li>
-          <li><strong>SKU</strong> - Stock keeping unit code</li>
-          <li><strong>Quantity</strong> - Current stock level</li>
-          <li><strong>Unit</strong> - Measurement unit (pcs, m, kg, etc.)</li>
-          <li><strong>Min Quantity</strong> - Reorder threshold</li>
-          <li><strong>Category</strong> - Item category</li>
-        </ul>
-
-        <h3 className="text-h3 text-text-primary">Stock Movements</h3>
-        <p className="text-body text-text-secondary">
-          Track stock changes with movement types:
-        </p>
+        <h3 className="text-h3 text-text-primary">Inventory Tabs</h3>
         <FeatureList
           features={[
             {
-              icon: <Package size={20} />,
-              title: 'RECEIVED',
-              description: 'Items added to stock from suppliers.',
-            },
-            {
               icon: <Box size={20} />,
-              title: 'CONSUMED',
-              description: 'Items used during installation.',
+              title: 'Equipment',
+              description: 'Network devices like APs, switches, cameras. Each has serial number, MAC, model.',
             },
             {
-              icon: <ChevronRight size={20} />,
-              title: 'RETURNED',
-              description: 'Items returned to stock.',
-            },
-            {
-              icon: <Settings size={20} />,
-              title: 'ADJUSTED',
-              description: 'Stock corrections after inventory count.',
+              icon: <Package size={20} />,
+              title: 'Materials',
+              description: 'Consumables like cables, connectors, patch cords. Tracked by quantity and unit.',
             },
           ]}
         />
 
-        <h3 className="text-h3 text-text-primary">Low Stock Alerts</h3>
+        <h3 className="text-h3 text-text-primary">Equipment Status Lifecycle</h3>
         <p className="text-body text-text-secondary">
-          Items with quantity below the minimum threshold are highlighted in the inventory list.
-          Check the statistics at the top of the page for quick counts.
+          Equipment moves through these statuses:
         </p>
+        <div className="flex flex-wrap items-center gap-2 my-4">
+          {['PLANNED', 'IN_STOCK', 'INSTALLED', 'CONFIGURED', 'VERIFIED', 'FAULTY'].map((status, index, arr) => (
+            <span key={status} className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full text-body-sm bg-surface-secondary text-text-secondary">
+                {status}
+              </span>
+              {index < arr.length - 1 && <ChevronRight size={16} className="text-text-tertiary" />}
+            </span>
+          ))}
+        </div>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li><strong>PLANNED</strong> - Equipment ordered but not yet received</li>
+          <li><strong>IN_STOCK</strong> - Received and available for installation</li>
+          <li><strong>INSTALLED</strong> - Placed on a floor or room plan</li>
+          <li><strong>CONFIGURED</strong> - Network settings applied</li>
+          <li><strong>VERIFIED</strong> - Tested and confirmed working</li>
+          <li><strong>FAULTY</strong> - Defective, needs replacement</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Adding Equipment</h3>
+        <Steps
+          steps={[
+            { title: 'Select Project', description: 'Choose the project from the dropdown.' },
+            { title: 'Click "Add Equipment"', description: 'Opens the bulk add modal.' },
+            { title: 'Select Type & Model', description: 'Choose asset type and model from dropdowns.' },
+            { title: 'Enter Quantity', description: 'How many units to add.' },
+            { title: 'Choose Status', description: 'Select "In Stock" (received) or "Planned" (ordered).' },
+            { title: 'Add Serial Numbers', description: 'Enter serial and MAC for each unit.' },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">Materials Management</h3>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li><strong>Receive</strong> - Add stock when materials arrive</li>
+          <li><strong>Consume</strong> - Deduct stock when materials are used</li>
+          <li><strong>Adjust</strong> - Correct stock after physical count</li>
+          <li><strong>Low Stock Alert</strong> - Items below minimum are highlighted</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Filter Options</h3>
+        <p className="text-body text-text-secondary">
+          Use filters to find specific items:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li>Filter by status (All, In Stock, Planned, Installed)</li>
+          <li>Filter by asset type (AP, Switch, Camera, etc.)</li>
+          <li>Search by name, serial number, or MAC address</li>
+        </ul>
 
         <Tip>
-          Use the "Update Stock" button to record material consumption during work.
+          Only equipment with status "IN_STOCK" can be imported to floor/room plans.
+          Use "PLANNED" status for equipment that's ordered but not yet received.
         </Tip>
       </div>
     </ManualSection>
@@ -959,6 +1221,99 @@ function ReportsSection() {
 
         <Tip>
           Client reports automatically hide sensitive internal information.
+        </Tip>
+      </div>
+    </ManualSection>
+  );
+}
+
+function LookupsSection() {
+  return (
+    <ManualSection
+      icon={<ListFilter size={24} />}
+      title="Lookup Tables"
+      description="Manage dropdown options and reference data (Admin/PM only)"
+    >
+      <div className="space-y-6">
+        <p className="text-body text-text-primary">
+          Lookup tables contain the options that appear in dropdown menus throughout the application.
+          Administrators and Project Managers can customize these to match project requirements.
+        </p>
+
+        <h3 className="text-h3 text-text-primary">Available Lookup Tables</h3>
+        <FeatureList
+          features={[
+            {
+              icon: <MapPin size={20} />,
+              title: 'Room Types',
+              description: 'Categories for rooms (Guest Room, Corridor, Server Room, etc.) with icons.',
+            },
+            {
+              icon: <Package size={20} />,
+              title: 'Inventory Units',
+              description: 'Measurement units for materials (pcs, m, kg, box, roll, etc.).',
+            },
+            {
+              icon: <AlertTriangle size={20} />,
+              title: 'Issue Causes',
+              description: 'Common causes for issues (Defective Equipment, Installation Error, etc.).',
+            },
+            {
+              icon: <Building2 size={20} />,
+              title: 'Manufacturers',
+              description: 'Equipment manufacturers (Cisco, Ubiquiti, Hikvision, etc.) with websites.',
+            },
+            {
+              icon: <Box size={20} />,
+              title: 'Asset Models',
+              description: 'Specific product models linked to manufacturers and asset types.',
+            },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">Managing Lookups</h3>
+        <Steps
+          steps={[
+            { title: 'Navigate to Lookups', description: 'Click "Lookups" in the sidebar (Admin section).' },
+            { title: 'Select Tab', description: 'Choose which lookup table to manage.' },
+            { title: 'Add Item', description: 'Click "Add" to create a new entry.' },
+            { title: 'Edit/Delete', description: 'Use the action buttons to modify or remove items.' },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">Room Types</h3>
+        <p className="text-body text-text-secondary">
+          Each room type has:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li><strong>Name</strong> - Display name in dropdowns</li>
+          <li><strong>Icon</strong> - Visual identifier (choose from 30+ icons)</li>
+          <li><strong>Order</strong> - Sort position in lists</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Asset Models</h3>
+        <p className="text-body text-text-secondary">
+          Asset models link to both manufacturers and asset types:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li><strong>Name</strong> - Model name (e.g., "UniFi U6 Pro")</li>
+          <li><strong>Manufacturer</strong> - The brand (e.g., "Ubiquiti")</li>
+          <li><strong>Asset Type</strong> - Category (e.g., "Access Point")</li>
+          <li><strong>Icon</strong> - Visual identifier for floor plan pins</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Manufacturers</h3>
+        <p className="text-body text-text-secondary">
+          Each manufacturer entry includes:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li><strong>Name</strong> - Company name</li>
+          <li><strong>Website</strong> - Optional URL for reference</li>
+        </ul>
+
+        <Tip>
+          Set up lookup tables at the start of a project. Changes to lookups affect all future
+          entries but don't modify existing data.
         </Tip>
       </div>
     </ManualSection>
@@ -1621,6 +1976,30 @@ function FAQSection() {
           {
             q: 'How do I contact support?',
             a: 'For technical support, contact your system administrator or the Synax support team.',
+          },
+          {
+            q: 'What is the hierarchy of Projects, Buildings, and Floors?',
+            a: 'The hierarchy is: Project → Building → Floor → Room → Asset. Buildings allow you to organize large projects with multiple structures. For simple projects, you can have just one building.',
+          },
+          {
+            q: 'How do I import equipment from inventory to a floor plan?',
+            a: 'In Edit mode, click on the floor/room plan. Select "Import from Inventory" from the popup. Only equipment with "IN_STOCK" status will be shown. Select the item to place it at that location.',
+          },
+          {
+            q: 'What are floor-level assets?',
+            a: 'Floor-level assets are equipment placed directly on the floor plan without belonging to a specific room (e.g., main switches, generators). They appear as square pins instead of circle pins.',
+          },
+          {
+            q: 'Can I move the popups on the floor plan?',
+            a: 'Yes! All popups are draggable. Click and drag the popup header to move it anywhere on the screen. The position is preserved as you navigate between popup steps.',
+          },
+          {
+            q: 'What\'s the difference between "Place Existing" and "Import from Inventory"?',
+            a: '"Place Existing" shows assets already assigned to the room/floor but without coordinates. "Import from Inventory" lets you bring new equipment from the project inventory.',
+          },
+          {
+            q: 'How do I manage lookup tables like Room Types and Asset Models?',
+            a: 'Go to Lookups in the Admin section of the sidebar. Select the tab for the lookup you want to manage, then add, edit, or delete entries as needed.',
           },
         ].map((faq, index) => (
           <div key={index} className="p-4 bg-surface-secondary rounded-lg">

@@ -42,6 +42,7 @@ import {
 } from '@/components/ui';
 import { RoomPlanCanvas } from '@/components/room-plan';
 import { DownloadFloorplanModal } from '@/components/floor-plan';
+import { ImportInventoryModal } from '@/components/inventory';
 import { assetService, type Asset, type AssetType, type CreateAssetData, type UpdateAssetData, type AssetStatus } from '@/services/asset.service';
 import { roomService } from '@/services/room.service';
 import { uploadService } from '@/services/upload.service';
@@ -83,6 +84,7 @@ export function RoomDetailPage() {
   const canManage = user?.role === 'ADMIN' || user?.role === 'PM' || user?.role === 'TECHNICIAN';
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [deleteConfirmAsset, setDeleteConfirmAsset] = useState<Asset | null>(null);
   const [isUploadingFloorplan, setIsUploadingFloorplan] = useState(false);
@@ -127,7 +129,7 @@ export function RoomDetailPage() {
   const { data: projectInventory = [] } = useQuery({
     queryKey: ['project-equipment-available', projectId],
     queryFn: () => assetService.getAvailableByProject(projectId!),
-    enabled: !!projectId && isEditMode,
+    enabled: !!projectId,
   });
 
   // Fetch asset types
@@ -202,6 +204,27 @@ export function RoomDetailPage() {
       toast.error(err.message || 'Failed to import asset');
     },
   });
+
+  // Import multiple assets from inventory
+  const [isImporting, setIsImporting] = useState(false);
+  const handleImportAssets = async (assetIds: string[]) => {
+    if (!id) return;
+    setIsImporting(true);
+    try {
+      // Import all assets in parallel (without pin coordinates)
+      await Promise.all(
+        assetIds.map((assetId) => assetService.assignToRoom(assetId, id))
+      );
+      queryClient.invalidateQueries({ queryKey: ['room', id] });
+      queryClient.invalidateQueries({ queryKey: ['project-equipment-available', projectId] });
+      toast.success(`${assetIds.length} asset${assetIds.length > 1 ? 's' : ''} imported successfully`);
+      setIsImportModalOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to import assets');
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   // Handle floorplan upload
   const handleFloorplanUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,7 +323,7 @@ export function RoomDetailPage() {
           </div>
         </div>
         {canManage && (
-          <Button leftIcon={<Plus size={18} />} onClick={() => setIsCreateModalOpen(true)}>
+          <Button leftIcon={<Plus size={18} />} onClick={() => setIsImportModalOpen(true)}>
             Add Asset
           </Button>
         )}
@@ -467,7 +490,7 @@ export function RoomDetailPage() {
                 <Button
                   className="mt-4"
                   size="sm"
-                  onClick={() => setIsCreateModalOpen(true)}
+                  onClick={() => setIsImportModalOpen(true)}
                   leftIcon={<Plus size={16} />}
                 >
                   Add First Asset
@@ -744,6 +767,17 @@ export function RoomDetailPage() {
           pinType="asset"
         />
       )}
+
+      {/* Import from Inventory Modal */}
+      <ImportInventoryModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        assets={projectInventory}
+        onImport={handleImportAssets}
+        isLoading={isImporting}
+        title="Import Assets from Inventory"
+        targetName={`${room?.floor?.building?.project?.name} / ${room?.floor?.name} / ${room?.name}`}
+      />
     </div>
   );
 }
