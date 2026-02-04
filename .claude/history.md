@@ -2312,3 +2312,58 @@ synax/
 
 ---
 
+## [2026-02-04] - Production Deployment Fixes
+
+### Περιγραφή
+Διόρθωση deployment issues στον Contabo server μετά την προσθήκη του Building layer.
+
+### Προβλήματα που Λύθηκαν
+
+**1. Missing `buildings` table**
+- Το Building model προστέθηκε με `db push` τοπικά αλλά δεν υπήρχε migration
+- Λύση: `npx prisma db push --force-reset` στον server
+
+**2. tsx not available in production**
+- Το seed.ts χρειάζεται tsx που είναι devDependency
+- Λύση 1: Moved tsx to dependencies
+- Λύση 2: Created `seed-production.js` (pure JavaScript)
+
+**3. Container permissions**
+- Δεν μπορούσε να γίνει npm install μέσα στο container
+- Λύση: `docker cp` για να αντιγράψουμε το seed file
+
+### Αρχεία που Δημιουργήθηκαν
+```
+backend/prisma/seed-production.js (NEW - pure JS seed)
+```
+
+### seed-production.js περιεχόμενα
+- 3 Users (admin, pm, tech)
+- 12 Room Types
+- 6 Inventory Units
+- 8 Issue Causes
+- 6 Manufacturers
+- 5 Asset Types
+- 6 Asset Models
+- 1 Demo Project με Building, Floors, Rooms, Assets
+
+### Commands για Production Seeding
+```bash
+# Reset database
+docker exec -it synax-backend npx prisma db push --force-reset
+
+# Copy and run seed
+docker cp backend/prisma/seed-production.js synax-backend:/app/prisma/
+docker exec -it synax-backend node prisma/seed-production.js
+```
+
+### Login Credentials
+- admin@synax.gr / admin123
+- pm@synax.gr / pm123456
+- tech@synax.gr / tech123456
+
+### Status
+**Production Deployment Fixes - COMPLETE ✅**
+
+---
+

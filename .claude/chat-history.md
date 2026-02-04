@@ -2241,4 +2241,53 @@ echo "✅ All TypeScript checks passed!"
 | Pre-Commit Hook | ✅ TypeScript checks on commit |
 | Git Commit Rules | ✅ User-controlled commits |
 
-*Τελευταία ενημέρωση: 2026-02-04 (Pre-Commit Hook Setup)*
+---
+
+## Session: Production Deployment (2026-02-04)
+
+### Προβλήματα
+1. Deployment στο Contabo απέτυχε - `buildings` table δεν υπήρχε
+2. Prisma migrations δεν περιείχαν Building model (είχε γίνει με db push)
+3. tsx δεν ήταν διαθέσιμο στο production container
+4. Container permissions δεν επέτρεπαν npm install
+
+### Λύσεις
+1. `npx prisma db push --force-reset` - Reset database με νέο schema
+2. Created `seed-production.js` - Pure JavaScript seed χωρίς tsx
+3. `docker cp` για αντιγραφή αρχείων στο container
+4. Moved tsx to dependencies για μελλοντική χρήση
+
+### Commands που χρησιμοποιήθηκαν
+```bash
+# Find project location
+docker inspect synax-backend --format '{{.Config.Labels}}'
+# Path: /etc/dokploy/compose/synax-project-os-app-source-nk28mo/code
+
+# Reset database
+docker exec -it synax-backend npx prisma db push --force-reset
+
+# Run seed
+docker cp backend/prisma/seed-production.js synax-backend:/app/prisma/
+docker exec -it synax-backend node prisma/seed-production.js
+```
+
+### Status
+✅ Production deployment working!
+✅ Users can login (admin@synax.gr / admin123)
+
+---
+
+## Τρέχουσα Κατάσταση
+
+**Production Server:** ✅ Working
+**Features Deployed:**
+- Building Layer
+- Checklist Templates
+- Pre-commit Hook (TypeScript checks)
+
+**Login:**
+- admin@synax.gr / admin123
+- pm@synax.gr / pm123456
+- tech@synax.gr / tech123456
+
+*Τελευταία ενημέρωση: 2026-02-04 (Production Deployment)*

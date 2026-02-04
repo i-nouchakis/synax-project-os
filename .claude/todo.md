@@ -450,4 +450,12 @@ Room → Assets
 
 ---
 
-*Last Updated: 2026-02-04 (Pre-Commit Hook Setup)*
+### 36. Production Deployment Fixes ✅
+- [x] Fixed Building layer migration on production
+- [x] Created seed-production.js (pure JS, no tsx needed)
+- [x] Database reset and seed on Contabo server
+- [x] Moved tsx to dependencies for future seeding
+
+---
+
+*Last Updated: 2026-02-04 (Production Deployment)*
