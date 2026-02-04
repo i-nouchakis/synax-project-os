@@ -20,9 +20,13 @@ export interface Room {
     id: string;
     name: string;
     level: number;
-    project?: {
+    building?: {
       id: string;
       name: string;
+      project?: {
+        id: string;
+        name: string;
+      };
     };
   };
   assets?: Asset[];

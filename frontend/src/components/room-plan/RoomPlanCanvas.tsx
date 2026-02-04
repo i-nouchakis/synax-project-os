@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Stage, Layer, Image as KonvaImage, Circle, Text, Group, Rect, Path } from 'react-konva';
 import Konva from 'konva';
-import { ZoomIn, ZoomOut, Maximize2, Lock, Unlock, RotateCcw, Wifi, Monitor, Phone, Camera, Router, CreditCard, Tv, X, Plus, MapPin, ChevronRight } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Lock, Unlock, RotateCcw, Wifi, Monitor, Phone, Camera, Router, CreditCard, Tv, X, MapPin, ChevronRight, Package, Search, Eye, Trash2 } from 'lucide-react';
 import { Button, Card, CardContent } from '@/components/ui';
 
 interface Asset {
@@ -20,11 +20,12 @@ interface Asset {
 interface RoomPlanCanvasProps {
   imageUrl: string;
   assets: Asset[];
-  availableAssets: Asset[]; // Assets without pins that can be placed
+  availableAssets: Asset[]; // Room assets without pins that can be placed (Existing)
+  inventoryAssets?: Asset[]; // Assets from project inventory (Import from Inventory)
   onAssetClick?: (asset: Asset) => void;
   onAssetMove?: (assetId: string, x: number, y: number) => void;
-  onPlaceAsset?: (assetId: string, x: number, y: number) => void;
-  onAddAsset?: (x: number, y: number) => void; // Callback to open create asset modal with position
+  onPlaceAsset?: (assetId: string, x: number, y: number) => void; // Place existing room asset
+  onImportAsset?: (assetId: string, x: number, y: number) => void; // Import from inventory
   onRemoveAssetPin?: (assetId: string) => void;
   isEditable?: boolean;
   selectedAssetId?: string | null;
@@ -112,11 +113,12 @@ export function RoomPlanCanvas({
   imageUrl,
   assets,
   availableAssets,
+  inventoryAssets = [],
   onAssetClick,
   onAssetMove,
   onPlaceAsset,
-  onAddAsset,
-  // onRemoveAssetPin - Reserved for future use
+  onImportAsset,
+  onRemoveAssetPin,
   isEditable = false,
   selectedAssetId,
   onMaximize,
@@ -136,8 +138,80 @@ export function RoomPlanCanvas({
 
   // Action menu state for placing assets
   const [showActionMenu, setShowActionMenu] = useState(false);
-  const [showAssetList, setShowAssetList] = useState(false);
+  const [showAssetList, setShowAssetList] = useState(false); // Existing room assets
+  const [showInventoryList, setShowInventoryList] = useState(false); // Inventory assets
   const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0, canvasX: 0, canvasY: 0 });
+  const [assetSearchQuery, setAssetSearchQuery] = useState('');
+  const [inventorySearchQuery, setInventorySearchQuery] = useState('');
+
+  // Selected placed asset state (for showing actions popup)
+  const [selectedPlacedAsset, setSelectedPlacedAsset] = useState<{ asset: Asset; screenX: number; screenY: number } | null>(null);
+
+  // Draggable popup state
+  const [popupOffset, setPopupOffset] = useState({ x: 0, y: 0 });
+  const [isDraggingPopup, setIsDraggingPopup] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 });
+
+  // Handle popup drag
+  const handlePopupDragStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingPopup(true);
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      offsetX: popupOffset.x,
+      offsetY: popupOffset.y,
+    };
+  };
+
+  useEffect(() => {
+    if (!isDraggingPopup) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - dragStartRef.current.x;
+      const deltaY = e.clientY - dragStartRef.current.y;
+      setPopupOffset({
+        x: dragStartRef.current.offsetX + deltaX,
+        y: dragStartRef.current.offsetY + deltaY,
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingPopup(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingPopup]);
+
+  // Reset popup offset when closing menus
+  const resetPopupOffset = () => {
+    setPopupOffset({ x: 0, y: 0 });
+  };
+
+  // Filter assets based on search
+  const filteredAvailableAssets = availableAssets.filter(asset => {
+    if (!assetSearchQuery.trim()) return true;
+    const query = assetSearchQuery.toLowerCase();
+    return (
+      asset.name.toLowerCase().includes(query) ||
+      asset.assetType?.name?.toLowerCase().includes(query)
+    );
+  });
+
+  const filteredInventoryAssets = inventoryAssets.filter(asset => {
+    if (!inventorySearchQuery.trim()) return true;
+    const query = inventorySearchQuery.toLowerCase();
+    return (
+      asset.name.toLowerCase().includes(query) ||
+      asset.assetType?.name?.toLowerCase().includes(query)
+    );
+  });
 
   // Load image
   useEffect(() => {
@@ -234,6 +308,8 @@ export function RoomPlanCanvas({
       const container = containerRef.current;
       if (container) {
         const rect = container.getBoundingClientRect();
+        // Reset popup offset for new click position
+        resetPopupOffset();
         setDropdownPosition({
           x: rect.left + pointer.x,
           y: rect.top + pointer.y,
@@ -247,22 +323,19 @@ export function RoomPlanCanvas({
     }
   }, [isEditable, scale, position, image]);
 
-  // Handle "Place existing" action
+  // Handle "Existing" action (room assets without pin)
   const handlePlaceExisting = () => {
     setShowActionMenu(false);
     setShowAssetList(true);
   };
 
-  // Handle "Create new" action
-  const handleCreateNew = () => {
+  // Handle "Import from Inventory" action
+  const handleImportFromInventory = () => {
     setShowActionMenu(false);
-    setShowAssetList(false);
-    if (onAddAsset) {
-      onAddAsset(dropdownPosition.canvasX, dropdownPosition.canvasY);
-    }
+    setShowInventoryList(true);
   };
 
-  // Handle asset selection from list
+  // Handle existing asset selection from list
   const handleSelectAsset = (assetId: string) => {
     if (onPlaceAsset) {
       onPlaceAsset(assetId, dropdownPosition.canvasX, dropdownPosition.canvasY);
@@ -270,10 +343,23 @@ export function RoomPlanCanvas({
     setShowAssetList(false);
   };
 
+  // Handle inventory asset selection
+  const handleSelectInventoryAsset = (assetId: string) => {
+    if (onImportAsset) {
+      onImportAsset(assetId, dropdownPosition.canvasX, dropdownPosition.canvasY);
+    }
+    setShowInventoryList(false);
+  };
+
   // Close all menus
   const closeMenus = () => {
     setShowActionMenu(false);
     setShowAssetList(false);
+    setShowInventoryList(false);
+    setAssetSearchQuery('');
+    setInventorySearchQuery('');
+    setSelectedPlacedAsset(null);
+    // Don't reset popup offset here - only reset on new canvas click
   };
 
   // Handle pin drag start
@@ -390,7 +476,7 @@ export function RoomPlanCanvas({
       </div>
 
       {/* Instructions */}
-      {isEditable && (availableAssets.length > 0 || onAddAsset) && (
+      {isEditable && (availableAssets.length > 0 || inventoryAssets.length > 0) && (
         <div className="absolute top-2 left-2 z-10 bg-surface/90 backdrop-blur-sm rounded-lg p-2 shadow-md">
           <p className="text-caption text-text-secondary">
             Click to add | Drag pins to move
@@ -450,11 +536,37 @@ export function RoomPlanCanvas({
                 onDragEnd={(e) => handlePinDragEnd(asset.id, e)}
                 onClick={(e) => {
                   e.cancelBubble = true;
-                  onAssetClick?.(asset);
+                  // Get screen position for popup
+                  const stage = stageRef.current;
+                  const container = containerRef.current;
+                  if (stage && container) {
+                    const rect = container.getBoundingClientRect();
+                    const pointer = stage.getPointerPosition();
+                    if (pointer) {
+                      setSelectedPlacedAsset({
+                        asset,
+                        screenX: rect.left + pointer.x,
+                        screenY: rect.top + pointer.y,
+                      });
+                    }
+                  }
                 }}
                 onTouchEnd={(e) => {
                   e.cancelBubble = true;
-                  onAssetClick?.(asset);
+                  // Get screen position for popup
+                  const stage = stageRef.current;
+                  const container = containerRef.current;
+                  if (stage && container) {
+                    const rect = container.getBoundingClientRect();
+                    const pointer = stage.getPointerPosition();
+                    if (pointer) {
+                      setSelectedPlacedAsset({
+                        asset,
+                        screenX: rect.left + pointer.x,
+                        screenY: rect.top + pointer.y,
+                      });
+                    }
+                  }
                 }}
               >
                 {/* Pin shadow/halo for selected */}
@@ -512,7 +624,7 @@ export function RoomPlanCanvas({
         </Layer>
       </Stage>
 
-      {/* Action Menu - Choose between place existing or create new */}
+      {/* Action Menu - Choose between existing, import, or create new */}
       {showActionMenu && (
         <>
           <div
@@ -522,50 +634,56 @@ export function RoomPlanCanvas({
           <div
             className="fixed z-50 animate-in fade-in zoom-in-95 duration-150"
             style={{
-              left: Math.min(dropdownPosition.x, window.innerWidth - 240),
-              top: Math.min(dropdownPosition.y, window.innerHeight - 180),
+              left: Math.min(dropdownPosition.x, window.innerWidth - 320) + popupOffset.x,
+              top: Math.min(dropdownPosition.y, window.innerHeight - 250) + popupOffset.y,
             }}
           >
-            <div className="bg-surface backdrop-blur-sm rounded-xl border border-surface-border shadow-xl overflow-hidden min-w-[220px]">
-              {/* Header */}
-              <div className="px-3 py-2.5 border-b border-surface-border bg-surface-secondary/50">
-                <p className="text-caption font-medium text-text-secondary uppercase tracking-wide">Add Asset</p>
+            <div className="bg-surface backdrop-blur-sm rounded-xl border border-surface-border shadow-xl overflow-hidden min-w-[280px]">
+              {/* Draggable Header */}
+              <div
+                className="px-4 py-3 border-b border-surface-border bg-surface-secondary/50 cursor-move select-none"
+                onMouseDown={handlePopupDragStart}
+              >
+                <p className="text-body-sm font-medium text-text-secondary uppercase tracking-wide">Add Asset</p>
               </div>
 
               {/* Options */}
-              <div className="p-1.5">
-                {/* Place existing option */}
+              <div className="p-2">
+                {/* Existing option - room assets without pin */}
                 {availableAssets.length > 0 && onPlaceAsset && (
                   <button
-                    className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-surface-hover active:bg-surface-active transition-colors text-left"
+                    className="group w-full flex items-center gap-4 px-4 py-3.5 rounded-lg hover:bg-surface-hover active:bg-surface-active transition-colors text-left"
                     onClick={handlePlaceExisting}
                   >
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <MapPin size={18} className="text-primary" />
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                      <MapPin size={24} className="text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-body-sm font-medium text-text-primary">Place Existing</p>
-                      <p className="text-caption text-text-tertiary">
-                        {availableAssets.length} available
+                      <p className="text-body font-medium text-text-primary">Existing</p>
+                      <p className="text-body-sm text-text-tertiary">
+                        {availableAssets.length} without pin
                       </p>
                     </div>
-                    <ChevronRight size={16} className="text-text-tertiary group-hover:text-text-secondary transition-colors" />
+                    <ChevronRight size={20} className="text-text-tertiary group-hover:text-text-secondary transition-colors" />
                   </button>
                 )}
 
-                {/* Create new option */}
-                {onAddAsset && (
+                {/* Import from inventory option */}
+                {inventoryAssets.length > 0 && onImportAsset && (
                   <button
-                    className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-surface-hover active:bg-surface-active transition-colors text-left"
-                    onClick={handleCreateNew}
+                    className="group w-full flex items-center gap-4 px-4 py-3.5 rounded-lg hover:bg-surface-hover active:bg-surface-active transition-colors text-left"
+                    onClick={handleImportFromInventory}
                   >
-                    <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
-                      <Plus size={18} className="text-success" />
+                    <div className="w-12 h-12 rounded-lg bg-warning/10 flex items-center justify-center group-hover:bg-warning/20 transition-colors">
+                      <Package size={24} className="text-warning" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-body-sm font-medium text-text-primary">Create New</p>
-                      <p className="text-caption text-text-tertiary">Add new asset</p>
+                      <p className="text-body font-medium text-text-primary">Import from Inventory</p>
+                      <p className="text-body-sm text-text-tertiary">
+                        {inventoryAssets.length} available
+                      </p>
                     </div>
+                    <ChevronRight size={20} className="text-text-tertiary group-hover:text-text-secondary transition-colors" />
                   </button>
                 )}
               </div>
@@ -582,14 +700,17 @@ export function RoomPlanCanvas({
             onClick={closeMenus}
           />
           <Card
-            className="fixed z-50 w-64 max-h-72 overflow-y-auto shadow-xl"
+            className="fixed z-50 w-80 shadow-xl"
             style={{
-              left: Math.min(dropdownPosition.x, window.innerWidth - 280),
-              top: Math.min(dropdownPosition.y, window.innerHeight - 300),
+              left: Math.min(dropdownPosition.x, window.innerWidth - 340) + popupOffset.x,
+              top: Math.min(dropdownPosition.y, window.innerHeight - 420) + popupOffset.y,
             }}
           >
-            <div className="flex items-center justify-between p-2 border-b border-surface-border">
-              <span className="text-body-sm font-medium">Select Asset to Place</span>
+            <div
+              className="flex items-center justify-between p-2 border-b border-surface-border cursor-move select-none"
+              onMouseDown={handlePopupDragStart}
+            >
+              <span className="text-body-sm font-medium">Place Existing Asset</span>
               <Button
                 size="sm"
                 variant="ghost"
@@ -626,6 +747,169 @@ export function RoomPlanCanvas({
               </div>
             </CardContent>
           </Card>
+        </>
+      )}
+
+      {/* Inventory Asset Selection List - shown after choosing "Import from Inventory" */}
+      {showInventoryList && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={closeMenus}
+          />
+          <Card
+            className="fixed z-50 w-80 shadow-xl"
+            style={{
+              left: Math.min(dropdownPosition.x, window.innerWidth - 340) + popupOffset.x,
+              top: Math.min(dropdownPosition.y, window.innerHeight - 420) + popupOffset.y,
+            }}
+          >
+            <div
+              className="flex items-center justify-between p-2 border-b border-surface-border cursor-move select-none"
+              onMouseDown={handlePopupDragStart}
+            >
+              <span className="text-body-sm font-medium">Import from Inventory</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={closeMenus}
+              >
+                <X size={16} />
+              </Button>
+            </div>
+            {/* Search Input */}
+            {inventoryAssets.length > 2 && (
+              <div className="p-2 border-b border-surface-border">
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
+                  <input
+                    type="text"
+                    value={inventorySearchQuery}
+                    onChange={(e) => setInventorySearchQuery(e.target.value)}
+                    placeholder="Search assets..."
+                    className="w-full pl-9 pr-3 py-2 bg-background border border-surface-border rounded-md text-body-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    autoFocus
+                  />
+                </div>
+              </div>
+            )}
+            <CardContent className="p-0 max-h-80 overflow-y-auto">
+              {filteredInventoryAssets.length === 0 ? (
+                <div className="p-4 text-center text-text-tertiary text-body-sm">
+                  {inventorySearchQuery ? 'No matching assets' : 'No assets available in inventory'}
+                </div>
+              ) : (
+                <div className="divide-y divide-surface-border">
+                  {filteredInventoryAssets.map((asset) => {
+                    const Icon = getAssetIcon(asset.assetType?.name);
+                    return (
+                      <button
+                        key={asset.id}
+                        className="w-full flex items-center gap-3 p-3 hover:bg-surface-hover transition-colors text-left"
+                        onClick={() => handleSelectInventoryAsset(asset.id)}
+                      >
+                        <div
+                          className="p-2 rounded-md"
+                          style={{ backgroundColor: STATUS_COLORS[asset.status] + '20' }}
+                        >
+                          <Icon size={18} style={{ color: STATUS_COLORS[asset.status] }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-body-sm font-medium truncate">{asset.name}</p>
+                          <p className="text-caption text-text-tertiary truncate">
+                            {asset.assetType?.name || 'Unknown Type'}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* Selected Asset Popup - Actions for placed asset */}
+      {selectedPlacedAsset && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={closeMenus}
+          />
+          <div
+            className="fixed z-50 animate-in fade-in zoom-in-95 duration-150"
+            style={{
+              left: Math.min(selectedPlacedAsset.screenX, window.innerWidth - 240),
+              top: Math.min(selectedPlacedAsset.screenY, window.innerHeight - 200),
+            }}
+          >
+            <div className="bg-surface backdrop-blur-sm rounded-xl border border-surface-border shadow-xl overflow-hidden min-w-[220px]">
+              {/* Header with asset info */}
+              <div className="px-3 py-2.5 border-b border-surface-border bg-surface-secondary/50">
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const Icon = getAssetIcon(selectedPlacedAsset.asset.assetType?.name);
+                    return (
+                      <div
+                        className="w-8 h-8 rounded-md flex items-center justify-center"
+                        style={{ backgroundColor: STATUS_COLORS[selectedPlacedAsset.asset.status] + '20' }}
+                      >
+                        <Icon size={16} style={{ color: STATUS_COLORS[selectedPlacedAsset.asset.status] }} />
+                      </div>
+                    );
+                  })()}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-body-sm font-medium text-text-primary truncate">
+                      {selectedPlacedAsset.asset.name}
+                    </p>
+                    <p className="text-caption text-text-tertiary truncate">
+                      {selectedPlacedAsset.asset.assetType?.name || 'Asset'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="p-1.5">
+                {/* View/Edit action */}
+                <button
+                  className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-surface-hover active:bg-surface-active transition-colors text-left"
+                  onClick={() => {
+                    onAssetClick?.(selectedPlacedAsset.asset);
+                    setSelectedPlacedAsset(null);
+                  }}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <Eye size={16} className="text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-body-sm font-medium text-text-primary">View / Edit</p>
+                    <p className="text-caption text-text-tertiary">Open asset details</p>
+                  </div>
+                </button>
+
+                {/* Remove from plan - only in edit mode */}
+                {isEditable && onRemoveAssetPin && (
+                  <button
+                    className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-error/10 active:bg-error/20 transition-colors text-left"
+                    onClick={() => {
+                      onRemoveAssetPin(selectedPlacedAsset.asset.id);
+                      setSelectedPlacedAsset(null);
+                    }}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-error/10 flex items-center justify-center group-hover:bg-error/20 transition-colors">
+                      <Trash2 size={16} className="text-error" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-sm font-medium text-error">Remove from Plan</p>
+                      <p className="text-caption text-text-tertiary">Keep asset, remove pin</p>
+                    </div>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         </>
       )}
 

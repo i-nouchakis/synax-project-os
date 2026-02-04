@@ -120,6 +120,16 @@ export function RoomDetailPage() {
   const placedAssets = assets.filter(a => a.pinX !== null && a.pinY !== null);
   const availableAssets = assets.filter(a => a.pinX === null || a.pinY === null);
 
+  // Get project ID from room (path: floor -> building -> project)
+  const projectId = room?.floor?.building?.project?.id;
+
+  // Fetch available assets from project inventory (IN_STOCK, unassigned)
+  const { data: projectInventory = [] } = useQuery({
+    queryKey: ['project-equipment-available', projectId],
+    queryFn: () => assetService.getAvailableByProject(projectId!),
+    enabled: !!projectId && isEditMode,
+  });
+
   // Fetch asset types
   const { data: assetTypes = [] } = useQuery({
     queryKey: ['asset-types'],
@@ -176,6 +186,20 @@ export function RoomDetailPage() {
     },
     onError: (err: Error) => {
       toast.error(err.message || 'Failed to update asset position');
+    },
+  });
+
+  // Assign asset from inventory to room mutation
+  const assignAssetToRoomMutation = useMutation({
+    mutationFn: ({ assetId, pinX, pinY }: { assetId: string; pinX: number; pinY: number }) =>
+      assetService.assignToRoom(assetId, id!, pinX, pinY),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['room', id] });
+      queryClient.invalidateQueries({ queryKey: ['project-equipment-available', projectId] });
+      toast.success('Asset imported to room');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to import asset');
     },
   });
 
@@ -270,7 +294,7 @@ export function RoomDetailPage() {
             <div>
               <h1 className="text-h1">{room?.name || 'Room'}</h1>
               <p className="text-body text-text-secondary">
-                {room?.floor?.project?.name} / {room?.floor?.name}
+                {room?.floor?.building?.project?.name} / {room?.floor?.name}
               </p>
             </div>
           </div>
@@ -353,12 +377,16 @@ export function RoomDetailPage() {
                   imageUrl={room.floorplanUrl}
                   assets={assets as any}
                   availableAssets={isEditMode ? availableAssets as any : []}
+                  inventoryAssets={isEditMode ? projectInventory as any : []}
                   onAssetClick={handleAssetClick as any}
                   onAssetMove={handleMoveAsset}
                   onPlaceAsset={handlePlaceAsset}
-                  onAddAsset={(x, y) => {
-                    setPendingAssetPinPosition({ x: Math.round(x), y: Math.round(y) });
-                    setIsCreateModalOpen(true);
+                  onImportAsset={(assetId, x, y) => {
+                    assignAssetToRoomMutation.mutate({
+                      assetId,
+                      pinX: Math.round(x),
+                      pinY: Math.round(y),
+                    });
                   }}
                   onRemoveAssetPin={handleRemoveAssetPin}
                   isEditable={isEditMode}
@@ -573,7 +601,7 @@ export function RoomDetailPage() {
         isLoading={createMutation.isPending}
         title="Add New Asset"
         assetTypes={assetTypes}
-        projectName={room?.floor?.project?.name}
+        projectName={room?.floor?.building?.project?.name}
         roomName={room?.name}
       />
 
@@ -588,7 +616,7 @@ export function RoomDetailPage() {
           assetTypes={assetTypes}
           initialData={editingAsset}
           showStatus
-          projectName={room?.floor?.project?.name}
+          projectName={room?.floor?.building?.project?.name}
           roomName={room?.name}
         />
       )}
@@ -669,6 +697,7 @@ export function RoomDetailPage() {
               imageUrl={room.floorplanUrl}
               assets={assets as any}
               availableAssets={isEditMode ? availableAssets as any : []}
+              inventoryAssets={isEditMode ? projectInventory as any : []}
               onAssetClick={(asset) => {
                 setSelectedAssetId(asset.id);
                 setIsFullScreenOpen(false);
@@ -676,9 +705,12 @@ export function RoomDetailPage() {
               }}
               onAssetMove={handleMoveAsset}
               onPlaceAsset={handlePlaceAsset}
-              onAddAsset={(x, y) => {
-                setPendingAssetPinPosition({ x: Math.round(x), y: Math.round(y) });
-                setIsCreateModalOpen(true);
+              onImportAsset={(assetId, x, y) => {
+                assignAssetToRoomMutation.mutate({
+                  assetId,
+                  pinX: Math.round(x),
+                  pinY: Math.round(y),
+                });
               }}
               onRemoveAssetPin={handleRemoveAssetPin}
               isEditable={isEditMode}
@@ -696,8 +728,8 @@ export function RoomDetailPage() {
           isOpen={isDownloadModalOpen}
           onClose={() => setIsDownloadModalOpen(false)}
           imageUrl={room.floorplanUrl}
-          fileName={`${room.floor?.project?.name || 'project'}-${room.floor?.name || 'floor'}-${room.name}-floorplan`}
-          projectName={room.floor?.project?.name}
+          fileName={`${room.floor?.building?.project?.name || 'project'}-${room.floor?.name || 'floor'}-${room.name}-floorplan`}
+          projectName={room.floor?.building?.project?.name}
           floorName={room.floor?.name}
           roomName={room.name}
           pins={assets
