@@ -2102,6 +2102,102 @@ frontend/src/
 
 ---
 
+## [2026-02-04] - Building Layer Implementation
+
+### Περιγραφή
+Προσθήκη Building layer μεταξύ Project και Floor χωρίς να σπάσει το υπάρχον UI. Τα Projects τώρα δείχνουν Buildings, τα Buildings δείχνουν Floors.
+
+### Tasks Completed
+
+#### Database Changes
+- [x] Added Building model με projectId, name, description, floorplanUrl, floorplanType, pinX, pinY
+- [x] Changed Floor model: projectId → buildingId
+- [x] Cascade delete: Project → Buildings → Floors
+- [x] Schema sync με `npx prisma db push`
+
+#### Backend (building.controller.ts - NEW)
+- [x] GET /api/buildings - List all buildings
+- [x] GET /api/buildings/project/:projectId - Buildings by project
+- [x] GET /api/buildings/:id - Building detail with floors
+- [x] POST /api/buildings/project/:projectId - Create building
+- [x] PUT /api/buildings/:id - Update building
+- [x] PUT /api/buildings/:id/position - Update pin position on masterplan
+- [x] DELETE /api/buildings/:id - Delete building
+
+#### Backend Updates
+- [x] floor.controller.ts - Changed projectId to buildingId in createFloorSchema
+- [x] floor.controller.ts - Updated queries to include building relation
+- [x] project.controller.ts - Changed _count.floors to _count.buildings
+- [x] dashboard.controller.ts - Updated all queries for building hierarchy
+- [x] upload.controller.ts - Added POST /api/upload/building-floorplan/:buildingId
+- [x] server.ts - Registered building routes
+
+#### Frontend Services
+- [x] building.service.ts (NEW) - Full CRUD με Building, BuildingFloor interfaces
+- [x] project.service.ts - Updated Project interface με buildings array
+- [x] floor.service.ts - Changed Floor.projectId to Floor.buildingId
+- [x] upload.service.ts - Added uploadBuildingFloorplan method
+
+#### Frontend Pages
+- [x] BuildingDetailPage.tsx (NEW) - Shows building details and floors
+  - Floorplan canvas με floor pins
+  - Floors list με CRUD operations
+  - Navigation to /floors/:id
+- [x] ProjectDetailPage.tsx - Complete refactor
+  - Shows Buildings instead of Floors
+  - FloorPlanCanvas uses buildings data
+  - Navigation to /buildings/:id
+  - AddBuildingModal/EditBuildingModal
+- [x] FloorDetailPage.tsx - Updated back navigation
+  - "← Back to Building" instead of "← Back to Project"
+
+#### Routing
+- [x] App.tsx - Added /buildings/:id route
+- [x] BuildingDetailPage import and export
+
+#### Seed Updates
+- [x] Added building deletion in cleanup
+- [x] Created buildings before floors
+- [x] Updated floor creation to use buildingId
+
+### Αρχεία που Δημιουργήθηκαν
+```
+backend/src/controllers/building.controller.ts (NEW)
+frontend/src/services/building.service.ts (NEW)
+frontend/src/pages/buildings/BuildingDetailPage.tsx (NEW)
+frontend/src/pages/buildings/index.ts (NEW)
+```
+
+### Αρχεία που Τροποποιήθηκαν
+```
+backend/prisma/schema.prisma
+backend/prisma/seed.ts
+backend/src/server.ts
+backend/src/controllers/floor.controller.ts
+backend/src/controllers/project.controller.ts
+backend/src/controllers/dashboard.controller.ts
+backend/src/controllers/upload.controller.ts
+frontend/src/App.tsx
+frontend/src/services/project.service.ts
+frontend/src/services/floor.service.ts
+frontend/src/services/upload.service.ts
+frontend/src/pages/projects/ProjectDetailPage.tsx
+frontend/src/pages/floors/FloorDetailPage.tsx
+```
+
+### Νέα Hierarchy
+```
+Project (masterplan with Building pins) → Buildings
+Building (floorplan with Floor pins) → Floors  ← NEW LAYER
+Floor (floorplan with Room pins) → Rooms
+Room → Assets
+```
+
+### Status
+**Building Layer - COMPLETE ✅**
+
+---
+
 ## [2026-02-03] - Docker Fix & Templates Testing
 
 ### Περιγραφή

@@ -34,7 +34,7 @@ export async function projectRoutes(app: FastifyInstance) {
       include: {
         _count: {
           select: {
-            floors: true,
+            buildings: true,
             issues: true,
             members: true,
           },
@@ -53,11 +53,11 @@ export async function projectRoutes(app: FastifyInstance) {
     const project = await prisma.project.findUnique({
       where: { id },
       include: {
-        floors: {
+        buildings: {
           include: {
-            _count: { select: { rooms: true } },
+            _count: { select: { floors: true } },
           },
-          orderBy: { level: 'asc' },
+          orderBy: { name: 'asc' },
         },
         members: {
           include: {

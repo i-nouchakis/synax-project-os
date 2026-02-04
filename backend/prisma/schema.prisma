@@ -126,7 +126,7 @@ model Project {
   masterplanType   String?           @map("masterplan_type")
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
-  floors           Floor[]
+  buildings        Building[]
   generatedReports GeneratedReport[]
   inventory        InventoryItem[]
   issues           Issue[]
@@ -135,6 +135,23 @@ model Project {
   timeEntries      TimeEntry[]
 
   @@map("projects")
+}
+
+model Building {
+  id            String   @id @default(cuid())
+  projectId     String   @map("project_id")
+  name          String
+  description   String?
+  floorplanUrl  String?  @map("floorplan_url")
+  floorplanType String?  @map("floorplan_type")
+  pinX          Float?   @map("pin_x")
+  pinY          Float?   @map("pin_y")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  floors        Floor[]
+
+  @@map("buildings")
 }
 
 model ProjectMember {
@@ -152,7 +169,7 @@ model ProjectMember {
 
 model Floor {
   id            String   @id @default(cuid())
-  projectId     String   @map("project_id")
+  buildingId    String   @map("building_id")
   name          String
   level         Int      @default(0)
   floorplanUrl  String?  @map("floorplan_url")
@@ -161,7 +178,7 @@ model Floor {
   pinY          Float?   @map("pin_y")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
-  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  building      Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
   rooms         Room[]
 
   @@map("floors")

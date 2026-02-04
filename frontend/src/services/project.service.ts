@@ -14,6 +14,15 @@ export interface ProjectMember {
   };
 }
 
+export interface ProjectBuilding {
+  id: string;
+  name: string;
+  description?: string;
+  pinX?: number | null;
+  pinY?: number | null;
+  _count: { floors: number };
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -28,18 +37,11 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   _count?: {
-    floors: number;
+    buildings: number;
     issues: number;
     members: number;
   };
-  floors?: Array<{
-    id: string;
-    name: string;
-    level: number;
-    pinX?: number | null;
-    pinY?: number | null;
-    _count: { rooms: number };
-  }>;
+  buildings?: ProjectBuilding[];
   members?: ProjectMember[];
 }
 

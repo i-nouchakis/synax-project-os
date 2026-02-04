@@ -44,9 +44,9 @@ import {
   Select,
   Input,
 } from '@/components/ui';
-import { projectService, type ProjectStatus, type UpdateProjectData } from '@/services/project.service';
+import { projectService, type ProjectStatus, type UpdateProjectData, type ProjectBuilding } from '@/services/project.service';
 import { userService } from '@/services/user.service';
-import { floorService, type CreateFloorData, type UpdateFloorData, type Floor } from '@/services/floor.service';
+import { buildingService, type CreateBuildingData, type UpdateBuildingData, type Building } from '@/services/building.service';
 import { reportService } from '@/services/report.service';
 import { uploadService } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth.store';
@@ -68,19 +68,19 @@ export function ProjectDetailPage() {
   const canManage = currentUser?.role === 'ADMIN' || currentUser?.role === 'PM';
 
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
-  const [isAddFloorModalOpen, setIsAddFloorModalOpen] = useState(false);
+  const [isAddBuildingModalOpen, setIsAddBuildingModalOpen] = useState(false);
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
-  const [editingFloor, setEditingFloor] = useState<Floor | null>(null);
-  const [deletingFloor, setDeletingFloor] = useState<Floor | null>(null);
+  const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
+  const [deletingBuilding, setDeletingBuilding] = useState<Building | null>(null);
 
   // Masterplan state
   const [showMasterplan, setShowMasterplan] = useState(true);
   const [isMasterplanEditMode, setIsMasterplanEditMode] = useState(false);
   const [isUploadingMasterplan, setIsUploadingMasterplan] = useState(false);
-  const [selectedFloorId, setSelectedFloorId] = useState<string | null>(null);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [isMasterplanFullScreenOpen, setIsMasterplanFullScreenOpen] = useState(false);
   const [isDownloadMasterplanModalOpen, setIsDownloadMasterplanModalOpen] = useState(false);
-  const [pendingFloorPinPosition, setPendingFloorPinPosition] = useState<{ x: number; y: number } | null>(null);
+  const [pendingBuildingPinPosition, setPendingBuildingPinPosition] = useState<{ x: number; y: number } | null>(null);
   const masterplanInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch project
@@ -97,33 +97,28 @@ export function ProjectDetailPage() {
     enabled: !!id,
   });
 
-  // Create floor mutation with optional floor plan upload
-  const createFloorMutation = useMutation({
-    mutationFn: async (data: CreateFloorData & { floorplanFile?: File }) => {
-      const { floorplanFile, ...floorData } = data;
-      // First create the floor
-      const newFloor = await floorService.create(floorData);
+  // Create building mutation
+  const createBuildingMutation = useMutation({
+    mutationFn: async (data: CreateBuildingData & { pinX?: number; pinY?: number }) => {
+      const { pinX, pinY, ...buildingData } = data;
+      // First create the building
+      const newBuilding = await buildingService.create(id!, buildingData);
 
-      // If a floor plan file was provided, upload it
-      if (floorplanFile && newFloor.id) {
-        try {
-          await uploadService.uploadFloorPlan(newFloor.id, floorplanFile);
-        } catch (uploadErr) {
-          // Floor was created but upload failed - notify but don't fail the whole operation
-          toast.error('Floor created but floor plan upload failed. You can upload it later.');
-        }
+      // If pin position was provided, update it
+      if (pinX !== undefined && pinY !== undefined && newBuilding.id) {
+        await buildingService.updatePosition(newBuilding.id, pinX, pinY);
       }
 
-      return newFloor;
+      return newBuilding;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
-      setIsAddFloorModalOpen(false);
-      setPendingFloorPinPosition(null);
-      toast.success('Floor created successfully');
+      setIsAddBuildingModalOpen(false);
+      setPendingBuildingPinPosition(null);
+      toast.success('Building created successfully');
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to create floor');
+      toast.error(err.message || 'Failed to create building');
     },
   });
 
@@ -167,42 +162,42 @@ export function ProjectDetailPage() {
     },
   });
 
-  // Update floor mutation
-  const updateFloorMutation = useMutation({
-    mutationFn: ({ floorId, data }: { floorId: string; data: UpdateFloorData }) =>
-      floorService.update(floorId, data),
+  // Update building mutation
+  const updateBuildingMutation = useMutation({
+    mutationFn: ({ buildingId, data }: { buildingId: string; data: UpdateBuildingData }) =>
+      buildingService.update(buildingId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
-      setEditingFloor(null);
-      toast.success('Floor updated successfully');
+      setEditingBuilding(null);
+      toast.success('Building updated successfully');
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to update floor');
+      toast.error(err.message || 'Failed to update building');
     },
   });
 
-  // Delete floor mutation
-  const deleteFloorMutation = useMutation({
-    mutationFn: (floorId: string) => floorService.delete(floorId),
+  // Delete building mutation
+  const deleteBuildingMutation = useMutation({
+    mutationFn: (buildingId: string) => buildingService.delete(buildingId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
-      setDeletingFloor(null);
-      toast.success('Floor deleted successfully');
+      setDeletingBuilding(null);
+      toast.success('Building deleted successfully');
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to delete floor');
+      toast.error(err.message || 'Failed to delete building');
     },
   });
 
-  // Update floor position mutation (for masterplan pins)
-  const updateFloorPositionMutation = useMutation({
-    mutationFn: ({ floorId, pinX, pinY }: { floorId: string; pinX: number | null; pinY: number | null }) =>
-      floorService.updatePosition(floorId, pinX, pinY),
+  // Update building position mutation (for masterplan pins)
+  const updateBuildingPositionMutation = useMutation({
+    mutationFn: ({ buildingId, pinX, pinY }: { buildingId: string; pinX: number | null; pinY: number | null }) =>
+      buildingService.updatePosition(buildingId, pinX, pinY),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to update floor position');
+      toast.error(err.message || 'Failed to update building position');
     },
   });
 
@@ -465,9 +460,9 @@ export function ProjectDetailPage() {
             />
             {project.masterplanUrl && project.masterplanType !== 'PDF' && canManage && isMasterplanEditMode && (
               <>
-                {(project.floors || []).filter(f => f.pinX === null || f.pinY === null).length > 0 && (
+                {(project.buildings || []).filter(b => b.pinX === null || b.pinY === null).length > 0 && (
                   <span className="text-caption text-text-secondary">
-                    {(project.floors || []).filter(f => f.pinX === null || f.pinY === null).length} floors to place
+                    {(project.buildings || []).filter(b => b.pinX === null || b.pinY === null).length} buildings to place
                   </span>
                 )}
                 <Badge variant="info" size="sm">
@@ -536,47 +531,46 @@ export function ProjectDetailPage() {
                 <div className="h-[500px]">
                   <FloorPlanCanvas
                     imageUrl={project.masterplanUrl}
-                    pins={(project.floors || [])
-                      .filter((floor) => floor.pinX !== null && floor.pinY !== null)
-                      .map((floor) => ({
-                        id: floor.id,
-                        x: floor.pinX!,
-                        y: floor.pinY!,
-                        name: floor.name,
-                        status: 'IN_PROGRESS' as const, // Use blue for floor pins
+                    pins={(project.buildings || [])
+                      .filter((building) => building.pinX !== null && building.pinY !== null)
+                      .map((building) => ({
+                        id: building.id,
+                        x: building.pinX!,
+                        y: building.pinY!,
+                        name: building.name,
+                        status: 'IN_PROGRESS' as const, // Use blue for building pins
                       }))}
-                    availableItems={isMasterplanEditMode ? (project.floors || [])
-                      .filter((floor) => floor.pinX === null || floor.pinY === null)
-                      .map((floor) => ({
-                        id: floor.id,
-                        name: floor.name,
-                        level: floor.level,
+                    availableItems={isMasterplanEditMode ? (project.buildings || [])
+                      .filter((building) => building.pinX === null || building.pinY === null)
+                      .map((building) => ({
+                        id: building.id,
+                        name: building.name,
                       })) : []}
-                    selectedPinId={selectedFloorId}
+                    selectedPinId={selectedBuildingId}
                     isEditable={isMasterplanEditMode}
                     showLegend={false}
                     onPinClick={(pin) => {
-                      setSelectedFloorId(pin.id);
-                      navigate(`/floors/${pin.id}`);
+                      setSelectedBuildingId(pin.id);
+                      navigate(`/buildings/${pin.id}`);
                     }}
                     onPinMove={(pinId, x, y) => {
-                      updateFloorPositionMutation.mutate({
-                        floorId: pinId,
+                      updateBuildingPositionMutation.mutate({
+                        buildingId: pinId,
                         pinX: Math.round(x),
                         pinY: Math.round(y),
                       });
                     }}
-                    onPlaceItem={(floorId, x, y) => {
-                      updateFloorPositionMutation.mutate({
-                        floorId,
+                    onPlaceItem={(buildingId, x, y) => {
+                      updateBuildingPositionMutation.mutate({
+                        buildingId,
                         pinX: Math.round(x),
                         pinY: Math.round(y),
                       });
-                      toast.success('Floor placed on masterplan');
+                      toast.success('Building placed on masterplan');
                     }}
                     onAddPin={(x, y) => {
-                      setPendingFloorPinPosition({ x: Math.round(x), y: Math.round(y) });
-                      setIsAddFloorModalOpen(true);
+                      setPendingBuildingPinPosition({ x: Math.round(x), y: Math.round(y) });
+                      setIsAddBuildingModalOpen(true);
                     }}
                     onMaximize={() => setIsMasterplanFullScreenOpen(true)}
                   />
@@ -607,41 +601,41 @@ export function ProjectDetailPage() {
 
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Floors */}
+        {/* Buildings */}
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Layers size={20} />
-              Floors ({project.floors?.length || 0})
+              <Building2 size={20} />
+              Buildings ({project.buildings?.length || 0})
             </CardTitle>
             {canManage && (
-              <Button size="sm" leftIcon={<Plus size={16} />} onClick={() => setIsAddFloorModalOpen(true)}>
-                Add Floor
+              <Button size="sm" leftIcon={<Plus size={16} />} onClick={() => setIsAddBuildingModalOpen(true)}>
+                Add Building
               </Button>
             )}
           </CardHeader>
           <CardContent>
-            {!project.floors || project.floors.length === 0 ? (
+            {!project.buildings || project.buildings.length === 0 ? (
               <div className="text-center py-8 text-text-secondary">
-                <Layers size={32} className="mx-auto mb-2 opacity-50" />
-                <p>No floors added yet</p>
+                <Building2 size={32} className="mx-auto mb-2 opacity-50" />
+                <p>No buildings added yet</p>
               </div>
             ) : (
               <div className="space-y-2">
-                {project.floors.map((floor) => (
+                {project.buildings.map((building) => (
                   <div
-                    key={floor.id}
+                    key={building.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary hover:bg-surface-hover transition-colors cursor-pointer group"
-                    onClick={() => navigate(`/floors/${floor.id}`)}
+                    onClick={() => navigate(`/buildings/${building.id}`)}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <span className="text-body font-bold text-primary">{floor.level}</span>
+                        <Building2 size={20} className="text-primary" />
                       </div>
                       <div>
-                        <p className="text-body font-medium text-text-primary">{floor.name}</p>
+                        <p className="text-body font-medium text-text-primary">{building.name}</p>
                         <p className="text-caption text-text-secondary">
-                          {floor._count.rooms} rooms
+                          {building._count.floors} floors
                         </p>
                       </div>
                     </div>
@@ -650,20 +644,20 @@ export function ProjectDetailPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setEditingFloor(floor as Floor);
+                            setEditingBuilding(building as unknown as Building);
                           }}
                           className="p-2 rounded hover:bg-surface text-text-secondary hover:text-primary"
-                          title="Edit floor"
+                          title="Edit building"
                         >
                           <Pencil size={16} />
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setDeletingFloor(floor as Floor);
+                            setDeletingBuilding(building as unknown as Building);
                           }}
                           className="p-2 rounded hover:bg-surface text-text-secondary hover:text-error"
-                          title="Delete floor"
+                          title="Delete building"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -733,17 +727,16 @@ export function ProjectDetailPage() {
         </Card>
       </div>
 
-      {/* Add Floor Modal */}
-      <AddFloorModal
-        isOpen={isAddFloorModalOpen}
+      {/* Add Building Modal */}
+      <AddBuildingModal
+        isOpen={isAddBuildingModalOpen}
         onClose={() => {
-          setIsAddFloorModalOpen(false);
-          setPendingFloorPinPosition(null);
+          setIsAddBuildingModalOpen(false);
+          setPendingBuildingPinPosition(null);
         }}
-        onSubmit={(data) => createFloorMutation.mutate({ ...data, projectId: id! })}
-        isLoading={createFloorMutation.isPending}
-        existingLevels={project.floors?.map(f => f.level) || []}
-        pendingPinPosition={pendingFloorPinPosition}
+        onSubmit={(data) => createBuildingMutation.mutate(data)}
+        isLoading={createBuildingMutation.isPending}
+        pendingPinPosition={pendingBuildingPinPosition}
       />
 
       {/* Add Member Modal */}
@@ -764,36 +757,36 @@ export function ProjectDetailPage() {
         project={project}
       />
 
-      {/* Edit Floor Modal */}
-      {editingFloor && (
-        <EditFloorModal
-          isOpen={!!editingFloor}
-          onClose={() => setEditingFloor(null)}
-          onSubmit={(data) => updateFloorMutation.mutate({ floorId: editingFloor.id, data })}
-          isLoading={updateFloorMutation.isPending}
-          floor={editingFloor}
+      {/* Edit Building Modal */}
+      {editingBuilding && (
+        <EditBuildingModal
+          isOpen={!!editingBuilding}
+          onClose={() => setEditingBuilding(null)}
+          onSubmit={(data) => updateBuildingMutation.mutate({ buildingId: editingBuilding.id, data })}
+          isLoading={updateBuildingMutation.isPending}
+          building={editingBuilding}
         />
       )}
 
-      {/* Delete Floor Confirmation Modal */}
-      {deletingFloor && (
+      {/* Delete Building Confirmation Modal */}
+      {deletingBuilding && (
         <Modal
-          isOpen={!!deletingFloor}
-          onClose={() => setDeletingFloor(null)}
-          title="Delete Floor"
+          isOpen={!!deletingBuilding}
+          onClose={() => setDeletingBuilding(null)}
+          title="Delete Building"
           icon={<AlertTriangle size={18} />}
           size="sm"
           footer={
             <ModalActions>
-              <Button variant="secondary" onClick={() => setDeletingFloor(null)}>
+              <Button variant="secondary" onClick={() => setDeletingBuilding(null)}>
                 Cancel
               </Button>
               <Button
                 variant="danger"
-                onClick={() => deleteFloorMutation.mutate(deletingFloor.id)}
-                isLoading={deleteFloorMutation.isPending}
+                onClick={() => deleteBuildingMutation.mutate(deletingBuilding.id)}
+                isLoading={deleteBuildingMutation.isPending}
               >
-                Delete Floor
+                Delete Building
               </Button>
             </ModalActions>
           }
@@ -803,10 +796,10 @@ export function ProjectDetailPage() {
               <Trash2 size={24} className="text-error" />
             </div>
             <p className="text-body text-text-primary mb-2">
-              Are you sure you want to delete <strong>{deletingFloor.name}</strong>?
+              Are you sure you want to delete <strong>{deletingBuilding.name}</strong>?
             </p>
             <p className="text-body-sm text-text-secondary">
-              This will also delete all {deletingFloor._count?.rooms || 0} rooms and their assets.
+              This will also delete all floors, rooms and their assets.
               This action cannot be undone.
             </p>
           </div>
@@ -827,9 +820,9 @@ export function ProjectDetailPage() {
             <div className="flex items-center justify-end gap-2 mb-2 -mt-2">
               {isMasterplanEditMode && (
                 <>
-                  {(project.floors || []).filter(f => f.pinX === null || f.pinY === null).length > 0 && (
+                  {(project.buildings || []).filter(b => b.pinX === null || b.pinY === null).length > 0 && (
                     <span className="text-caption text-text-secondary">
-                      {(project.floors || []).filter(f => f.pinX === null || f.pinY === null).length} floors to place
+                      {(project.buildings || []).filter(b => b.pinX === null || b.pinY === null).length} buildings to place
                     </span>
                   )}
                   <Badge variant="info" size="sm">
@@ -850,48 +843,47 @@ export function ProjectDetailPage() {
           <div className="h-[calc(95vh-120px)] -mx-6 -mb-6">
             <FloorPlanCanvas
               imageUrl={project.masterplanUrl}
-              pins={(project.floors || [])
-                .filter((floor) => floor.pinX !== null && floor.pinY !== null)
-                .map((floor) => ({
-                  id: floor.id,
-                  x: floor.pinX!,
-                  y: floor.pinY!,
-                  name: floor.name,
+              pins={(project.buildings || [])
+                .filter((building) => building.pinX !== null && building.pinY !== null)
+                .map((building) => ({
+                  id: building.id,
+                  x: building.pinX!,
+                  y: building.pinY!,
+                  name: building.name,
                   status: 'IN_PROGRESS' as const,
                 }))}
-              availableItems={isMasterplanEditMode ? (project.floors || [])
-                .filter((floor) => floor.pinX === null || floor.pinY === null)
-                .map((floor) => ({
-                  id: floor.id,
-                  name: floor.name,
-                  level: floor.level,
+              availableItems={isMasterplanEditMode ? (project.buildings || [])
+                .filter((building) => building.pinX === null || building.pinY === null)
+                .map((building) => ({
+                  id: building.id,
+                  name: building.name,
                 })) : []}
-              selectedPinId={selectedFloorId}
+              selectedPinId={selectedBuildingId}
               isEditable={isMasterplanEditMode}
               showMaximize={false}
               showLegend={false}
               onPinClick={(pin) => {
-                setSelectedFloorId(pin.id);
-                navigate(`/floors/${pin.id}`);
+                setSelectedBuildingId(pin.id);
+                navigate(`/buildings/${pin.id}`);
               }}
               onPinMove={(pinId, x, y) => {
-                updateFloorPositionMutation.mutate({
-                  floorId: pinId,
+                updateBuildingPositionMutation.mutate({
+                  buildingId: pinId,
                   pinX: Math.round(x),
                   pinY: Math.round(y),
                 });
               }}
-              onPlaceItem={(floorId, x, y) => {
-                updateFloorPositionMutation.mutate({
-                  floorId,
+              onPlaceItem={(buildingId, x, y) => {
+                updateBuildingPositionMutation.mutate({
+                  buildingId,
                   pinX: Math.round(x),
                   pinY: Math.round(y),
                 });
-                toast.success('Floor placed on masterplan');
+                toast.success('Building placed on masterplan');
               }}
               onAddPin={(x, y) => {
-                setPendingFloorPinPosition({ x: Math.round(x), y: Math.round(y) });
-                setIsAddFloorModalOpen(true);
+                setPendingBuildingPinPosition({ x: Math.round(x), y: Math.round(y) });
+                setIsAddBuildingModalOpen(true);
               }}
             />
           </div>
@@ -907,16 +899,16 @@ export function ProjectDetailPage() {
           fileName={`${project.name}-masterplan`}
           projectName={project.name}
           floorName="Master Plan"
-          pins={(project.floors || [])
-            .filter((floor) => floor.pinX !== null && floor.pinY !== null)
-            .map((floor) => ({
-              id: floor.id,
-              name: floor.name,
-              x: floor.pinX!,
-              y: floor.pinY!,
+          pins={(project.buildings || [])
+            .filter((building) => building.pinX !== null && building.pinY !== null)
+            .map((building) => ({
+              id: building.id,
+              name: building.name,
+              x: building.pinX!,
+              y: building.pinY!,
               status: 'IN_PROGRESS' as const,
             }))}
-          pinType="floor"
+          pinType="building"
         />
       )}
     </div>
@@ -1003,71 +995,34 @@ function AddMemberModal({ isOpen, onClose, onSubmit, isLoading, existingMemberId
   );
 }
 
-// Add Floor Modal
-interface AddFloorModalProps {
+// Add Building Modal
+interface AddBuildingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { name: string; level: number; floorplanFile?: File; pinX?: number; pinY?: number }) => void;
+  onSubmit: (data: { name: string; description?: string; pinX?: number; pinY?: number }) => void;
   isLoading: boolean;
-  existingLevels: number[];
   pendingPinPosition?: { x: number; y: number } | null;
 }
 
-function AddFloorModal({ isOpen, onClose, onSubmit, isLoading, existingLevels, pendingPinPosition }: AddFloorModalProps) {
+function AddBuildingModal({ isOpen, onClose, onSubmit, isLoading, pendingPinPosition }: AddBuildingModalProps) {
   const [name, setName] = useState('');
-  const [level, setLevel] = useState(0);
-  const [floorplanFile, setFloorplanFile] = useState<File | null>(null);
-  const [floorplanPreview, setFloorplanPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Auto-suggest next level
-  const suggestedLevel = existingLevels.length > 0
-    ? Math.max(...existingLevels) + 1
-    : 0;
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFloorplanFile(file);
-      // Create preview for images
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => setFloorplanPreview(e.target?.result as string);
-        reader.readAsDataURL(file);
-      } else {
-        setFloorplanPreview(null);
-      }
-    }
-  };
-
-  const handleRemoveFile = () => {
-    setFloorplanFile(null);
-    setFloorplanPreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+  const [description, setDescription] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
       name,
-      level,
-      floorplanFile: floorplanFile || undefined,
+      description: description || undefined,
       pinX: pendingPinPosition?.x,
       pinY: pendingPinPosition?.y,
     });
     setName('');
-    setLevel(suggestedLevel);
-    setFloorplanFile(null);
-    setFloorplanPreview(null);
+    setDescription('');
   };
 
   const handleClose = () => {
     setName('');
-    setLevel(suggestedLevel);
-    setFloorplanFile(null);
-    setFloorplanPreview(null);
+    setDescription('');
     onClose();
   };
 
@@ -1075,94 +1030,37 @@ function AddFloorModal({ isOpen, onClose, onSubmit, isLoading, existingLevels, p
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Add New Floor"
-      icon={<Layers size={18} />}
+      title="Add New Building"
+      icon={<Building2 size={18} />}
       size="md"
       footer={
         <ModalActions>
           <Button type="button" variant="secondary" onClick={handleClose}>
             Cancel
           </Button>
-          <Button type="submit" form="add-floor-form" isLoading={isLoading}>
-            Add Floor
+          <Button type="submit" form="add-building-form" isLoading={isLoading}>
+            Add Building
           </Button>
         </ModalActions>
       }
     >
-      <form id="add-floor-form" onSubmit={handleSubmit} className="space-y-5">
-        <ModalSection title="Floor Details" icon={<Layers size={14} />}>
+      <form id="add-building-form" onSubmit={handleSubmit} className="space-y-5">
+        <ModalSection title="Building Details" icon={<Building2 size={14} />}>
           <div className="space-y-4">
             <Input
-              label="Floor Name"
+              label="Building Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ground Floor, 1st Floor, Basement..."
+              placeholder="Main Building, Building A, Wing B..."
               required
-              leftIcon={<Layers size={16} />}
+              leftIcon={<Building2 size={16} />}
             />
             <Input
-              type="number"
-              label="Level Number"
-              value={level.toString()}
-              onChange={(e) => setLevel(parseInt(e.target.value) || 0)}
-              placeholder="0"
+              label="Description (Optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Brief description of this building..."
             />
-            <p className="text-xs text-text-tertiary">
-              Use negative numbers for basement levels (e.g., -1, -2)
-            </p>
-          </div>
-        </ModalSection>
-
-        <ModalSection title="Floor Plan (Optional)" icon={<Image size={14} />}>
-          <div className="space-y-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,.pdf,.dwg"
-              onChange={handleFileChange}
-              className="hidden"
-              id="floorplan-upload"
-            />
-
-            {!floorplanFile ? (
-              <label
-                htmlFor="floorplan-upload"
-                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-surface-border rounded-lg cursor-pointer hover:bg-surface-hover transition-colors"
-              >
-                <Upload size={24} className="text-text-tertiary mb-2" />
-                <span className="text-body-sm text-text-secondary">Click to upload floor plan</span>
-                <span className="text-caption text-text-tertiary mt-1">PNG, JPG, PDF or DWG</span>
-              </label>
-            ) : (
-              <div className="relative border border-surface-border rounded-lg p-3">
-                <div className="flex items-center gap-3">
-                  {floorplanPreview ? (
-                    <img
-                      src={floorplanPreview}
-                      alt="Floor plan preview"
-                      className="w-20 h-20 object-cover rounded"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 bg-surface-secondary rounded flex items-center justify-center">
-                      <FileText size={24} className="text-text-tertiary" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-body-sm text-text-primary truncate">{floorplanFile.name}</p>
-                    <p className="text-caption text-text-tertiary">
-                      {(floorplanFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleRemoveFile}
-                    className="p-1.5 rounded hover:bg-surface-hover text-text-secondary"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </ModalSection>
       </form>
@@ -1311,26 +1209,26 @@ function EditProjectModal({ isOpen, onClose, onSubmit, isLoading, project }: Edi
   );
 }
 
-// Edit Floor Modal
-interface EditFloorModalProps {
+// Edit Building Modal
+interface EditBuildingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: UpdateFloorData) => void;
+  onSubmit: (data: UpdateBuildingData) => void;
   isLoading: boolean;
-  floor: Floor;
+  building: Building;
 }
 
-function EditFloorModal({ isOpen, onClose, onSubmit, isLoading, floor }: EditFloorModalProps) {
+function EditBuildingModal({ isOpen, onClose, onSubmit, isLoading, building }: EditBuildingModalProps) {
   const [formData, setFormData] = useState({
-    name: floor.name,
-    level: floor.level,
+    name: building.name,
+    description: building.description || '',
   });
 
-  // Update form when floor changes
-  if (isOpen && formData.name !== floor.name) {
+  // Update form when building changes
+  if (isOpen && formData.name !== building.name) {
     setFormData({
-      name: floor.name,
-      level: floor.level,
+      name: building.name,
+      description: building.description || '',
     });
   }
 
@@ -1338,7 +1236,7 @@ function EditFloorModal({ isOpen, onClose, onSubmit, isLoading, floor }: EditFlo
     e.preventDefault();
     onSubmit({
       name: formData.name,
-      level: formData.level,
+      description: formData.description || undefined,
     });
   };
 
@@ -1346,7 +1244,7 @@ function EditFloorModal({ isOpen, onClose, onSubmit, isLoading, floor }: EditFlo
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Edit Floor"
+      title="Edit Building"
       icon={<Pencil size={18} />}
       size="md"
       footer={
@@ -1354,33 +1252,29 @@ function EditFloorModal({ isOpen, onClose, onSubmit, isLoading, floor }: EditFlo
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="edit-floor-form" isLoading={isLoading}>
+          <Button type="submit" form="edit-building-form" isLoading={isLoading}>
             Save Changes
           </Button>
         </ModalActions>
       }
     >
-      <form id="edit-floor-form" onSubmit={handleSubmit} className="space-y-5">
-        <ModalSection title="Floor Details" icon={<Layers size={14} />}>
+      <form id="edit-building-form" onSubmit={handleSubmit} className="space-y-5">
+        <ModalSection title="Building Details" icon={<Building2 size={14} />}>
           <div className="space-y-4">
             <Input
-              label="Floor Name"
+              label="Building Name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Ground Floor, 1st Floor, Basement..."
+              placeholder="Main Building, Building A, Wing B..."
               required
-              leftIcon={<Layers size={16} />}
+              leftIcon={<Building2 size={16} />}
             />
             <Input
-              type="number"
-              label="Level Number"
-              value={formData.level.toString()}
-              onChange={(e) => setFormData({ ...formData, level: parseInt(e.target.value) || 0 })}
-              placeholder="0"
+              label="Description (Optional)"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Brief description of this building..."
             />
-            <p className="text-xs text-text-tertiary">
-              Use negative numbers for basement levels (e.g., -1, -2)
-            </p>
           </div>
         </ModalSection>
       </form>

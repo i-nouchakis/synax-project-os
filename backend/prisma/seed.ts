@@ -26,6 +26,7 @@ async function main() {
   await prisma.asset.deleteMany();
   await prisma.room.deleteMany();
   await prisma.floor.deleteMany();
+  await prisma.building.deleteMany();
   await prisma.projectMember.deleteMany();
   await prisma.project.deleteMany();
   await prisma.refreshToken.deleteMany();
@@ -569,16 +570,21 @@ async function main() {
   console.log(`✅ Created 5 projects\n`);
 
   // ============================================
-  // STEP 7: Create Floors for Project 1 (Santorini)
+  // STEP 7: Create Buildings and Floors for Project 1 (Santorini)
   // ============================================
-  console.log('🏢 Creating floors and rooms for Poseidon Luxury Suites...');
+  console.log('🏢 Creating buildings and floors for Poseidon Luxury Suites...');
+
+  // Create building for Project 1
+  const p1Building = await prisma.building.create({
+    data: { projectId: project1.id, name: 'Main Building', description: 'Κύριο κτίριο ξενοδοχείου' },
+  });
 
   const p1Floors = await Promise.all([
-    prisma.floor.create({ data: { projectId: project1.id, name: 'Υπόγειο (Τεχνικός Χώρος)', level: -1 } }),
-    prisma.floor.create({ data: { projectId: project1.id, name: 'Ισόγειο (Reception & Pool)', level: 0 } }),
-    prisma.floor.create({ data: { projectId: project1.id, name: '1ος Όροφος (Suites 101-108)', level: 1 } }),
-    prisma.floor.create({ data: { projectId: project1.id, name: '2ος Όροφος (Suites 201-208)', level: 2 } }),
-    prisma.floor.create({ data: { projectId: project1.id, name: 'Rooftop (Bar & Restaurant)', level: 3 } }),
+    prisma.floor.create({ data: { buildingId: p1Building.id, name: 'Υπόγειο (Τεχνικός Χώρος)', level: -1 } }),
+    prisma.floor.create({ data: { buildingId: p1Building.id, name: 'Ισόγειο (Reception & Pool)', level: 0 } }),
+    prisma.floor.create({ data: { buildingId: p1Building.id, name: '1ος Όροφος (Suites 101-108)', level: 1 } }),
+    prisma.floor.create({ data: { buildingId: p1Building.id, name: '2ος Όροφος (Suites 201-208)', level: 2 } }),
+    prisma.floor.create({ data: { buildingId: p1Building.id, name: 'Rooftop (Bar & Restaurant)', level: 3 } }),
   ]);
 
   // Rooms for Project 1
@@ -636,16 +642,30 @@ async function main() {
   console.log('   ✓ Created floors and rooms for Project 1');
 
   // ============================================
-  // STEP 8: Create Floors for Project 2 (Crete)
+  // STEP 8: Create Buildings and Floors for Project 2 (Crete)
   // ============================================
-  console.log('🏢 Creating floors and rooms for Aegean Beach Resort...');
+  console.log('🏢 Creating buildings and floors for Aegean Beach Resort...');
+
+  // Create buildings for Project 2
+  const p2BuildingA = await prisma.building.create({
+    data: { projectId: project2.id, name: 'Κτίριο A', description: 'Κτίριο δωματίων και τεχνικός χώρος' },
+  });
+  const p2BuildingB = await prisma.building.create({
+    data: { projectId: project2.id, name: 'Κτίριο B', description: 'Reception & Spa' },
+  });
+  const p2BuildingC = await prisma.building.create({
+    data: { projectId: project2.id, name: 'Κτίριο C', description: 'Restaurant & Bar' },
+  });
+  const p2Outdoor = await prisma.building.create({
+    data: { projectId: project2.id, name: 'Εξωτερικοί Χώροι', description: 'Pool Area & Beach' },
+  });
 
   const p2Floors = await Promise.all([
-    prisma.floor.create({ data: { projectId: project2.id, name: 'Κτίριο A - Τεχνικός Χώρος', level: 0 } }),
-    prisma.floor.create({ data: { projectId: project2.id, name: 'Κτίριο A - Δωμάτια 1-20', level: 1 } }),
-    prisma.floor.create({ data: { projectId: project2.id, name: 'Κτίριο B - Reception & Spa', level: 0 } }),
-    prisma.floor.create({ data: { projectId: project2.id, name: 'Κτίριο C - Restaurant & Bar', level: 0 } }),
-    prisma.floor.create({ data: { projectId: project2.id, name: 'Pool Area & Beach', level: 0 } }),
+    prisma.floor.create({ data: { buildingId: p2BuildingA.id, name: 'Τεχνικός Χώρος', level: 0 } }),
+    prisma.floor.create({ data: { buildingId: p2BuildingA.id, name: 'Δωμάτια 1-20', level: 1 } }),
+    prisma.floor.create({ data: { buildingId: p2BuildingB.id, name: 'Reception & Spa', level: 0 } }),
+    prisma.floor.create({ data: { buildingId: p2BuildingC.id, name: 'Restaurant & Bar', level: 0 } }),
+    prisma.floor.create({ data: { buildingId: p2Outdoor.id, name: 'Pool Area & Beach', level: 0 } }),
   ]);
 
   // Rooms for Project 2

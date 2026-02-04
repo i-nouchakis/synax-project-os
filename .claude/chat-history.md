@@ -2126,17 +2126,71 @@ docker exec synax-backend node -e \
 
 ---
 
+## Session: Building Layer Implementation (2026-02-04)
+
+### Χρήστης
+Θέλω να προσθέσεις τα buildings αλλά χωρίς να γαμήσεις το UI! Στο ProjectDetailPage αντί για floors να δείχνει buildings, και όταν επιλέξεις building να σε πηγαίνει στα floors όπως τώρα!
+
+### Claude
+Υλοποίησα το Building layer χωρίς να σπάσει το UI:
+
+**Νέα Hierarchy:**
+```
+Project (masterplan με Building pins) → Buildings
+Building (floorplan με Floor pins) → Floors  ← NEW LAYER
+Floor (floorplan με Room pins) → Rooms
+Room → Assets
+```
+
+**Database Changes:**
+- Building model: id, projectId, name, description, floorplanUrl, floorplanType, pinX, pinY
+- Floor model: projectId → buildingId
+- Migration με `npx prisma db push`
+
+**Backend (building.controller.ts - NEW):**
+| Endpoint | Περιγραφή |
+|----------|-----------|
+| GET /api/buildings | List all |
+| GET /api/buildings/project/:projectId | By project |
+| GET /api/buildings/:id | Detail with floors |
+| POST /api/buildings/project/:projectId | Create |
+| PUT /api/buildings/:id | Update |
+| PUT /api/buildings/:id/position | Pin position |
+| DELETE /api/buildings/:id | Delete |
+
+**Frontend:**
+- `building.service.ts` - Full CRUD
+- `BuildingDetailPage.tsx` - Shows floors (παρόμοιο με παλιό ProjectDetailPage)
+- `ProjectDetailPage.tsx` - Refactored to show Buildings
+- Route `/buildings/:id` added
+
+**Seed Updates:**
+- Buildings created before Floors
+- Floors use buildingId instead of projectId
+
+### Χρήστης
+Παρα πολύ ωραία !! Ενημέρωσε το memory history κτλπ!
+
+### Claude
+Ενημέρωσα:
+- `.claude/todo.md` - Section 34: Building Layer
+- `.claude/history.md` - Full implementation log
+- `.claude/chat-history.md` - Conversation history
+
+**Status: Building Layer COMPLETE ✅**
+
+---
+
 ## Τρέχουσα Κατάσταση
 
-**Feature Update: Checklist Templates Added**
+**Latest Feature: Building Layer Added**
 
 | New Feature | Status |
 |-------------|--------|
-| Template Types | ✅ GENERAL + Category-specific |
-| Auto-Sync | ✅ Add/Update/Delete propagation |
-| Soft Delete | ✅ isArchived flag for history |
-| Template Selection | ✅ Multi-select in ChecklistPanel |
-| Admin Page | ✅ /checklist-templates |
-| Multi-Template | ✅ Select & merge multiple templates |
+| Building Model | ✅ Between Project and Floor |
+| Building CRUD | ✅ Full API endpoints |
+| BuildingDetailPage | ✅ Shows floors with pins |
+| ProjectDetailPage | ✅ Shows buildings instead of floors |
+| Hierarchy Update | ✅ Project → Building → Floor → Room |
 
-*Τελευταία ενημέρωση: 2026-02-03 (Multi-Template Selection)*
+*Τελευταία ενημέρωση: 2026-02-04 (Building Layer Implementation)*

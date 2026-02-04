@@ -28,12 +28,16 @@ export interface Floor {
   floorplanType?: string;
   pinX?: number | null;
   pinY?: number | null;
-  projectId: string;
+  buildingId: string;
   createdAt: string;
-  project?: {
+  building?: {
     id: string;
     name: string;
-    clientName?: string;
+    project?: {
+      id: string;
+      name: string;
+      clientName?: string;
+    };
   };
   rooms?: Room[];
   _count?: {
@@ -42,7 +46,7 @@ export interface Floor {
 }
 
 export interface CreateFloorData {
-  projectId: string;
+  buildingId: string;
   name: string;
   level?: number;
   pinX?: number;

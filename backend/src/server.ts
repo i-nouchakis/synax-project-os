@@ -6,6 +6,7 @@ import { config } from './config/index.js';
 import { authRoutes } from './controllers/auth.controller.js';
 import { userRoutes } from './controllers/user.controller.js';
 import { projectRoutes } from './controllers/project.controller.js';
+import { buildingRoutes } from './controllers/building.controller.js';
 import { floorRoutes } from './controllers/floor.controller.js';
 import { uploadRoutes } from './controllers/upload.controller.js';
 import { assetRoutes } from './controllers/asset.controller.js';
@@ -59,6 +60,7 @@ const start = async () => {
     await app.register(authRoutes, { prefix: '/api/auth' });
     await app.register(userRoutes, { prefix: '/api/users' });
     await app.register(projectRoutes, { prefix: '/api/projects' });
+    await app.register(buildingRoutes, { prefix: '/api/buildings' });
     await app.register(floorRoutes, { prefix: '/api/floors' });
     await app.register(uploadRoutes, { prefix: '/api/upload' });
     await app.register(assetRoutes, { prefix: '/api/assets' });

@@ -406,6 +406,31 @@ npm run dev:frontend
 - [x] 9 asset type icons (Wifi, Router, Camera, TV, Phone, etc.)
 - [x] Default box icon for unknown types
 
+### 34. Building Layer ✅
+- [x] Database: Building model μεταξύ Project και Floor
+- [x] Database: Floor.buildingId αντί για Floor.projectId
+- [x] Database: Migration με db push
+- [x] Backend: building.controller.ts με πλήρες CRUD
+- [x] Backend: GET/POST/PUT/DELETE για buildings
+- [x] Backend: PUT /buildings/:id/position για pin positioning
+- [x] Backend: Updated floor.controller.ts για buildingId
+- [x] Backend: Updated dashboard.controller.ts για building hierarchy
+- [x] Backend: POST /api/upload/building-floorplan/:buildingId
+- [x] Frontend: building.service.ts με πλήρες API
+- [x] Frontend: BuildingDetailPage.tsx (παρόμοιο με παλιό ProjectDetailPage)
+- [x] Frontend: ProjectDetailPage shows Buildings αντί για Floors
+- [x] Frontend: Route /buildings/:id
+- [x] Frontend: FloorDetailPage back navigation → Building
+- [x] Seed: Buildings δημιουργούνται πριν τα Floors
+
+**Νέα Hierarchy:**
+```
+Project (masterplan με Building pins) → Buildings
+Building (floorplan με Floor pins) → Floors  ← NEW LAYER
+Floor (floorplan με Room pins) → Rooms
+Room → Assets
+```
+
 ---
 
-*Last Updated: 2026-02-03 (Checklist Templates System Tested)*
+*Last Updated: 2026-02-04 (Building Layer Implementation)*

@@ -38,15 +38,15 @@ export async function dashboardRoutes(app: FastifyInstance) {
       }),
       // Total floors
       prisma.floor.count({
-        where: { project: projectWhere },
+        where: { building: { project: projectWhere } },
       }),
       // Total rooms
       prisma.room.count({
-        where: { floor: { project: projectWhere } },
+        where: { floor: { building: { project: projectWhere } } },
       }),
       // Total assets
       prisma.asset.count({
-        where: { room: { floor: { project: projectWhere } } },
+        where: { room: { floor: { building: { project: projectWhere } } } },
       }),
       // Open issues
       prisma.issue.count({
@@ -65,14 +65,14 @@ export async function dashboardRoutes(app: FastifyInstance) {
       // Completed checklist items
       prisma.checklistItem.count({
         where: {
-          checklist: { asset: { room: { floor: { project: projectWhere } } } },
+          checklist: { asset: { room: { floor: { building: { project: projectWhere } } } } },
           completed: true,
         },
       }),
       // Total checklist items
       prisma.checklistItem.count({
         where: {
-          checklist: { asset: { room: { floor: { project: projectWhere } } } },
+          checklist: { asset: { room: { floor: { building: { project: projectWhere } } } } },
         },
       }),
     ]);
@@ -134,7 +134,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
     const recentChecklists = await prisma.checklistItem.findMany({
       where: {
         completed: true,
-        checklist: { asset: { room: { floor: { project: projectWhere } } } },
+        checklist: { asset: { room: { floor: { building: { project: projectWhere } } } } },
       },
       select: {
         id: true,
@@ -162,7 +162,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
 
     // Get recent assets
     const recentAssets = await prisma.asset.findMany({
-      where: { room: { floor: { project: projectWhere } } },
+      where: { room: { floor: { building: { project: projectWhere } } } },
       select: {
         id: true,
         name: true,
@@ -236,7 +236,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
         clientName: true,
         _count: {
           select: {
-            floors: true,
+            buildings: true,
             issues: true,
           },
         },

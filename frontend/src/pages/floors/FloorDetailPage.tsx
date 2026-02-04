@@ -201,11 +201,11 @@ export function FloorDetailPage() {
       <div className="flex items-start justify-between">
         <div>
           <button
-            onClick={() => navigate(`/projects/${floor.project?.id}`)}
+            onClick={() => navigate(`/buildings/${floor.building?.id}`)}
             className="flex items-center gap-2 text-text-secondary hover:text-text-primary mb-2"
           >
             <ArrowLeft size={18} />
-            <span className="text-body-sm">Back to {floor.project?.name}</span>
+            <span className="text-body-sm">Back to {floor.building?.name}</span>
           </button>
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">

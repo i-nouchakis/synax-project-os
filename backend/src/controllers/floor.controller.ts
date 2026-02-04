@@ -4,7 +4,7 @@ import { prisma } from '../utils/prisma.js';
 import { authenticate, requireRole } from '../middleware/auth.middleware.js';
 
 const createFloorSchema = z.object({
-  projectId: z.string(),
+  buildingId: z.string(),
   name: z.string().min(1),
   level: z.number().int().optional(),
   pinX: z.number().optional(),
@@ -34,11 +34,18 @@ export async function floorRoutes(app: FastifyInstance) {
   app.get('/', async (_request: FastifyRequest, reply: FastifyReply) => {
     const floors = await prisma.floor.findMany({
       include: {
-        project: { select: { id: true, name: true, clientName: true } },
+        building: {
+          select: {
+            id: true,
+            name: true,
+            project: { select: { id: true, name: true, clientName: true } },
+          },
+        },
         _count: { select: { rooms: true } },
       },
       orderBy: [
-        { project: { name: 'asc' } },
+        { building: { project: { name: 'asc' } } },
+        { building: { name: 'asc' } },
         { level: 'asc' },
       ],
     });
@@ -53,7 +60,13 @@ export async function floorRoutes(app: FastifyInstance) {
     const floor = await prisma.floor.findUnique({
       where: { id },
       include: {
-        project: { select: { id: true, name: true } },
+        building: {
+          select: {
+            id: true,
+            name: true,
+            project: { select: { id: true, name: true } },
+          },
+        },
         rooms: {
           include: {
             _count: { select: { assets: true, issues: true } },
@@ -79,14 +92,20 @@ export async function floorRoutes(app: FastifyInstance) {
 
       const floor = await prisma.floor.create({
         data: {
-          projectId: data.projectId,
+          buildingId: data.buildingId,
           name: data.name,
           level: data.level ?? 0,
           pinX: data.pinX,
           pinY: data.pinY,
         },
         include: {
-          project: { select: { id: true, name: true } },
+          building: {
+            select: {
+              id: true,
+              name: true,
+              project: { select: { id: true, name: true } },
+            },
+          },
         },
       });
 
