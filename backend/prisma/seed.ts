@@ -687,9 +687,9 @@ async function main() {
     let assetCounter = 0;
     const projectAssets: { id: string; assetTypeId: string | null }[] = [];
 
-    // Create IN_STOCK assets (available in inventory)
-    const stockCount = 10 + Math.floor(Math.random() * 15);
-    for (let i = 0; i < stockCount; i++) {
+    // Create assets that will be INSTALLED (to be placed in rooms/floors)
+    const toInstallCount = 8 + Math.floor(Math.random() * 8);
+    for (let i = 0; i < toInstallCount; i++) {
       const assetType = assetTypesList[Math.floor(Math.random() * assetTypesList.length)];
       const compatibleModels = modelsList.filter(m => m.assetTypeId === assetType.id);
       const model = compatibleModels.length > 0
@@ -710,6 +710,31 @@ async function main() {
         },
       });
       projectAssets.push({ id: asset.id, assetTypeId: asset.assetTypeId });
+    }
+
+    // Create IN_STOCK assets that will STAY in inventory (not installed)
+    const inStockCount = 10 + Math.floor(Math.random() * 10);
+    for (let i = 0; i < inStockCount; i++) {
+      const assetType = assetTypesList[Math.floor(Math.random() * assetTypesList.length)];
+      const compatibleModels = modelsList.filter(m => m.assetTypeId === assetType.id);
+      const model = compatibleModels.length > 0
+        ? compatibleModels[Math.floor(Math.random() * compatibleModels.length)]
+        : modelsList[Math.floor(Math.random() * modelsList.length)];
+
+      assetCounter++;
+      await prisma.asset.create({
+        data: {
+          projectId: project.id,
+          name: `${assetType.name} ${String(assetCounter).padStart(3, '0')}`,
+          assetTypeId: assetType.id,
+          model: `${model.manufacturer.name} ${model.name}`,
+          serialNumber: `SN${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+          macAddress: Array(6).fill(0).map(() => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join(':').toUpperCase(),
+          status: 'IN_STOCK',
+          labelCode: `${project.name.substring(0, 3).toUpperCase()}-${assetType.name.substring(0, 2).toUpperCase()}-${String(assetCounter).padStart(4, '0')}`,
+        },
+      });
+      // NOT added to projectAssets - these stay in inventory
     }
 
     // Create PLANNED assets (on order)
