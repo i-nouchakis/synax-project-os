@@ -433,4 +433,21 @@ Room → Assets
 
 ---
 
-*Last Updated: 2026-02-04 (Building Layer Implementation)*
+### 35. Pre-Commit Hook for TypeScript Checks ✅
+- [x] Husky installed and initialized
+- [x] Pre-commit hook: runs `npx tsc --noEmit` on frontend & backend
+- [x] CLAUDE.md updated with Git Commit Rules
+
+**Pre-commit behavior:**
+```bash
+🔍 Running TypeScript checks before commit...
+📦 Checking frontend...
+✅ Frontend OK
+📦 Checking backend...
+✅ Backend OK
+✅ All TypeScript checks passed!
+```
+
+---
+
+*Last Updated: 2026-02-04 (Pre-Commit Hook Setup)*

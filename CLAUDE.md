@@ -66,7 +66,7 @@ EL# Claude Protocol - Συνεργασία & Αποφυγή Λαθών
 ## Αμετάκλητοι Κανόνες
 
 ### ΠΟΤΕ
-- ❌ **Git commit/push χωρίς ρητή εντολή από τον χρήστη**
+- ❌ **Git commit/push χωρίς ρητή εντολή από τον χρήστη** ⚠️ ΚΡΙΣΙΜΟ
 - ❌ Deploy χωρίς επιβεβαίωση server
 - ❌ Edit χωρίς να διαβάσω πρώτα
 - ❌ Destructive εντολή χωρίς έγκριση
@@ -87,6 +87,29 @@ EL# Claude Protocol - Συνεργασία & Αποφυγή Λαθών
 - ✅ **Ενημερώνω το `.claude/chat-history.md` μετά από ΚΑΘΕ απάντηση**
 - ✅ **Ακολουθώ το `docs/STYLE-GUIDE.md` για UI components & styling**
 - ✅ **Συμβουλεύομαι το `docs/PLAN.md` για αρχιτεκτονικές αποφάσεις**
+
+---
+
+## ⚠️ Git Commit Rules - ΚΡΙΣΙΜΟ
+
+### ΜΟΝΟ ο χρήστης αποφασίζει πότε γίνεται commit!
+
+**ΠΟΤΕ δεν κάνω commit/push μόνος μου**, ακόμα κι αν:
+- Ολοκλήρωσα μια εργασία
+- Ο χρήστης είπε "ενημέρωσε τα αρχεία"
+- Φαίνεται λογικό να γίνει commit
+
+**ΠΡΙΝ από κάθε commit (όταν ζητηθεί):**
+```bash
+# ΥΠΟΧΡΕΩΤΙΚΟ: TypeScript check σε frontend ΚΑΙ backend
+cd frontend && npx tsc --noEmit
+cd backend && npx tsc --noEmit
+```
+
+Αν υπάρχουν errors, τα διορθώνω ΠΡΩΤΑ πριν κάνω commit.
+
+**Γιατί:** Το local dev server (Vite) είναι επιεικές και δεν ελέγχει όλα τα αρχεία.
+Το production build (Docker) κάνει strict check σε ΟΛΑ τα αρχεία και αποτυγχάνει.
 
 ---
 

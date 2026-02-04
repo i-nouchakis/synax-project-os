@@ -2193,4 +2193,52 @@ Room → Assets
 | ProjectDetailPage | ✅ Shows buildings instead of floors |
 | Hierarchy Update | ✅ Project → Building → Floor → Room |
 
-*Τελευταία ενημέρωση: 2026-02-04 (Building Layer Implementation)*
+---
+
+## Session: Pre-Commit Hook Setup (2026-02-04)
+
+### Χρήστης
+Κατά το deployment εμφανίστηκαν TypeScript errors. Θέλω pre-commit hook για TypeScript checks και να μπει στο CLAUDE.md ότι ΜΟΝΟ εγώ λέω πότε να γίνει commit!
+
+### Claude
+Υλοποίησα:
+
+**1. CLAUDE.md Update:**
+Πρόσθεσα "Git Commit Rules" section με σαφή οδηγία ότι ΜΟΝΟ ο χρήστης αποφασίζει για commits.
+
+**2. Husky Pre-Commit Hook:**
+```bash
+npm install husky --save-dev
+npx husky init
+```
+
+**3. Hook Script (.husky/pre-commit):**
+```bash
+#!/bin/sh
+echo "🔍 Running TypeScript checks before commit..."
+
+cd frontend && npx tsc --noEmit
+cd ../backend && npx tsc --noEmit
+
+echo "✅ All TypeScript checks passed!"
+```
+
+**Λειτουργία:**
+- Πριν από κάθε commit, τρέχει TypeScript checks σε frontend και backend
+- Αν υπάρχουν errors, το commit αποτρέπεται
+- Αυτό εξασφαλίζει ότι ποτέ δεν θα γίνει commit με TypeScript errors
+
+**Status: Pre-Commit Hook Setup COMPLETE ✅**
+
+---
+
+## Τρέχουσα Κατάσταση
+
+**Latest Features:**
+| Feature | Status |
+|---------|--------|
+| Building Layer | ✅ Complete |
+| Pre-Commit Hook | ✅ TypeScript checks on commit |
+| Git Commit Rules | ✅ User-controlled commits |
+
+*Τελευταία ενημέρωση: 2026-02-04 (Pre-Commit Hook Setup)*

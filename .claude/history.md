@@ -2254,3 +2254,61 @@ docker exec synax-backend node -e \
 
 ---
 
+## [2026-02-04] - Pre-Commit Hook for TypeScript Checks
+
+### Περιγραφή
+Προσθήκη husky pre-commit hook για αυτόματο TypeScript checking πριν από κάθε commit. Αυτό αποτρέπει deployment failures λόγω TypeScript errors που δεν εμφανίζονται στο Vite dev server αλλά αποτυγχάνουν στο production build.
+
+### Αιτία
+Κατά το deployment στο Contabo server, εμφανίστηκαν πολλά TypeScript errors που δεν είχαν εντοπιστεί τοπικά. Αυτό συμβαίνει επειδή:
+- **Vite dev server:** Δεν κάνει full TypeScript check, μόνο transform
+- **Production build:** Κάνει strict TypeScript compilation
+
+### Λύση
+1. **Husky Pre-Commit Hook:**
+   - Εγκατάσταση: `npm install husky --save-dev`
+   - Initialization: `npx husky init`
+   - Hook script: `.husky/pre-commit`
+
+2. **CLAUDE.md Update:**
+   - Προσθήκη "Git Commit Rules" section
+   - Σαφής οδηγία: ΜΟΝΟ ο χρήστης αποφασίζει πότε γίνεται commit
+
+### Hook Script (.husky/pre-commit)
+```bash
+#!/bin/sh
+
+echo "🔍 Running TypeScript checks before commit..."
+
+cd frontend && npx tsc --noEmit  # Frontend check
+cd ../backend && npx tsc --noEmit  # Backend check
+
+echo "✅ All TypeScript checks passed!"
+```
+
+### Αρχεία που Δημιουργήθηκαν/Τροποποιήθηκαν
+```
+synax/
+├── .husky/
+│   └── pre-commit (NEW)
+├── package.json (husky devDependency)
+└── CLAUDE.md (Git Commit Rules section)
+```
+
+### CLAUDE.md Changes
+```markdown
+## ⚠️ Git Commit Rules - ΚΡΙΣΙΜΟ
+
+### ΜΟΝΟ ο χρήστης αποφασίζει πότε γίνεται commit!
+
+**ΠΟΤΕ δεν κάνω commit/push μόνος μου**, ακόμα κι αν:
+- Ολοκλήρωσα μια εργασία
+- Ο χρήστης είπε "ενημέρωσε τα αρχεία"
+- Φαίνεται λογικό να γίνει commit
+```
+
+### Status
+**Pre-Commit Hook Setup - COMPLETE ✅**
+
+---
+

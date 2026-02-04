@@ -1,0 +1,23 @@
+#!/bin/sh
+
+echo "🔍 Running TypeScript checks before commit..."
+
+# Check frontend TypeScript
+echo "📦 Checking frontend..."
+cd frontend
+if ! npx tsc --noEmit; then
+    echo "❌ Frontend TypeScript errors found! Fix them before committing."
+    exit 1
+fi
+echo "✅ Frontend OK"
+
+# Check backend TypeScript
+echo "📦 Checking backend..."
+cd ../backend
+if ! npx tsc --noEmit; then
+    echo "❌ Backend TypeScript errors found! Fix them before committing."
+    exit 1
+fi
+echo "✅ Backend OK"
+
+echo "✅ All TypeScript checks passed!"
