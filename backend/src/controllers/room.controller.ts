@@ -25,7 +25,11 @@ export async function roomRoutes(app: FastifyInstance) {
       include: {
         floor: {
           include: {
-            project: { select: { id: true, name: true } },
+            building: {
+              include: {
+                project: { select: { id: true, name: true } },
+              },
+            },
           },
         },
         assets: {
@@ -62,7 +66,11 @@ export async function roomRoutes(app: FastifyInstance) {
         include: {
           floor: {
             include: {
-              project: { select: { id: true, name: true } },
+              building: {
+                include: {
+                  project: { select: { id: true, name: true } },
+                },
+              },
             },
           },
           _count: {

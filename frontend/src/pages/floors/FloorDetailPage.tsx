@@ -769,8 +769,8 @@ export function FloorDetailPage() {
           isOpen={isDownloadModalOpen}
           onClose={() => setIsDownloadModalOpen(false)}
           imageUrl={floor.floorplanUrl}
-          fileName={`${floor.project?.name || 'project'}-${floor.name}-floorplan`}
-          projectName={floor.project?.name}
+          fileName={`${floor.building?.project?.name || 'project'}-${floor.name}-floorplan`}
+          projectName={floor.building?.project?.name}
           floorName={floor.name}
           pins={(floor.rooms || [])
             .filter((room) => room.pinX !== null && room.pinY !== null)

@@ -23,7 +23,6 @@ import {
   BarChart3,
   Upload,
   Image,
-  X,
   Trash2,
   Lock,
   Unlock,
@@ -44,7 +43,7 @@ import {
   Select,
   Input,
 } from '@/components/ui';
-import { projectService, type ProjectStatus, type UpdateProjectData, type ProjectBuilding } from '@/services/project.service';
+import { projectService, type ProjectStatus, type UpdateProjectData } from '@/services/project.service';
 import { userService } from '@/services/user.service';
 import { buildingService, type CreateBuildingData, type UpdateBuildingData, type Building } from '@/services/building.service';
 import { reportService } from '@/services/report.service';

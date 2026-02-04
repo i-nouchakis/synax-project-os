@@ -416,8 +416,12 @@ describe('Delete Operations - Authorization & Database Verification', () => {
         data: { name: 'Full cascade test', clientName: 'Test' },
       });
 
+      const building = await prisma.building.create({
+        data: { projectId: project.id, name: 'Building' },
+      });
+
       const floor = await prisma.floor.create({
-        data: { projectId: project.id, name: 'Floor', level: 1 },
+        data: { buildingId: building.id, name: 'Floor', level: 1 },
       });
 
       const room = await prisma.room.create({

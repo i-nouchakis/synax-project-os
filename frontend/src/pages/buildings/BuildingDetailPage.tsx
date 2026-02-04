@@ -22,7 +22,7 @@ import { Modal, ModalSection, ModalActions } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { FloorPlanCanvas } from '@/components/floor-plan';
 import { DownloadFloorplanModal } from '@/components/floor-plan/DownloadFloorplanModal';
-import { buildingService, type Building, type BuildingFloor } from '@/services/building.service';
+import { buildingService, type BuildingFloor } from '@/services/building.service';
 import { floorService, type CreateFloorData, type UpdateFloorData } from '@/services/floor.service';
 import { uploadService } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth.store';

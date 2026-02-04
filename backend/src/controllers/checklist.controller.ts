@@ -35,7 +35,11 @@ export async function checklistRoutes(app: FastifyInstance) {
               include: {
                 floor: {
                   include: {
-                    project: { select: { id: true, name: true } },
+                    building: {
+                      include: {
+                        project: { select: { id: true, name: true } },
+                      },
+                    },
                   },
                 },
               },
@@ -93,7 +97,11 @@ export async function checklistRoutes(app: FastifyInstance) {
               include: {
                 floor: {
                   include: {
-                    project: { select: { id: true, name: true } },
+                    building: {
+                      include: {
+                        project: { select: { id: true, name: true } },
+                      },
+                    },
                   },
                 },
               },

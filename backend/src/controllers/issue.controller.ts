@@ -94,7 +94,13 @@ export async function issueRoutes(app: FastifyInstance) {
               select: {
                 id: true,
                 name: true,
-                project: { select: { id: true, name: true } },
+                building: {
+                  select: {
+                    id: true,
+                    name: true,
+                    project: { select: { id: true, name: true } },
+                  },
+                },
               },
             },
           },

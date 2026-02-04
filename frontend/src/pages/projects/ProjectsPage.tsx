@@ -182,7 +182,7 @@ export function ProjectsPage() {
                 <div className="flex items-center gap-4 text-caption text-text-secondary mb-3">
                   <div className="flex items-center gap-1">
                     <Layers size={14} />
-                    <span>{project._count?.floors || 0} floors</span>
+                    <span>{project._count?.buildings || 0} buildings</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Users size={14} />

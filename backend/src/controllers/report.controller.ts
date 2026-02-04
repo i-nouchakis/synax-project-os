@@ -28,7 +28,7 @@ export async function reportRoutes(app: FastifyInstance) {
 
     // Get floors with rooms
     const floors = await prisma.floor.findMany({
-      where: { projectId },
+      where: { building: { projectId } },
       include: {
         rooms: true,
         _count: { select: { rooms: true } },
@@ -185,7 +185,7 @@ export async function reportRoutes(app: FastifyInstance) {
 
     // Get floors with rooms
     const floors = await prisma.floor.findMany({
-      where: { projectId },
+      where: { building: { projectId } },
       include: {
         rooms: {
           include: {
@@ -248,7 +248,7 @@ export async function reportRoutes(app: FastifyInstance) {
         checklist: {
           asset: {
             room: {
-              floor: { projectId },
+              floor: { building: { projectId } },
             },
           },
         },
@@ -296,7 +296,7 @@ export async function reportRoutes(app: FastifyInstance) {
             checklist: {
               asset: {
                 room: {
-                  floor: { projectId },
+                  floor: { building: { projectId } },
                 },
               },
             },
@@ -307,7 +307,7 @@ export async function reportRoutes(app: FastifyInstance) {
           where: {
             installedById: tech.id,
             room: {
-              floor: { projectId },
+              floor: { building: { projectId } },
             },
           },
         });
@@ -414,7 +414,7 @@ export async function reportRoutes(app: FastifyInstance) {
 
     // Get floors with rooms (simplified for client)
     const floors = await prisma.floor.findMany({
-      where: { projectId },
+      where: { building: { projectId } },
       include: {
         rooms: {
           select: {
@@ -555,7 +555,7 @@ export async function reportRoutes(app: FastifyInstance) {
 
     // Get all assets with full details
     const floors = await prisma.floor.findMany({
-      where: { projectId },
+      where: { building: { projectId } },
       include: {
         rooms: {
           include: {
@@ -680,7 +680,7 @@ export async function reportRoutes(app: FastifyInstance) {
         });
 
         const floors = await prisma.floor.findMany({
-          where: { projectId },
+          where: { building: { projectId } },
           include: { rooms: true },
         });
 
@@ -752,7 +752,7 @@ export async function reportRoutes(app: FastifyInstance) {
       } else if (type === 'client') {
         // Get client data directly
         const floors = await prisma.floor.findMany({
-          where: { projectId },
+          where: { building: { projectId } },
           include: {
             rooms: {
               select: {
@@ -851,13 +851,13 @@ export async function reportRoutes(app: FastifyInstance) {
             const completedItems = await prisma.checklistItem.count({
               where: {
                 completedById: tech.id,
-                checklist: { asset: { room: { floor: { projectId } } } },
+                checklist: { asset: { room: { floor: { building: { projectId } } } } },
               },
             });
             const installedAssets = await prisma.asset.count({
               where: {
                 installedById: tech.id,
-                room: { floor: { projectId } },
+                room: { floor: { building: { projectId } } },
               },
             });
             return {
@@ -887,7 +887,7 @@ export async function reportRoutes(app: FastifyInstance) {
         const recentActivity = await prisma.checklistItem.findMany({
           where: {
             completed: true,
-            checklist: { asset: { room: { floor: { projectId } } } },
+            checklist: { asset: { room: { floor: { building: { projectId } } } } },
           },
           include: {
             completedBy: { select: { name: true } },

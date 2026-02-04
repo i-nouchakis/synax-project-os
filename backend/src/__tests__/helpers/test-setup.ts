@@ -149,10 +149,18 @@ export async function createTestData(adminId: string): Promise<{
     },
   });
 
+  // Create building
+  const building = await prisma.building.create({
+    data: {
+      projectId: project.id,
+      name: `Test Building ${timestamp}`,
+    },
+  });
+
   // Create floor
   const floor = await prisma.floor.create({
     data: {
-      projectId: project.id,
+      buildingId: building.id,
       name: `Test Floor ${timestamp}`,
       level: 1,
     },

@@ -22,7 +22,7 @@ interface DownloadFloorplanModalProps {
   floorName?: string;
   roomName?: string;
   pins: Pin[];
-  pinType?: 'room' | 'asset' | 'floor';
+  pinType?: 'room' | 'asset' | 'floor' | 'building';
 }
 
 const formatOptions = [
