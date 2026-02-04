@@ -211,7 +211,7 @@ async function main() {
   }
   console.log(`   ✓ Created ${assetTypes.length} asset types`);
 
-  // Asset Models
+  // Asset Models - use createMany with skipDuplicates
   const assetModels = [
     { manufacturerId: createdManufacturers['Cisco'].id, name: 'Meraki MR46', icon: 'wifi', assetTypeId: createdAssetTypes['Access Point'].id, order: 1 },
     { manufacturerId: createdManufacturers['Ubiquiti'].id, name: 'UniFi 6 Pro', icon: 'wifi', assetTypeId: createdAssetTypes['Access Point'].id, order: 2 },
@@ -221,12 +221,10 @@ async function main() {
     { manufacturerId: createdManufacturers['Samsung'].id, name: 'HG55AU800', icon: 'tv', assetTypeId: createdAssetTypes['TV Display'].id, order: 1 },
   ];
 
+  // Delete existing and recreate
+  await prisma.lookupAssetModel.deleteMany({});
   for (const am of assetModels) {
-    await prisma.lookupAssetModel.upsert({
-      where: { name: am.name },
-      update: {},
-      create: am
-    });
+    await prisma.lookupAssetModel.create({ data: am });
   }
   console.log(`   ✓ Created ${assetModels.length} asset models`);
 
