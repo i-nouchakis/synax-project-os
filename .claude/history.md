@@ -59,6 +59,10 @@
 - **RoomsPage** new menu item with project grouping
 - **Room Type Icons** with react-icons library (60+ icons)
 - **IconPicker** component for selecting room type icons
+- **AssetsPage** restructured to group by project with accordion
+- **AssetsPage** per-project search (visible when expanded)
+- **AssetsPage** only shows assets assigned to floor/room
+- **BuildingDetailPage** fullscreen modal for floor plan
 
 ---
 
@@ -123,14 +127,14 @@ backend/src/
 
 ## Git Commits (Recent)
 
+- `6b1612d` - docs: Update Manual with new AssetsPage features
+- `2b29b5c` - feat: Restructure AssetsPage with project grouping and add fullscreen to BuildingDetailPage
+- `86acfe1` - docs: Update MD files with Rooms page and room type icons
 - `38064b1` - feat: Add Rooms page with room type icons
 - `b1eb778` - feat: Restructure FloorsPage to display floors grouped by project
 - `95fc493` - feat: Add global search and custom date picker with English locale
 - `170a04a` - feat: Add drag & drop reordering and accordion behavior to Checklist Templates
 - `7ebb96f` - fix: Remove unused assetSearchQuery state from RoomPlanCanvas
-- `da78485` - fix: Remove unused code and fix null type for pinX/pinY
-- `0f0a698` - fix: Resolve TypeScript strict mode errors for production build
-- `aa5b380` - feat: Major enhancements to Inventory, Checklists, and UI components
 
 ---
 

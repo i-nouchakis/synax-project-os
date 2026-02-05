@@ -6,6 +6,24 @@
 
 ## Ολοκληρωμένα Σήμερα
 
+### AssetsPage Restructure (Complete)
+- [x] Group assets by project (accordion style)
+- [x] Per-project search field (visible when expanded)
+- [x] Only show assets assigned to floor/room
+- [x] Asset cards with icon, name, type, location, status
+- [x] Expand All / Collapse All buttons
+- [x] Updated Manual with new features
+- [x] Commits: `2b29b5c`, `6b1612d`
+- [x] Pushed to main
+
+### BuildingDetailPage Fullscreen (Complete)
+- [x] Added fullscreen modal for floor plan
+- [x] Edit mode toggle in fullscreen
+- [x] Commit: `2b29b5c`
+- [x] Pushed to main
+
+---
+
 ### RoomsPage & Room Type Icons (Complete)
 - [x] Added /rooms route with rooms grouped by project
 - [x] Added "Rooms" menu item in Sidebar (below Floors)

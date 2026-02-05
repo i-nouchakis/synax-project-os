@@ -10,7 +10,7 @@
 **Local Development:** Working (port 5174)
 **Database (Local):** Fresh seed with demo data + room type icons
 **Database (Cloud):** Needs `prisma db push --force-reset` then seed
-**Latest Commit:** `38064b1` - feat: Add Rooms page with room type icons
+**Latest Commit:** `6b1612d` - docs: Update Manual with new AssetsPage features
 
 ### Seed Data Summary
 
@@ -36,6 +36,39 @@
 ---
 
 ## Session (2026-02-05) - Latest
+
+### AssetsPage Restructure (Complete)
+**User Request:** Restructure AssetsPage like Buildings/Floors/Rooms with project grouping
+
+**Implementation:**
+- Group assets by project with accordion behavior (one open at a time)
+- Per-project search field (visible only when section is expanded)
+- Only show assets assigned to floor or room (not project-only)
+- Asset cards show: icon, name, type, model, location (floor/room), status
+- Stats cards: Total, Installed, Configured, Faulty
+- Filters: Type, Status
+- Expand All / Collapse All buttons
+
+**Search fields search by:** name, type, model, serial, MAC, room name, floor name
+
+**Commits:**
+- `2b29b5c` - feat: Restructure AssetsPage with project grouping
+- `6b1612d` - docs: Update Manual with new AssetsPage features
+
+---
+
+### BuildingDetailPage Fullscreen (Complete)
+**User Request:** Add fullscreen option to building floor plan like other pages
+
+**Implementation:**
+- Added `isFullScreenOpen` state
+- Added `onMaximize` prop to FloorPlanCanvas
+- Added Full Screen Modal with size="full"
+- Edit mode toggle available in fullscreen
+
+**Commit:** `2b29b5c`
+
+---
 
 ### Room Type Icons (react-icons)
 **User Request:** Add icon picker for room types, display icons in RoomsPage
