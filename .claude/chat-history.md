@@ -6,9 +6,11 @@
 
 ## Τρέχουσα Κατάσταση
 
-**Production Server:** Working (Contabo)
-**Local Development:** Working
-**Database:** Fresh seed with demo data
+**Production Server:** Running (Contabo) - needs db push + seed
+**Local Development:** Working (port 5174)
+**Database (Local):** Fresh seed with demo data
+**Database (Cloud):** Needs `prisma db push --force-reset` then seed
+**Latest Commit:** `95fc493` - feat: Add global search and custom date picker
 
 ### Seed Data Summary
 
@@ -30,6 +32,110 @@
 - **admin@synax.gr** / admin123 (ADMIN)
 - **pm@synax.gr** / pm123456 (PM)
 - **tech1@synax.gr** / tech123456 (TECHNICIAN)
+
+---
+
+## Session (2026-02-05) - Latest
+
+### Custom Date Picker with English Locale
+**User Request:** Calendar popups showing in Greek, need English
+
+**Implementation:**
+- Installed `react-datepicker` and `date-fns` libraries
+- Created `DateInput` component with English locale
+- Added dark theme CSS styling for datepicker
+- Replaced all native date inputs across the app
+
+**Files Created:**
+- `frontend/src/components/ui/date-input.tsx`
+
+**Files Modified:**
+- `frontend/src/index.css` - Datepicker dark theme styles
+- `frontend/src/pages/projects/ProjectsPage.tsx`
+- `frontend/src/pages/projects/ProjectDetailPage.tsx`
+- `frontend/src/pages/time-tracking/TimeTrackingPage.tsx`
+
+**Commit:** `95fc493`
+
+---
+
+### Global Search (Header)
+**User Request:** Remove local search from pages, use header search contextually
+
+**Implementation:**
+- Created `search.store.ts` (Zustand) for shared search state
+- Header search bar is now context-aware (placeholder changes per page)
+- Removed local search inputs from: Projects, Buildings, Floors, Assets, Inventory, Issues, Checklists
+- Search auto-clears when navigating between sections
+
+**Files Created:**
+- `frontend/src/stores/search.store.ts`
+
+**Files Modified:**
+- `frontend/src/components/layout/Header.tsx`
+- 7 list pages (removed local search)
+
+**Commit:** `95fc493`
+
+---
+
+### Checklist Templates Drag & Drop + Accordion
+**User Request:** Add drag and drop to reorder items, accordion behavior
+
+**Implementation:**
+- Installed `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`
+- Created `SortableItem` component with useSortable hook
+- Accordion behavior - only one template expanded at a time
+
+**Commit:** `170a04a`
+
+---
+
+### TypeScript Production Build Fix (Multiple Rounds)
+**User Request:** Deploy failed on Contabo due to TypeScript errors
+
+**Problem:** 25+ TypeScript strict mode errors
+
+**Solution (3 commits):**
+1. `0f0a698` - Initial fix: removed imports, fixed paths, type assertions
+2. `da78485` - Remove underscore-prefixed vars, fix CreateRoomData null types
+3. `7ebb96f` - Remove unused assetSearchQuery state from RoomPlanCanvas
+
+**Key Fixes:**
+- Removed unused imports (X, Box, MapPin, Move, ModalSection)
+- Removed unused functions/variables completely (not underscore prefix)
+- Fixed asset path: `floor.project` → `floor.building.project`
+- Updated `CreateRoomData` in floor.service.ts to accept `null` for pinX/pinY
+- Removed unused projectId prop from BulkEquipmentModal
+
+**Production Status:**
+- Frontend/Backend containers running
+- Database needs schema sync: `prisma db push --force-reset`
+- Then run seed: `prisma db seed`
+
+---
+
+## Session (2026-02-05) - Previous
+
+### Context Restored (3rd time)
+Συνέχεια από session που έληξε λόγω context limit.
+
+### Floor Plan Visibility Toggle (Settings)
+**User Request:** Add Interface section in Settings with toggle for floor plans visibility default
+
+**Implementation:**
+- Created `ui.store.ts` with Zustand + persist middleware
+- New Settings tab: "Interface" with toggle "Hide Floor Plans by Default"
+- Applied to all floor plan pages:
+  - FloorDetailPage.tsx
+  - RoomDetailPage.tsx
+  - ProjectDetailPage.tsx (masterplan)
+  - BuildingDetailPage.tsx
+- Setting persisted in localStorage
+
+**Commits:**
+1. `8b9a893` - feat: Add Settings toggle for floor plan visibility preference
+2. `aa5b380` - feat: Major enhancements to Inventory, Checklists, and UI components (23 files, +2258/-327 lines)
 
 ---
 

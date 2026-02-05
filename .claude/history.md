@@ -50,6 +50,11 @@
 - Unified popup sizes across all menus
 - Popup position persistence across steps
 - Updated CLAUDE.md with mandatory workflow rules
+- **Settings Interface section** with floor plan visibility toggle
+- UI Store (Zustand + persist) for user preferences
+- **Checklist Templates** drag & drop reordering + accordion behavior
+- **Global Search** in header (context-aware, replaced local search)
+- **Custom Date Picker** with English locale and dark theme
 
 ---
 
@@ -114,12 +119,16 @@ backend/src/
 
 ## Git Commits (Recent)
 
+- `95fc493` - feat: Add global search and custom date picker with English locale
+- `170a04a` - feat: Add drag & drop reordering and accordion behavior to Checklist Templates
+- `7ebb96f` - fix: Remove unused assetSearchQuery state from RoomPlanCanvas
+- `da78485` - fix: Remove unused code and fix null type for pinX/pinY
+- `0f0a698` - fix: Resolve TypeScript strict mode errors for production build
+- `aa5b380` - feat: Major enhancements to Inventory, Checklists, and UI components
+- `8b9a893` - feat: Add Settings toggle for floor plan visibility preference
+- `ce7c9eb` - fix: Keep IN_STOCK assets available in project inventory
+- `7be53f0` - feat: Comprehensive seed, import modal, workflow rules
 - `d418dca` - feat: Add draggable popups and import from inventory for room assets
-- `3899422` - docs: Update memory files with production deployment session
-- `939b783` - fix: Fix asset model seed upsert
-- `17ceac8` - feat: Add production seed script (pure JS)
-- `0043984` - fix: Move tsx to dependencies and add pre-commit hook
-- `cda1230` - fix: Update all controllers for Building layer hierarchy
 
 ---
 

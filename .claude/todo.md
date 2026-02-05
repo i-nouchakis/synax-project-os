@@ -6,6 +6,52 @@
 
 ## Ολοκληρωμένα Σήμερα
 
+### Custom Date Picker (Complete)
+- [x] Installed react-datepicker + date-fns
+- [x] Created DateInput component with English locale
+- [x] Added dark theme CSS styling
+- [x] Replaced all native date inputs (Projects, Time Tracking)
+- [x] Commit: `95fc493`
+- [x] Pushed to main
+
+### Global Search (Complete)
+- [x] Created search.store.ts (Zustand)
+- [x] Header search context-aware (placeholder per page)
+- [x] Removed local search from 7 list pages
+- [x] Auto-clear on section navigation
+- [x] Commit: `95fc493`
+- [x] Pushed to main
+
+### Checklist Templates Drag & Drop (Complete)
+- [x] Installed @dnd-kit libraries
+- [x] Created SortableItem component
+- [x] Accordion behavior (one open at a time)
+- [x] Commit: `170a04a`
+- [x] Pushed to main
+
+### TypeScript Production Build Fix (Complete)
+- [x] Fixed 25+ TypeScript strict mode errors
+- [x] Removed unused imports/variables (not underscore prefix)
+- [x] Fixed asset path (floor.building.project)
+- [x] Fixed type mismatches (pinX/pinY accepts null)
+- [x] Commits: `0f0a698`, `da78485`, `7ebb96f`
+- [x] Pushed to main
+- [x] Production frontend/backend running
+
+### Pending on Cloud
+- [ ] Run `prisma db push --force-reset` on cloud
+- [ ] Run `prisma db seed` on cloud
+
+### Floor Plan Visibility Toggle (Settings)
+- [x] Created `ui.store.ts` (Zustand + persist middleware)
+- [x] Added "Interface" tab in SettingsPage
+- [x] Toggle: "Hide Floor Plans by Default"
+- [x] Applied to FloorDetailPage, RoomDetailPage, ProjectDetailPage, BuildingDetailPage
+- [x] Setting persisted in localStorage
+- [x] TypeScript check: OK
+- [x] Git commits: `8b9a893`, `aa5b380`
+- [x] Pushed to main
+
 ### Import from Inventory Modal
 - [x] Created `ImportInventoryModal` component with multi-select
 - [x] Integrated in FloorDetailPage (Add Asset button)
@@ -50,7 +96,7 @@
 ### MD Files Update
 - [x] Compressed history.md (27k → ~2k tokens)
 - [x] Updated todo.md
-- [ ] Updated chat-history.md
+- [x] Updated chat-history.md
 
 ---
 
