@@ -631,6 +631,7 @@ export function RoomDetailPage() {
         assetTypes={assetTypes}
         projectName={room?.floor?.building?.project?.name}
         roomName={room?.name}
+        nested
       />
 
       {/* Edit Modal */}
@@ -646,6 +647,7 @@ export function RoomDetailPage() {
           showStatus
           projectName={room?.floor?.building?.project?.name}
           roomName={room?.name}
+          nested
         />
       )}
 
@@ -657,6 +659,7 @@ export function RoomDetailPage() {
           title="Delete Asset"
           icon={<AlertTriangle size={18} />}
           size="sm"
+          nested
           footer={
             <ModalActions>
               <Button variant="secondary" onClick={() => setDeleteConfirmAsset(null)}>
@@ -782,6 +785,7 @@ export function RoomDetailPage() {
         isLoading={isImporting}
         title="Import Assets from Inventory"
         targetName={`${room?.floor?.building?.project?.name} / ${room?.floor?.name} / ${room?.name}`}
+        nested
       />
     </div>
   );
@@ -799,6 +803,7 @@ interface AssetFormModalProps {
   showStatus?: boolean;
   projectName?: string;
   roomName?: string;
+  nested?: boolean;
 }
 
 function AssetFormModal({
@@ -812,6 +817,7 @@ function AssetFormModal({
   showStatus,
   projectName,
   roomName,
+  nested,
 }: AssetFormModalProps) {
   const [formData, setFormData] = useState<CreateAssetData & { status?: AssetStatus }>({
     name: '',
@@ -968,6 +974,7 @@ function AssetFormModal({
       title={title}
       icon={<Box size={18} />}
       size="lg"
+      nested={nested}
       footer={
         <ModalActions>
           <Button type="button" variant="secondary" onClick={onClose}>

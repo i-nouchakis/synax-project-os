@@ -958,6 +958,7 @@ export function FloorDetailPage() {
         }}
         isLoading={createRoomMutation.isPending}
         title={pendingPinPosition ? 'Add Room at Pin Location' : 'Add New Room'}
+        nested
       />
 
       {/* Edit Room Modal */}
@@ -970,6 +971,7 @@ export function FloorDetailPage() {
           title="Edit Room"
           initialData={editingRoom}
           showStatus
+          nested
         />
       )}
 
@@ -981,6 +983,7 @@ export function FloorDetailPage() {
           title="Delete Room"
           icon={<AlertTriangle size={18} />}
           size="sm"
+          nested
           footer={
             <ModalActions>
               <Button variant="secondary" onClick={() => setDeleteConfirmRoom(null)}>
@@ -1236,6 +1239,7 @@ export function FloorDetailPage() {
         assetTypes={assetTypes}
         projectName={floor.building?.project?.name}
         floorName={floor.name}
+        nested
       />
 
       {/* Edit Asset Modal */}
@@ -1251,6 +1255,7 @@ export function FloorDetailPage() {
           showStatus
           projectName={floor.building?.project?.name}
           floorName={floor.name}
+          nested
         />
       )}
 
@@ -1262,6 +1267,7 @@ export function FloorDetailPage() {
           title="Delete Asset"
           icon={<AlertTriangle size={18} />}
           size="sm"
+          nested
           footer={
             <ModalActions>
               <Button variant="secondary" onClick={() => setDeleteConfirmAsset(null)}>
@@ -1300,6 +1306,7 @@ export function FloorDetailPage() {
         isLoading={isImporting}
         title="Import Assets from Inventory"
         targetName={`${floor?.building?.project?.name} / ${floor?.name}`}
+        nested
       />
     </div>
   );
@@ -1314,6 +1321,7 @@ interface RoomFormModalProps {
   title: string;
   initialData?: Room;
   showStatus?: boolean;
+  nested?: boolean;
 }
 
 function RoomFormModal({
@@ -1324,6 +1332,7 @@ function RoomFormModal({
   title,
   initialData,
   showStatus,
+  nested,
 }: RoomFormModalProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<CreateRoomData & { status?: RoomStatus }>({
@@ -1399,6 +1408,7 @@ function RoomFormModal({
       title={title}
       icon={<MapPin size={18} />}
       size="md"
+      nested={nested}
       footer={
         <ModalActions>
           <Button type="button" variant="secondary" onClick={onClose}>
@@ -1516,6 +1526,7 @@ interface FloorAssetFormModalProps {
   showStatus?: boolean;
   projectName?: string;
   floorName?: string;
+  nested?: boolean;
 }
 
 function FloorAssetFormModal({
@@ -1529,6 +1540,7 @@ function FloorAssetFormModal({
   showStatus,
   projectName,
   floorName,
+  nested,
 }: FloorAssetFormModalProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<CreateAssetData & { status?: AssetStatus }>({
@@ -1749,6 +1761,7 @@ function FloorAssetFormModal({
       title={title}
       icon={<Box size={18} />}
       size="lg"
+      nested={nested}
       footer={
         <ModalActions>
           <Button type="button" variant="secondary" onClick={onClose}>

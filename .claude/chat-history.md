@@ -10,7 +10,7 @@
 **Local Development:** Working (port 5174)
 **Database (Local):** Fresh seed with demo data + room type icons
 **Database (Cloud):** Needs `prisma db push --force-reset` then seed
-**Latest Commit:** `f591b15` - feat: Add sortable column headers to all tables (pending new commit)
+**Latest Commit:** `cafa629` - feat: Add project filters and fix report metrics for floor-level assets
 
 ### Seed Data Summary
 
@@ -36,6 +36,36 @@
 ---
 
 ## Session (2026-02-05) - Latest
+
+### Fullscreen Popup Z-Index Fix (Complete)
+**User Request:** Verify popups appear in front of fullscreen modals on all floor plans
+
+**Problem Found:**
+- "Create New" popup appeared BEHIND fullscreen modal in BuildingDetailPage
+- Root cause: Canvas popups (z-50) same as Modal overlay (z-50)
+- Secondary issue: Nested modals (opened from within fullscreen) also z-50
+
+**Solution:**
+1. Added `nested` prop to Modal component → uses z-[80] instead of z-50
+2. Increased canvas popup z-index: z-40→z-[60], z-50→z-[70]
+3. Updated all nested modals to use `nested` prop
+
+**Files Modified:**
+- `frontend/src/components/ui/modal.tsx` - Added `nested` prop
+- `frontend/src/components/floor-plan/FloorPlanCanvas.tsx` - 8 popups updated
+- `frontend/src/components/room-plan/RoomPlanCanvas.tsx` - 4 popups updated
+- `frontend/src/pages/buildings/BuildingDetailPage.tsx` - Add/Edit/Delete Floor modals
+- `frontend/src/pages/floors/FloorDetailPage.tsx` - Room/Asset modals, Import
+- `frontend/src/pages/rooms/RoomDetailPage.tsx` - Asset modals, Import
+- `frontend/src/pages/projects/ProjectDetailPage.tsx` - Add/Delete Building modals
+- `frontend/src/components/inventory/ImportInventoryModal.tsx` - nested prop
+
+**Z-Index Hierarchy:**
+- Canvas popups: z-[60] (default), z-[70] (on top)
+- Fullscreen modal: z-50
+- Nested modals: z-[80]
+
+---
 
 ### Project Filters for Checklists & Issues (Complete)
 **User Request:** Add project filter dropdown to ChecklistsPage and IssuesPage

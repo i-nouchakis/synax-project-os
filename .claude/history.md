@@ -71,6 +71,10 @@
 - **AssetsPage** per-project search (visible when expanded)
 - **AssetsPage** only shows assets assigned to floor/room
 - **BuildingDetailPage** fullscreen modal for floor plan
+- **Fullscreen Popup Z-Index Fix** - popups now appear in front of fullscreen modals
+  - Added `nested` prop to Modal component (z-[80])
+  - Canvas popups: z-40→z-[60], z-50→z-[70]
+  - All nested modals (Floor/Room/Asset forms) use z-[80]
 
 ---
 

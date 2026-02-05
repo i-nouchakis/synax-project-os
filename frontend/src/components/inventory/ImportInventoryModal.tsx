@@ -46,6 +46,7 @@ interface ImportInventoryModalProps {
   isLoading?: boolean;
   title?: string;
   targetName?: string; // e.g., "Floor 1" or "Room 101"
+  nested?: boolean;
 }
 
 const STATUS_COLORS: Record<Asset['status'], string> = {
@@ -81,6 +82,7 @@ export function ImportInventoryModal({
   isLoading,
   title = 'Import from Inventory',
   targetName,
+  nested,
 }: ImportInventoryModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -159,6 +161,7 @@ export function ImportInventoryModal({
       title={title}
       icon={<Package size={18} />}
       size="lg"
+      nested={nested}
       footer={
         <ModalActions>
           <Button variant="secondary" onClick={handleClose}>

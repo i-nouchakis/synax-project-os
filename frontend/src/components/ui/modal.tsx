@@ -10,6 +10,7 @@ interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  nested?: boolean; // Use higher z-index for modals opened from within other modals
 }
 
 export function Modal({
@@ -19,7 +20,8 @@ export function Modal({
   icon,
   children,
   footer,
-  size = 'md'
+  size = 'md',
+  nested = false
 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +51,10 @@ export function Modal({
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className={cn(
+        "fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4",
+        nested ? "z-[80]" : "z-50"
+      )}
     >
       <div
         className={cn(

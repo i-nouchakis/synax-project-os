@@ -737,6 +737,7 @@ export function ProjectDetailPage() {
         onSubmit={(data) => createBuildingMutation.mutate(data)}
         isLoading={createBuildingMutation.isPending}
         pendingPinPosition={pendingBuildingPinPosition}
+        nested
       />
 
       {/* Add Member Modal */}
@@ -776,6 +777,7 @@ export function ProjectDetailPage() {
           title="Delete Building"
           icon={<AlertTriangle size={18} />}
           size="sm"
+          nested
           footer={
             <ModalActions>
               <Button variant="secondary" onClick={() => setDeletingBuilding(null)}>
@@ -1002,9 +1004,10 @@ interface AddBuildingModalProps {
   onSubmit: (data: { name: string; description?: string; pinX?: number; pinY?: number }) => void;
   isLoading: boolean;
   pendingPinPosition?: { x: number; y: number } | null;
+  nested?: boolean;
 }
 
-function AddBuildingModal({ isOpen, onClose, onSubmit, isLoading, pendingPinPosition }: AddBuildingModalProps) {
+function AddBuildingModal({ isOpen, onClose, onSubmit, isLoading, pendingPinPosition, nested }: AddBuildingModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
@@ -1033,6 +1036,7 @@ function AddBuildingModal({ isOpen, onClose, onSubmit, isLoading, pendingPinPosi
       title="Add New Building"
       icon={<Building2 size={18} />}
       size="md"
+      nested={nested}
       footer={
         <ModalActions>
           <Button type="button" variant="secondary" onClick={handleClose}>

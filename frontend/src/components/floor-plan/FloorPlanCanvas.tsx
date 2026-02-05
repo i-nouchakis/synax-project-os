@@ -868,11 +868,11 @@ export function FloorPlanCanvas({
       {showTypeChoice && (
         <>
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[60]"
             onClick={closeMenus}
           />
           <div
-            className="fixed z-50 animate-in fade-in zoom-in-95 duration-150"
+            className="fixed z-[70] animate-in fade-in zoom-in-95 duration-150"
             style={{
               left: Math.min(dropdownPosition.x, window.innerWidth - 320) + popupOffset.x,
               top: Math.min(dropdownPosition.y, window.innerHeight - 220) + popupOffset.y,
@@ -932,11 +932,11 @@ export function FloorPlanCanvas({
       {showActionMenu && (
         <>
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[60]"
             onClick={closeMenus}
           />
           <div
-            className="fixed z-50 animate-in fade-in zoom-in-95 duration-150"
+            className="fixed z-[70] animate-in fade-in zoom-in-95 duration-150"
             style={{
               left: Math.min(dropdownPosition.x, window.innerWidth - 320) + popupOffset.x,
               top: Math.min(dropdownPosition.y, window.innerHeight - 220) + popupOffset.y,
@@ -997,11 +997,11 @@ export function FloorPlanCanvas({
       {showItemList && (
         <>
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[60]"
             onClick={closeMenus}
           />
           <Card
-            className="fixed z-50 w-80 shadow-xl"
+            className="fixed z-[70] w-80 shadow-xl"
             style={{
               left: Math.min(dropdownPosition.x, window.innerWidth - 340) + popupOffset.x,
               top: Math.min(dropdownPosition.y, window.innerHeight - 420) + popupOffset.y,
@@ -1075,11 +1075,11 @@ export function FloorPlanCanvas({
       {showAssetActionMenu && (
         <>
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[60]"
             onClick={closeMenus}
           />
           <div
-            className="fixed z-50 animate-in fade-in zoom-in-95 duration-150"
+            className="fixed z-[70] animate-in fade-in zoom-in-95 duration-150"
             style={{
               left: Math.min(dropdownPosition.x, window.innerWidth - 320) + popupOffset.x,
               top: Math.min(dropdownPosition.y, window.innerHeight - 220) + popupOffset.y,
@@ -1143,11 +1143,11 @@ export function FloorPlanCanvas({
       {showExistingAssetList && (
         <>
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[60]"
             onClick={closeMenus}
           />
           <Card
-            className="fixed z-50 w-80 shadow-xl"
+            className="fixed z-[70] w-80 shadow-xl"
             style={{
               left: Math.min(dropdownPosition.x, window.innerWidth - 340) + popupOffset.x,
               top: Math.min(dropdownPosition.y, window.innerHeight - 420) + popupOffset.y,
@@ -1223,11 +1223,11 @@ export function FloorPlanCanvas({
       {selectedPlacedPin && (
         <>
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[60]"
             onClick={closeMenus}
           />
           <div
-            className="fixed z-50 animate-in fade-in zoom-in-95 duration-150"
+            className="fixed z-[70] animate-in fade-in zoom-in-95 duration-150"
             style={{
               left: Math.min(selectedPlacedPin.screenX, window.innerWidth - 240),
               top: Math.min(selectedPlacedPin.screenY, window.innerHeight - 200),
@@ -1301,11 +1301,11 @@ export function FloorPlanCanvas({
       {showAssetList && (
         <>
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[60]"
             onClick={closeMenus}
           />
           <Card
-            className="fixed z-50 w-80 shadow-xl"
+            className="fixed z-[70] w-80 shadow-xl"
             style={{
               left: Math.min(dropdownPosition.x, window.innerWidth - 340) + popupOffset.x,
               top: Math.min(dropdownPosition.y, window.innerHeight - 420) + popupOffset.y,
@@ -1381,11 +1381,11 @@ export function FloorPlanCanvas({
       {selectedPlacedAsset && (
         <>
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[60]"
             onClick={closeMenus}
           />
           <div
-            className="fixed z-50 animate-in fade-in zoom-in-95 duration-150"
+            className="fixed z-[70] animate-in fade-in zoom-in-95 duration-150"
             style={{
               left: Math.min(selectedPlacedAsset.screenX, window.innerWidth - 240),
               top: Math.min(selectedPlacedAsset.screenY, window.innerHeight - 200),

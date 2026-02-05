@@ -6,6 +6,18 @@
 
 ## Ολοκληρωμένα Σήμερα
 
+### Fullscreen Popup Z-Index Fix (Complete)
+- [x] Fixed popups appearing behind fullscreen modals
+- [x] Added `nested` prop to Modal component (z-[80])
+- [x] Updated FloorPlanCanvas popups: z-40→z-[60], z-50→z-[70]
+- [x] Updated RoomPlanCanvas popups: z-40→z-[60], z-50→z-[70]
+- [x] Updated BuildingDetailPage nested modals (Add/Edit/Delete Floor)
+- [x] Updated FloorDetailPage nested modals (Room/Asset modals, Import)
+- [x] Updated RoomDetailPage nested modals (Asset modals, Import)
+- [x] Updated ProjectDetailPage nested modals (Add/Delete Building)
+- [x] Updated ImportInventoryModal with nested prop
+- [x] TypeScript check: OK
+
 ### Project Filters (Complete)
 - [x] Added project filter dropdown to ChecklistsPage
 - [x] Added project filter dropdown to IssuesPage

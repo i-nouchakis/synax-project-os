@@ -368,6 +368,7 @@ export default function BuildingDetailPage() {
         title="Add Floor"
         icon={<Layers size={18} />}
         size="md"
+        nested
         footer={
           <ModalActions>
             <Button variant="secondary" onClick={() => { setShowFloorModal(false); setPendingPinPosition(null); }}>Cancel</Button>
@@ -402,6 +403,7 @@ export default function BuildingDetailPage() {
           title="Edit Floor"
           icon={<Edit size={18} />}
           size="md"
+          nested
           footer={
             <ModalActions>
               <Button variant="secondary" onClick={() => setEditingFloor(null)}>Cancel</Button>
@@ -441,6 +443,7 @@ export default function BuildingDetailPage() {
           title="Delete Floor"
           icon={<AlertTriangle size={18} />}
           size="sm"
+          nested
           footer={
             <ModalActions>
               <Button variant="secondary" onClick={() => setDeletingFloor(null)}>Cancel</Button>
