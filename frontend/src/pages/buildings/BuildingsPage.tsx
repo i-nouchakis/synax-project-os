@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Building2, Search, MapPin, ChevronDown, ChevronRight, FolderKanban, Layers } from 'lucide-react';
+import { Building2, Search, ChevronDown, ChevronRight, FolderKanban, Layers } from 'lucide-react';
 import { Card, CardContent, Input, Badge } from '@/components/ui';
 import { buildingService, type Building } from '@/services/building.service';
 import { cn } from '@/lib/utils';

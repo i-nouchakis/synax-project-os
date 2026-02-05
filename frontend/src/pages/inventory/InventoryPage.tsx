@@ -333,8 +333,8 @@ export function InventoryPage() {
     });
   };
 
-  // Handle create equipment
-  const handleCreateEquipment = (e: React.FormEvent<HTMLFormElement>) => {
+  // Handle create equipment (currently unused - using modal instead)
+  const _handleCreateEquipment = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!projectFilter) {
       toast.error('Please select a project first');
@@ -1214,7 +1214,7 @@ interface BulkEquipmentModalProps {
 function BulkEquipmentModal({
   isOpen,
   onClose,
-  projectId,
+  projectId: _projectId,
   assetTypes,
   onCreateSingle,
   onCreateBulk,

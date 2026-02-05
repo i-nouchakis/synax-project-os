@@ -13,7 +13,7 @@ import {
   Tv,
   Box,
 } from 'lucide-react';
-import { Modal, ModalSection, ModalActions } from '../ui/modal';
+import { Modal, ModalActions } from '../ui/modal';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 
@@ -28,7 +28,8 @@ interface Asset {
     name: string;
     icon?: string | null;
   } | null;
-  model?: {
+  // model can be either a string (from basic API) or an object (from expanded lookup)
+  model?: string | {
     id: string;
     name: string;
     manufacturer?: {
@@ -84,6 +85,19 @@ export function ImportInventoryModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // Helper to get model name (handles both string and object formats)
+  const getModelName = (model: Asset['model']) => {
+    if (!model) return '';
+    if (typeof model === 'string') return model;
+    return model.name || '';
+  };
+
+  // Helper to get manufacturer name
+  const getManufacturerName = (model: Asset['model']) => {
+    if (!model || typeof model === 'string') return '';
+    return model.manufacturer?.name || '';
+  };
+
   // Filter assets based on search
   const filteredAssets = useMemo(() => {
     if (!searchQuery.trim()) return assets;
@@ -94,8 +108,8 @@ export function ImportInventoryModal({
         asset.assetType?.name?.toLowerCase().includes(query) ||
         asset.serialNumber?.toLowerCase().includes(query) ||
         asset.macAddress?.toLowerCase().includes(query) ||
-        asset.model?.name?.toLowerCase().includes(query) ||
-        asset.model?.manufacturer?.name?.toLowerCase().includes(query)
+        getModelName(asset.model).toLowerCase().includes(query) ||
+        getManufacturerName(asset.model).toLowerCase().includes(query)
     );
   }, [assets, searchQuery]);
 
@@ -244,8 +258,8 @@ export function ImportInventoryModal({
                       <p className="text-body-sm font-medium truncate">{asset.name}</p>
                       <p className="text-caption text-text-tertiary truncate">
                         {asset.assetType?.name || 'Unknown Type'}
-                        {asset.model?.name && ` • ${asset.model.name}`}
-                        {asset.model?.manufacturer?.name && ` (${asset.model.manufacturer.name})`}
+                        {getModelName(asset.model) && ` • ${getModelName(asset.model)}`}
+                        {getManufacturerName(asset.model) && ` (${getManufacturerName(asset.model)})`}
                       </p>
                       {(asset.serialNumber || asset.macAddress) && (
                         <p className="text-tiny text-text-tertiary truncate mt-0.5">

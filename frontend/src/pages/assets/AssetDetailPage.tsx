@@ -114,7 +114,7 @@ export function AssetDetailPage() {
                 <p className="text-caption text-text-tertiary mb-1">Location</p>
                 <div className="flex items-center gap-2 text-body-sm">
                   <Building2 size={14} className="text-text-secondary" />
-                  <span>{asset.room?.floor?.project?.name}</span>
+                  <span>{asset.room?.floor?.building?.project?.name}</span>
                 </div>
                 <div className="flex items-center gap-2 text-body-sm text-text-secondary ml-5">
                   <span>{asset.room?.floor?.name} / {asset.room?.name}</span>

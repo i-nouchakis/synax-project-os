@@ -222,7 +222,7 @@ export function AssetsPage() {
                           <div className="text-body-sm">
                             <div className="flex items-center gap-1 text-text-primary">
                               <Building2 size={12} />
-                              <span>{asset.room?.floor?.project?.name || '-'}</span>
+                              <span>{asset.room?.floor?.building?.project?.name || '-'}</span>
                             </div>
                             <div className="flex items-center gap-1 text-text-tertiary text-caption">
                               <MapPin size={12} />

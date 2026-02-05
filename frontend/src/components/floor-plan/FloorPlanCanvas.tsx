@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Stage, Layer, Image as KonvaImage, Circle, Text, Group, Rect, Path } from 'react-konva';
 import Konva from 'konva';
-import { ZoomIn, ZoomOut, Maximize2, Lock, Unlock, RotateCcw, Layers, X, Plus, MapPin, ChevronRight, Search, Eye, Trash2, Box, Wifi, Monitor, Phone, Camera, Router, CreditCard, Tv, DoorOpen, Package } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Lock, Unlock, RotateCcw, Layers, X, Plus, MapPin, ChevronRight, Search, Eye, Trash2, Wifi, Monitor, Phone, Camera, Router, CreditCard, Tv, DoorOpen, Package } from 'lucide-react';
 import { Button, Card, CardContent } from '@/components/ui';
 
 // Room Pin interface
@@ -25,8 +25,8 @@ interface Asset {
   id: string;
   name: string;
   status: 'PLANNED' | 'IN_STOCK' | 'INSTALLED' | 'CONFIGURED' | 'VERIFIED' | 'FAULTY';
-  pinX: number | null;
-  pinY: number | null;
+  pinX?: number | null;
+  pinY?: number | null;
   assetType?: {
     id: string;
     name: string;
@@ -142,7 +142,7 @@ export function FloorPlanCanvas({
 
   // First-level choice: Room or Asset
   const [showTypeChoice, setShowTypeChoice] = useState(false);
-  const [selectedType, setSelectedType] = useState<'room' | 'asset' | null>(null);
+  const [, setSelectedType] = useState<'room' | 'asset' | null>(null);
 
   // Dropdown state for placing rooms
   const [showActionMenu, setShowActionMenu] = useState(false);

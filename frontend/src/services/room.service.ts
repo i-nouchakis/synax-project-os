@@ -39,8 +39,8 @@ export interface Room {
 export interface UpdateRoomData {
   name?: string;
   type?: string;
-  pinX?: number;
-  pinY?: number;
+  pinX?: number | null;
+  pinY?: number | null;
   notes?: string;
   status?: RoomStatus;
 }

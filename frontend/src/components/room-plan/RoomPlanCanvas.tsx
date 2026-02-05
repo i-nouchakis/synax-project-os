@@ -8,8 +8,8 @@ interface Asset {
   id: string;
   name: string;
   status: 'PLANNED' | 'IN_STOCK' | 'INSTALLED' | 'CONFIGURED' | 'VERIFIED' | 'FAULTY';
-  pinX: number | null;
-  pinY: number | null;
+  pinX?: number | null;
+  pinY?: number | null;
   assetType?: {
     id: string;
     name: string;
@@ -194,8 +194,8 @@ export function RoomPlanCanvas({
     setPopupOffset({ x: 0, y: 0 });
   };
 
-  // Filter assets based on search
-  const filteredAvailableAssets = availableAssets.filter(asset => {
+  // Filter assets based on search (for existing room assets)
+  const _filteredAvailableAssets = availableAssets.filter(asset => {
     if (!assetSearchQuery.trim()) return true;
     const query = assetSearchQuery.toLowerCase();
     return (

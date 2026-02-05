@@ -32,7 +32,6 @@ import {
   Building2,
   ListFilter,
   FileCheck,
-  Move,
   MousePointer,
   Square,
 } from 'lucide-react';

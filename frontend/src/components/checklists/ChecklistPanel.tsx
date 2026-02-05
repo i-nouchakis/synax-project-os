@@ -17,7 +17,6 @@ import {
   ClipboardList,
   Star,
   PenLine,
-  X,
   Check,
 } from 'lucide-react';
 import { toast } from 'sonner';

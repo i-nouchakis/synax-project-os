@@ -1222,7 +1222,7 @@ export function FloorDetailPage() {
       <FloorAssetFormModal
         isOpen={isCreateAssetModalOpen}
         onClose={() => setIsCreateAssetModalOpen(false)}
-        onSubmit={(data) => createAssetMutation.mutate(data)}
+        onSubmit={(data) => createAssetMutation.mutate(data as CreateAssetData)}
         isLoading={createAssetMutation.isPending}
         title="Add Floor-Level Asset"
         assetTypes={assetTypes}
