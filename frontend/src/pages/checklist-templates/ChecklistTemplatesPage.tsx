@@ -2,6 +2,23 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
   Plus,
   Pencil,
   Trash2,
@@ -36,6 +53,89 @@ import {
   type CreateTemplateData,
 } from '@/services/checklist-template.service';
 import { assetService } from '@/services/asset.service';
+
+// Sortable Item Component
+function SortableItem({
+  item,
+  index,
+  onEdit,
+  onDelete,
+}: {
+  item: ChecklistTemplateItem;
+  index: number;
+  onEdit: (item: ChecklistTemplateItem) => void;
+  onDelete: (item: ChecklistTemplateItem) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1 : 0,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover/50 ${
+        isDragging ? 'bg-surface-hover shadow-md' : ''
+      }`}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="p-1 rounded hover:bg-surface-secondary cursor-grab active:cursor-grabbing touch-none"
+        title="Drag to reorder"
+      >
+        <GripVertical size={16} className="text-text-tertiary" />
+      </button>
+      <span className="text-caption text-text-tertiary w-6">{index + 1}.</span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-body text-text-primary">{item.name}</span>
+          {item.isRequired && (
+            <span title="Required">
+              <AlertCircle size={14} className="text-error" />
+            </span>
+          )}
+          {item.requiresPhoto && (
+            <span title="Photo required">
+              <Camera size={14} className="text-primary" />
+            </span>
+          )}
+        </div>
+        {item.description && (
+          <span className="text-caption text-text-tertiary">{item.description}</span>
+        )}
+      </div>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onEdit(item)}
+          className="p-1.5 rounded hover:bg-surface-secondary transition-colors"
+          title="Edit item"
+        >
+          <Pencil size={14} className="text-text-tertiary hover:text-primary" />
+        </button>
+        <button
+          onClick={() => onDelete(item)}
+          className="p-1.5 rounded hover:bg-error-bg transition-colors"
+          title="Delete item"
+        >
+          <Trash2 size={14} className="text-text-tertiary hover:text-error" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function ChecklistTemplatesPage() {
   const queryClient = useQueryClient();
@@ -156,16 +256,53 @@ export function ChecklistTemplatesPage() {
     onError: (error: Error) => toast.error(`Error: ${error.message}`),
   });
 
-  // Toggle expand/collapse
+  // Reorder items mutation
+  const reorderItemsMutation = useMutation({
+    mutationFn: (items: Array<{ id: string; order: number }>) =>
+      checklistTemplateService.reorderItems(items),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates'] });
+    },
+    onError: (error: Error) => toast.error(`Error reordering: ${error.message}`),
+  });
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end for items
+  const handleDragEnd = (event: DragEndEvent, template: ChecklistTemplate) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = template.items.findIndex((item) => item.id === active.id);
+    const newIndex = template.items.findIndex((item) => item.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newItems = arrayMove(template.items, oldIndex, newIndex);
+    const reorderedItems = newItems.map((item, index) => ({
+      id: item.id,
+      order: index,
+    }));
+
+    reorderItemsMutation.mutate(reorderedItems);
+  };
+
+  // Toggle expand/collapse (accordion - only one open at a time)
   const toggleExpand = (templateId: string) => {
     setExpandedTemplates((prev) => {
-      const next = new Set(prev);
-      if (next.has(templateId)) {
-        next.delete(templateId);
+      if (prev.has(templateId)) {
+        // Close if already open
+        return new Set();
       } else {
-        next.add(templateId);
+        // Close all others, open this one
+        return new Set([templateId]);
       }
-      return next;
     });
   };
 
@@ -485,60 +622,31 @@ export function ChecklistTemplatesPage() {
                         No items in this template
                       </div>
                     ) : (
-                      <div className="divide-y divide-surface-border">
-                        {template.items.map((item, index) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover/50"
-                          >
-                            <GripVertical size={16} className="text-text-tertiary cursor-grab" />
-                            <span className="text-caption text-text-tertiary w-6">
-                              {index + 1}.
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-body text-text-primary">
-                                  {item.name}
-                                </span>
-                                {item.isRequired && (
-                                  <span title="Required">
-                                    <AlertCircle size={14} className="text-error" />
-                                  </span>
-                                )}
-                                {item.requiresPhoto && (
-                                  <span title="Photo required">
-                                    <Camera size={14} className="text-primary" />
-                                  </span>
-                                )}
-                              </div>
-                              {item.description && (
-                                <span className="text-caption text-text-tertiary">
-                                  {item.description}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => openEditItem(item)}
-                                className="p-1.5 rounded hover:bg-surface-secondary transition-colors"
-                                title="Edit item"
-                              >
-                                <Pencil size={14} className="text-text-tertiary hover:text-primary" />
-                              </button>
-                              <button
-                                onClick={() => {
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={(event) => handleDragEnd(event, template)}
+                      >
+                        <SortableContext
+                          items={template.items.map((item) => item.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="divide-y divide-surface-border">
+                            {template.items.map((item, index) => (
+                              <SortableItem
+                                key={item.id}
+                                item={item}
+                                index={index}
+                                onEdit={openEditItem}
+                                onDelete={(item) => {
                                   setItemToDelete({ type: 'item', id: item.id });
                                   setDeleteModalOpen(true);
                                 }}
-                                className="p-1.5 rounded hover:bg-error-bg transition-colors"
-                                title="Delete item"
-                              >
-                                <Trash2 size={14} className="text-text-tertiary hover:text-error" />
-                              </button>
-                            </div>
+                              />
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </SortableContext>
+                      </DndContext>
                     )}
                   </div>
                 )}
