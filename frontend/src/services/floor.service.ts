@@ -65,8 +65,8 @@ export interface UpdateFloorData {
 export interface CreateRoomData {
   name: string;
   type?: string;
-  pinX?: number;
-  pinY?: number;
+  pinX?: number | null;
+  pinY?: number | null;
   notes?: string;
 }
 

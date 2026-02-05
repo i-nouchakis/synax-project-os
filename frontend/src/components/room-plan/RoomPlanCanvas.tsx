@@ -194,16 +194,7 @@ export function RoomPlanCanvas({
     setPopupOffset({ x: 0, y: 0 });
   };
 
-  // Filter assets based on search (for existing room assets)
-  const _filteredAvailableAssets = availableAssets.filter(asset => {
-    if (!assetSearchQuery.trim()) return true;
-    const query = assetSearchQuery.toLowerCase();
-    return (
-      asset.name.toLowerCase().includes(query) ||
-      asset.assetType?.name?.toLowerCase().includes(query)
-    );
-  });
-
+  // Filter inventory assets based on search
   const filteredInventoryAssets = inventoryAssets.filter(asset => {
     if (!inventorySearchQuery.trim()) return true;
     const query = inventorySearchQuery.toLowerCase();

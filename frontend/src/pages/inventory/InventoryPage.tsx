@@ -333,29 +333,6 @@ export function InventoryPage() {
     });
   };
 
-  // Handle create equipment (currently unused - using modal instead)
-  const _handleCreateEquipment = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!projectFilter) {
-      toast.error('Please select a project first');
-      return;
-    }
-    const formData = new FormData(e.currentTarget);
-    createEquipmentMutation.mutate({
-      projectId: projectFilter,
-      data: {
-        name: formData.get('name') as string,
-        labelCode: (formData.get('labelCode') as string) || undefined,
-        assetTypeId: (formData.get('assetTypeId') as string) || undefined,
-        model: (formData.get('model') as string) || undefined,
-        serialNumber: (formData.get('serialNumber') as string) || undefined,
-        macAddress: (formData.get('macAddress') as string) || undefined,
-        ipAddress: (formData.get('ipAddress') as string) || undefined,
-        notes: (formData.get('notes') as string) || undefined,
-      },
-    });
-  };
-
   // Handle update equipment
   const handleUpdateEquipment = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -1061,7 +1038,6 @@ export function InventoryPage() {
       <BulkEquipmentModal
         isOpen={isCreateEquipmentModalOpen}
         onClose={() => setIsCreateEquipmentModalOpen(false)}
-        projectId={projectFilter}
         assetTypes={assetTypes}
         assetModels={assetModels}
         onCreateSingle={(data) => createEquipmentMutation.mutate({ projectId: projectFilter, data })}
@@ -1203,7 +1179,6 @@ export function InventoryPage() {
 interface BulkEquipmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  projectId: string;
   assetTypes: { id: string; name: string }[];
   onCreateSingle: (data: CreateAssetData) => void;
   onCreateBulk: (data: CreateBulkEquipmentData) => void;
@@ -1214,7 +1189,6 @@ interface BulkEquipmentModalProps {
 function BulkEquipmentModal({
   isOpen,
   onClose,
-  projectId: _projectId,
   assetTypes,
   onCreateSingle,
   onCreateBulk,
