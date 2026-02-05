@@ -1,17 +1,21 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Layers, MapPin, ChevronDown, ChevronRight, FolderKanban } from 'lucide-react';
+import { Layers, MapPin, ChevronDown, ChevronRight, FolderKanban, Building2 } from 'lucide-react';
 import { Card, CardContent, Badge } from '@/components/ui';
 import { useSearchStore } from '@/stores/search.store';
 import { floorService, type Floor } from '@/services/floor.service';
 import { cn } from '@/lib/utils';
 
-interface FloorWithProject extends Floor {
-  project?: {
+interface FloorWithBuilding extends Floor {
+  building?: {
     id: string;
     name: string;
-    clientName?: string;
+    project?: {
+      id: string;
+      name: string;
+      clientName?: string;
+    };
   };
 }
 
@@ -19,7 +23,7 @@ interface ProjectGroup {
   projectId: string;
   projectName: string;
   clientName: string;
-  floors: FloorWithProject[];
+  floors: FloorWithBuilding[];
 }
 
 export function FloorsPage() {
@@ -34,13 +38,14 @@ export function FloorsPage() {
   });
 
   // Filter floors by search
-  const filteredFloors = allFloors.filter((floor: FloorWithProject) => {
+  const filteredFloors = allFloors.filter((floor: FloorWithBuilding) => {
     if (!search) return true;
     const searchLower = search.toLowerCase();
     return (
       floor.name.toLowerCase().includes(searchLower) ||
-      (floor.project?.name || '').toLowerCase().includes(searchLower) ||
-      (floor.project?.clientName || '').toLowerCase().includes(searchLower)
+      (floor.building?.name || '').toLowerCase().includes(searchLower) ||
+      (floor.building?.project?.name || '').toLowerCase().includes(searchLower) ||
+      (floor.building?.project?.clientName || '').toLowerCase().includes(searchLower)
     );
   });
 
@@ -48,10 +53,10 @@ export function FloorsPage() {
   const projectGroups = useMemo(() => {
     const groups: Map<string, ProjectGroup> = new Map();
 
-    filteredFloors.forEach((floor: FloorWithProject) => {
-      const projectId = floor.project?.id || 'unknown';
-      const projectName = floor.project?.name || 'Unknown Project';
-      const clientName = floor.project?.clientName || '';
+    filteredFloors.forEach((floor: FloorWithBuilding) => {
+      const projectId = floor.building?.project?.id || 'unknown';
+      const projectName = floor.building?.project?.name || 'Unknown Project';
+      const clientName = floor.building?.project?.clientName || '';
 
       if (!groups.has(projectId)) {
         groups.set(projectId, {
@@ -64,9 +69,13 @@ export function FloorsPage() {
       groups.get(projectId)!.floors.push(floor);
     });
 
-    // Sort floors within each group by level
+    // Sort floors within each group by building name then level
     groups.forEach((group) => {
-      group.floors.sort((a, b) => a.level - b.level);
+      group.floors.sort((a, b) => {
+        const buildingCompare = (a.building?.name || '').localeCompare(b.building?.name || '');
+        if (buildingCompare !== 0) return buildingCompare;
+        return a.level - b.level;
+      });
     });
 
     // Convert to array and sort by project name
@@ -75,20 +84,11 @@ export function FloorsPage() {
     );
   }, [filteredFloors]);
 
-  // Initialize first project as expanded on first load
-  useState(() => {
-    if (projectGroups.length > 0 && expandedProjects.size === 0) {
-      setExpandedProjects(new Set([projectGroups[0].projectId]));
-    }
-  });
-
   const toggleProject = (projectId: string) => {
     setExpandedProjects(prev => {
-      // If already expanded, just close it
       if (prev.has(projectId)) {
         return new Set();
       }
-      // Otherwise, close all and open only this one (accordion behavior)
       return new Set([projectId]);
     });
   };
@@ -209,8 +209,11 @@ export function FloorsPage() {
                               {floor.name}
                             </h4>
                             <div className="flex items-center gap-2 text-caption text-text-secondary">
+                              <Building2 size={12} />
+                              <span className="truncate">{floor.building?.name}</span>
+                              <span className="text-text-tertiary">·</span>
                               <MapPin size={12} />
-                              <span>{floor._count?.rooms || 0} rooms</span>
+                              <span>{floor._count?.rooms || 0}</span>
                               {floor.floorplanUrl && (
                                 <Badge variant="success" size="sm" className="ml-auto">
                                   Plan

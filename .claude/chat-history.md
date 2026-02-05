@@ -37,6 +37,20 @@
 
 ## Session (2026-02-05) - Latest
 
+### FloorsPage Restructure (By Project)
+**User Request:** Display floors organized by Project like BuildingsPage
+
+**Implementation:**
+- Grouped floors by project (accordion style)
+- Each floor card shows building name
+- Sort: project name → building name → floor level
+- Grid layout (3 columns like BuildingsPage)
+
+**Files Modified:**
+- `frontend/src/pages/floors/FloorsPage.tsx`
+
+---
+
 ### Custom Date Picker with English Locale
 **User Request:** Calendar popups showing in Greek, need English
 
