@@ -8,3 +8,4 @@ export { Modal, ModalSection, ModalInfoRow, ModalActions } from './modal';
 export { Select } from './select';
 export { Pagination, usePagination } from './pagination';
 export { IconPicker, ROOM_TYPE_ICONS, getRoomTypeIcon } from './icon-picker';
+export { SortableHeader } from './sortable-header';

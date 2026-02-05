@@ -20,7 +20,8 @@ import {
   FileText,
   Package,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, Select, Badge, Pagination, usePagination } from '@/components/ui';
+import { Card, CardContent, CardHeader, CardTitle, Select, Badge, Pagination, usePagination, SortableHeader } from '@/components/ui';
+import { useSortable } from '@/hooks/useSortable';
 import { useSearchStore } from '@/stores/search.store';
 import { api } from '@/lib/api';
 
@@ -151,6 +152,9 @@ export function ChecklistsPage() {
     return true;
   });
 
+  // Sorting
+  const { sortedItems: sortedChecklists, requestSort, getSortDirection } = useSortable(filteredChecklists);
+
   const {
     currentPage,
     pageSize,
@@ -159,7 +163,7 @@ export function ChecklistsPage() {
     paginatedItems: paginatedChecklists,
     handlePageChange,
     handlePageSizeChange,
-  } = usePagination(filteredChecklists || checklists, 25);
+  } = usePagination(sortedChecklists, 25);
 
   // Stats
   const stats = {
@@ -273,12 +277,12 @@ export function ChecklistsPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-surface-border bg-surface-secondary">
-                      <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Type</th>
-                      <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Asset</th>
-                      <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Location</th>
+                      <SortableHeader label="Type" sortKey="type" direction={getSortDirection('type')} onSort={requestSort} align="left" />
+                      <SortableHeader label="Asset" sortKey="asset.name" direction={getSortDirection('asset.name')} onSort={requestSort} align="left" />
+                      <SortableHeader label="Location" sortKey="asset.room.floor.project.name" direction={getSortDirection('asset.room.floor.project.name')} onSort={requestSort} align="left" />
                       <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Progress</th>
-                      <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Status</th>
-                      <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Assigned</th>
+                      <SortableHeader label="Status" sortKey="status" direction={getSortDirection('status')} onSort={requestSort} align="left" />
+                      <SortableHeader label="Assigned" sortKey="assignedTo.name" direction={getSortDirection('assignedTo.name')} onSort={requestSort} align="left" />
                       <th className="w-10"></th>
                     </tr>
                   </thead>

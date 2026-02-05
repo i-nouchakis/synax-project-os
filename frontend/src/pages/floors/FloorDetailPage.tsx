@@ -42,7 +42,9 @@ import {
   Select,
   Pagination,
   usePagination,
+  SortableHeader,
 } from '@/components/ui';
+import { useSortable } from '@/hooks/useSortable';
 import { FloorPlanCanvas, RoomFloorplanCropModal, DownloadFloorplanModal } from '@/components/floor-plan';
 import { ImportInventoryModal } from '@/components/inventory';
 import { floorService, type Room, type CreateRoomData, type UpdateRoomData, type RoomStatus } from '@/services/floor.service';
@@ -316,6 +318,12 @@ export function FloorDetailPage() {
     }
   };
 
+  // Sorting for rooms
+  const { sortedItems: sortedRooms, requestSort: requestRoomSort, getSortDirection: getRoomSortDirection } = useSortable(floor?.rooms || []);
+
+  // Sorting for floor assets
+  const { sortedItems: sortedAssets, requestSort: requestAssetSort, getSortDirection: getAssetSortDirection } = useSortable(floorAssets);
+
   // Pagination for rooms - must be called before any conditional returns
   const {
     currentPage,
@@ -325,7 +333,7 @@ export function FloorDetailPage() {
     paginatedItems: paginatedRooms,
     handlePageChange,
     handlePageSizeChange,
-  } = usePagination(floor?.rooms || [], 25);
+  } = usePagination(sortedRooms, 25);
 
   // Pagination for floor assets
   const {
@@ -336,7 +344,7 @@ export function FloorDetailPage() {
     paginatedItems: paginatedAssets,
     handlePageChange: handleAssetPageChange,
     handlePageSizeChange: handleAssetPageSizeChange,
-  } = usePagination(floorAssets, 25);
+  } = usePagination(sortedAssets, 25);
 
   const roomStats = {
     total: floor?.rooms?.length || 0,
@@ -693,10 +701,10 @@ export function FloorDetailPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-surface-border bg-surface-secondary">
-                      <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Asset</th>
-                      <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Type</th>
-                      <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Serial / MAC</th>
-                      <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Status</th>
+                      <SortableHeader label="Asset" sortKey="name" direction={getAssetSortDirection('name')} onSort={requestAssetSort} align="left" />
+                      <SortableHeader label="Type" sortKey="assetType.name" direction={getAssetSortDirection('assetType.name')} onSort={requestAssetSort} align="left" />
+                      <SortableHeader label="Serial / MAC" sortKey="serialNumber" direction={getAssetSortDirection('serialNumber')} onSort={requestAssetSort} align="left" />
+                      <SortableHeader label="Status" sortKey="status" direction={getAssetSortDirection('status')} onSort={requestAssetSort} align="left" />
                       <th className="text-right text-caption font-medium text-text-secondary px-4 py-3">Actions</th>
                     </tr>
                   </thead>
@@ -815,11 +823,11 @@ export function FloorDetailPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-surface-border bg-surface-secondary">
-                    <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Room</th>
-                    <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Type</th>
-                    <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Status</th>
-                    <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Assets</th>
-                    <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Issues</th>
+                    <SortableHeader label="Room" sortKey="name" direction={getRoomSortDirection('name')} onSort={requestRoomSort} align="left" />
+                    <SortableHeader label="Type" sortKey="type" direction={getRoomSortDirection('type')} onSort={requestRoomSort} align="left" />
+                    <SortableHeader label="Status" sortKey="status" direction={getRoomSortDirection('status')} onSort={requestRoomSort} align="left" />
+                    <SortableHeader label="Assets" sortKey="_count.assets" direction={getRoomSortDirection('_count.assets')} onSort={requestRoomSort} align="left" />
+                    <SortableHeader label="Issues" sortKey="_count.issues" direction={getRoomSortDirection('_count.issues')} onSort={requestRoomSort} align="left" />
                     {floor.floorplanUrl && floor.floorplanType !== 'PDF' && (
                       <th className="text-center text-caption font-medium text-text-secondary px-4 py-3">Κάτοψη</th>
                     )}

@@ -30,7 +30,9 @@ import {
   Select,
   Pagination,
   usePagination,
+  SortableHeader,
 } from '@/components/ui';
+import { useSortable } from '@/hooks/useSortable';
 import { userService, type CreateUserData, type UpdateUserData } from '@/services/user.service';
 import type { User as UserType, UserRole } from '@/stores/auth.store';
 import { useAuthStore } from '@/stores/auth.store';
@@ -70,6 +72,9 @@ export function UsersPage() {
     queryFn: userService.getAll,
   });
 
+  // Sorting
+  const { sortedItems: sortedUsers, requestSort, getSortDirection } = useSortable(users);
+
   // Pagination
   const {
     currentPage,
@@ -79,7 +84,7 @@ export function UsersPage() {
     paginatedItems: paginatedUsers,
     handlePageChange,
     handlePageSizeChange,
-  } = usePagination(users, 25);
+  } = usePagination(sortedUsers, 25);
 
   // Create user mutation
   const createMutation = useMutation({
@@ -172,10 +177,10 @@ export function UsersPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-surface-border bg-surface-secondary">
-                      <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">User</th>
-                      <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Role</th>
-                      <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Status</th>
-                      <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Created</th>
+                      <SortableHeader label="User" sortKey="name" direction={getSortDirection('name')} onSort={requestSort} align="left" />
+                      <SortableHeader label="Role" sortKey="role" direction={getSortDirection('role')} onSort={requestSort} align="left" />
+                      <SortableHeader label="Status" sortKey="isActive" direction={getSortDirection('isActive')} onSort={requestSort} align="left" />
+                      <SortableHeader label="Created" sortKey="createdAt" direction={getSortDirection('createdAt')} onSort={requestSort} align="left" />
                       <th className="text-right text-caption font-medium text-text-secondary px-4 py-3">Actions</th>
                     </tr>
                   </thead>

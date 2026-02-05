@@ -30,7 +30,9 @@ import {
   Modal,
   ModalSection,
   ModalActions,
+  SortableHeader,
 } from '@/components/ui';
+import { useSortable } from '@/hooks/useSortable';
 import { projectService } from '@/services/project.service';
 import {
   reportService,
@@ -671,6 +673,9 @@ function ClientReportView({
   expandedFloors: Set<string>;
   toggleFloor: (id: string) => void;
 }) {
+  // Sorting for Equipment Summary table
+  const { sortedItems: sortedAssetsByType, requestSort: requestAssetSort, getSortDirection: getAssetSortDirection } = useSortable(report.assetsByType);
+
   return (
     <div className="space-y-6 print:space-y-4">
       {/* Report Header */}
@@ -838,15 +843,15 @@ function ClientReportView({
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-surface-border">
-                  <th className="text-left px-4 py-2 text-caption font-medium text-text-secondary">Type</th>
-                  <th className="text-left px-4 py-2 text-caption font-medium text-text-secondary">Total</th>
-                  <th className="text-left px-4 py-2 text-caption font-medium text-text-secondary">Completed</th>
-                  <th className="text-left px-4 py-2 text-caption font-medium text-text-secondary">Progress</th>
+                <tr className="border-b border-surface-border bg-surface-secondary">
+                  <SortableHeader label="Type" sortKey="type" direction={getAssetSortDirection('type')} onSort={requestAssetSort} align="left" />
+                  <SortableHeader label="Total" sortKey="total" direction={getAssetSortDirection('total')} onSort={requestAssetSort} align="center" />
+                  <SortableHeader label="Completed" sortKey="completed" direction={getAssetSortDirection('completed')} onSort={requestAssetSort} align="center" />
+                  <SortableHeader label="Progress" sortKey="completionRate" direction={getAssetSortDirection('completionRate')} onSort={requestAssetSort} align="left" />
                 </tr>
               </thead>
               <tbody>
-                {report.assetsByType.map((asset) => (
+                {sortedAssetsByType.map((asset) => (
                   <tr key={asset.type} className="border-b border-surface-border">
                     <td className="px-4 py-3 text-body text-text-primary">{asset.type}</td>
                     <td className="px-4 py-3 text-body text-text-secondary text-center">{asset.total}</td>
@@ -896,6 +901,12 @@ function ClientReportView({
 
 // Internal Report Component (simplified view)
 function InternalReportView({ report }: { report: any }) {
+  // Sorting for Technician Performance table
+  const { sortedItems: sortedTechStats, requestSort: requestTechSort, getSortDirection: getTechSortDirection } = useSortable(report.technicianStats || []);
+
+  // Sorting for Material Usage table
+  const { sortedItems: sortedInventory, requestSort: requestInvSort, getSortDirection: getInvSortDirection } = useSortable(report.inventory || []);
+
   return (
     <div className="space-y-6 print:space-y-4">
       {/* Report Header */}
@@ -929,14 +940,14 @@ function InternalReportView({ report }: { report: any }) {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-surface-border">
-                    <th className="text-left px-4 py-2 text-caption font-medium text-text-secondary">Technician</th>
-                    <th className="text-left px-4 py-2 text-caption font-medium text-text-secondary">Items Completed</th>
-                    <th className="text-left px-4 py-2 text-caption font-medium text-text-secondary">Assets Installed</th>
+                  <tr className="border-b border-surface-border bg-surface-secondary">
+                    <SortableHeader label="Technician" sortKey="name" direction={getTechSortDirection('name')} onSort={requestTechSort} align="left" />
+                    <SortableHeader label="Items Completed" sortKey="checklistItemsCompleted" direction={getTechSortDirection('checklistItemsCompleted')} onSort={requestTechSort} align="center" />
+                    <SortableHeader label="Assets Installed" sortKey="assetsInstalled" direction={getTechSortDirection('assetsInstalled')} onSort={requestTechSort} align="center" />
                   </tr>
                 </thead>
                 <tbody>
-                  {report.technicianStats.map((tech: any) => (
+                  {sortedTechStats.map((tech: any) => (
                     <tr key={tech.id} className="border-b border-surface-border">
                       <td className="px-4 py-3 text-body text-text-primary">{tech.name}</td>
                       <td className="px-4 py-3 text-body text-text-secondary text-center">{tech.checklistItemsCompleted}</td>
@@ -1023,15 +1034,15 @@ function InternalReportView({ report }: { report: any }) {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-surface-border">
-                    <th className="text-left px-4 py-2 text-caption font-medium text-text-secondary">Item</th>
-                    <th className="text-left px-4 py-2 text-caption font-medium text-text-secondary">Received</th>
-                    <th className="text-left px-4 py-2 text-caption font-medium text-text-secondary">Used</th>
-                    <th className="text-left px-4 py-2 text-caption font-medium text-text-secondary">In Stock</th>
+                  <tr className="border-b border-surface-border bg-surface-secondary">
+                    <SortableHeader label="Item" sortKey="itemType" direction={getInvSortDirection('itemType')} onSort={requestInvSort} align="left" />
+                    <SortableHeader label="Received" sortKey="received" direction={getInvSortDirection('received')} onSort={requestInvSort} align="center" />
+                    <SortableHeader label="Used" sortKey="used" direction={getInvSortDirection('used')} onSort={requestInvSort} align="center" />
+                    <SortableHeader label="In Stock" sortKey="inStock" direction={getInvSortDirection('inStock')} onSort={requestInvSort} align="left" />
                   </tr>
                 </thead>
                 <tbody>
-                  {report.inventory.map((item: any) => (
+                  {sortedInventory.map((item: any) => (
                     <tr key={item.id} className="border-b border-surface-border">
                       <td className="px-4 py-3">
                         <p className="text-body text-text-primary">{item.itemType}</p>

@@ -39,7 +39,9 @@ import {
   Select,
   Pagination,
   usePagination,
+  SortableHeader,
 } from '@/components/ui';
+import { useSortable } from '@/hooks/useSortable';
 import { RoomPlanCanvas } from '@/components/room-plan';
 import { DownloadFloorplanModal } from '@/components/floor-plan';
 import { ImportInventoryModal } from '@/components/inventory';
@@ -107,6 +109,9 @@ export function RoomDetailPage() {
   // Assets come from room query
   const assets = room?.assets || [];
 
+  // Sorting for assets
+  const { sortedItems: sortedAssets, requestSort, getSortDirection } = useSortable(assets);
+
   // Pagination for assets
   const {
     currentPage,
@@ -116,7 +121,7 @@ export function RoomDetailPage() {
     paginatedItems: paginatedAssets,
     handlePageChange,
     handlePageSizeChange,
-  } = usePagination(assets, 25);
+  } = usePagination(sortedAssets, 25);
 
   // Calculate placed and available assets
   const placedAssets = assets.filter(a => a.pinX !== null && a.pinY !== null);
@@ -503,10 +508,10 @@ export function RoomDetailPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-surface-border bg-surface-secondary">
-                    <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Asset</th>
-                    <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Type</th>
-                    <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Serial / MAC</th>
-                    <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Status</th>
+                    <SortableHeader label="Asset" sortKey="name" direction={getSortDirection('name')} onSort={requestSort} align="left" />
+                    <SortableHeader label="Type" sortKey="assetType.name" direction={getSortDirection('assetType.name')} onSort={requestSort} align="left" />
+                    <SortableHeader label="Serial / MAC" sortKey="serialNumber" direction={getSortDirection('serialNumber')} onSort={requestSort} align="left" />
+                    <SortableHeader label="Status" sortKey="status" direction={getSortDirection('status')} onSort={requestSort} align="left" />
                     <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">On Plan</th>
                     <th className="text-right text-caption font-medium text-text-secondary px-4 py-3">Actions</th>
                   </tr>

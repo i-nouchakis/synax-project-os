@@ -33,7 +33,9 @@ import {
   ModalActions,
   Pagination,
   usePagination,
+  SortableHeader,
 } from '@/components/ui';
+import { useSortable } from '@/hooks/useSortable';
 import { useSearchStore } from '@/stores/search.store';
 import {
   inventoryService,
@@ -265,6 +267,12 @@ export function InventoryPage() {
     );
   });
 
+  // Sorting for materials
+  const { sortedItems: sortedItems, requestSort: requestItemSort, getSortDirection: getItemSortDirection } = useSortable(filteredItems);
+
+  // Sorting for equipment
+  const { sortedItems: sortedEquipment, requestSort: requestEqSort, getSortDirection: getEqSortDirection } = useSortable(filteredEquipment);
+
   const {
     currentPage,
     pageSize,
@@ -273,7 +281,7 @@ export function InventoryPage() {
     paginatedItems: paginatedItems,
     handlePageChange,
     handlePageSizeChange,
-  } = usePagination(filteredItems || items, 25);
+  } = usePagination(sortedItems, 25);
 
   const {
     currentPage: eqCurrentPage,
@@ -283,7 +291,7 @@ export function InventoryPage() {
     paginatedItems: paginatedEquipment,
     handlePageChange: handleEqPageChange,
     handlePageSizeChange: handleEqPageSizeChange,
-  } = usePagination(filteredEquipment, 25);
+  } = usePagination(sortedEquipment, 25);
 
   // Handle create
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
@@ -590,11 +598,11 @@ export function InventoryPage() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-surface-border bg-surface-secondary">
-                          <th className="text-left px-4 py-3 text-caption font-medium text-text-secondary">Equipment</th>
-                          <th className="text-left px-4 py-3 text-caption font-medium text-text-secondary">Type</th>
-                          <th className="text-left px-4 py-3 text-caption font-medium text-text-secondary">Serial / MAC</th>
-                          <th className="text-left px-4 py-3 text-caption font-medium text-text-secondary">Status</th>
-                          <th className="text-left px-4 py-3 text-caption font-medium text-text-secondary">Location</th>
+                          <SortableHeader label="Equipment" sortKey="name" direction={getEqSortDirection('name')} onSort={requestEqSort} align="left" />
+                          <SortableHeader label="Type" sortKey="assetType.name" direction={getEqSortDirection('assetType.name')} onSort={requestEqSort} align="left" />
+                          <SortableHeader label="Serial / MAC" sortKey="serialNumber" direction={getEqSortDirection('serialNumber')} onSort={requestEqSort} align="left" />
+                          <SortableHeader label="Status" sortKey="status" direction={getEqSortDirection('status')} onSort={requestEqSort} align="left" />
+                          <SortableHeader label="Location" sortKey="room.name" direction={getEqSortDirection('room.name')} onSort={requestEqSort} align="left" />
                           <th className="text-right px-4 py-3 text-caption font-medium text-text-secondary">Actions</th>
                         </tr>
                       </thead>
@@ -703,11 +711,11 @@ export function InventoryPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-surface-border bg-surface-secondary">
-                    <th className="text-left px-4 py-3 text-caption font-medium text-text-secondary">Item</th>
-                    <th className="text-left px-4 py-3 text-caption font-medium text-text-secondary">Project</th>
-                    <th className="text-left px-4 py-3 text-caption font-medium text-text-secondary">Received</th>
-                    <th className="text-left px-4 py-3 text-caption font-medium text-text-secondary">Used</th>
-                    <th className="text-left px-4 py-3 text-caption font-medium text-text-secondary">Stock</th>
+                    <SortableHeader label="Item" sortKey="itemType" direction={getItemSortDirection('itemType')} onSort={requestItemSort} align="left" />
+                    <SortableHeader label="Project" sortKey="project.name" direction={getItemSortDirection('project.name')} onSort={requestItemSort} align="left" />
+                    <SortableHeader label="Received" sortKey="quantityReceived" direction={getItemSortDirection('quantityReceived')} onSort={requestItemSort} align="left" />
+                    <SortableHeader label="Used" sortKey="quantityUsed" direction={getItemSortDirection('quantityUsed')} onSort={requestItemSort} align="left" />
+                    <SortableHeader label="Stock" sortKey="currentStock" direction={getItemSortDirection('currentStock')} onSort={requestItemSort} align="left" />
                     <th className="text-left px-4 py-3 text-caption font-medium text-text-secondary">Status</th>
                     <th className="text-right px-4 py-3 text-caption font-medium text-text-secondary">Actions</th>
                   </tr>
