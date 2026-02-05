@@ -143,9 +143,109 @@
 - [x] Manual/Documentation
 - [x] DWG → SVG Conversion
 - [x] Password Reset
-- [x] Time Tracking
+- [ ] Time Tracking (removed from v1, see specs below)
 - [x] Room Floorplan Crop
 
 ---
 
-*Last Updated: 2026-01-31*
+---
+
+## ⏱️ Time Tracking Module (Removed from v1)
+
+**Status:** Specs preserved for future implementation
+**Removed:** 2026-02-05
+
+### Database Schema
+
+```prisma
+model TimeEntry {
+  id          String        @id @default(cuid())
+  projectId   String        // Required - which project
+  userId      String        // Required - who worked
+  roomId      String?       // Optional - specific room
+  assetId     String?       // Optional - specific asset
+  type        TimeEntryType // Work category
+  description String?
+  date        DateTime      @default(now())
+  startTime   DateTime?     // For timer mode
+  endTime     DateTime?     // For timer mode
+  hours       Float         // 0.1 - 24
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  asset       Asset?        @relation(...)
+  project     Project       @relation(..., onDelete: Cascade)
+  room        Room?         @relation(...)
+  user        User          @relation(...)
+}
+
+enum TimeEntryType {
+  INSTALLATION
+  CONFIGURATION
+  TESTING
+  TROUBLESHOOTING
+  TRAVEL
+  MEETING
+  OTHER
+}
+```
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/time-entries/start` | Start timer |
+| POST | `/api/time-entries/:id/stop` | Stop timer |
+| POST | `/api/time-entries` | Create manual entry |
+| GET | `/api/time-entries` | Get all (role-based) |
+| GET | `/api/time-entries/my` | Get current user's entries |
+| GET | `/api/time-entries/project/:id/summary` | Project analytics |
+| PUT | `/api/time-entries/:id` | Update entry |
+| DELETE | `/api/time-entries/:id` | Delete entry |
+
+### Features
+
+**Two Input Modes:**
+1. **Timer Mode** - Start/Stop, auto-calculates hours
+2. **Manual Mode** - User enters hours directly
+
+**Work Types (7):**
+- INSTALLATION (blue)
+- CONFIGURATION (purple)
+- TESTING (green)
+- TROUBLESHOOTING (orange)
+- TRAVEL (gray)
+- MEETING (pink)
+- OTHER (slate)
+
+**Permissions:**
+- TECHNICIAN: View/edit own entries only
+- PM/ADMIN: View/edit all entries
+
+**UI Components:**
+- Active timer card with real-time display
+- Manual entry form (collapsible)
+- Filters (project, date range)
+- Summary stats (total entries, hours, this week)
+- Paginated entries table
+
+**Project Summary Analytics:**
+- Total hours & entries
+- Hours by user
+- Hours by work type
+- Recent 10 entries
+
+### File Locations (were)
+
+| Type | Path |
+|------|------|
+| Frontend Page | `pages/time-tracking/TimeTrackingPage.tsx` |
+| Frontend Service | `services/timeentry.service.ts` |
+| Backend Controller | `controllers/timeentry.controller.ts` |
+| DB Table | `time_entries` |
+
+---
+
+*Last Updated: 2026-02-05*

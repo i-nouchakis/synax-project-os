@@ -20,7 +20,6 @@ import {
   Users,
   Book,
   Tags,
-  Clock,
   ListFilter,
   ClipboardList,
 } from 'lucide-react';
@@ -65,7 +64,6 @@ const getNavigation = (openIssuesCount: number): NavSection[] => [
       { label: 'Checklists', icon: <ClipboardCheck size={20} />, href: '/checklists' },
       { label: 'Issues', icon: <AlertTriangle size={20} />, href: '/issues', badge: openIssuesCount > 0 ? openIssuesCount : undefined },
       { label: 'Inventory', icon: <Package size={20} />, href: '/inventory' },
-      { label: 'Time Tracking', icon: <Clock size={20} />, href: '/time-tracking' },
     ],
   },
   {

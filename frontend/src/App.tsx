@@ -27,7 +27,6 @@ import { ReportsPage } from '@/pages/reports';
 import { SettingsPage } from '@/pages/settings';
 import { ManualPage } from '@/pages/manual';
 import { LabelsPage } from '@/pages/labels';
-import { TimeTrackingPage } from '@/pages/time-tracking';
 import { LookupsPage } from '@/pages/lookups';
 import { ChecklistTemplatesPage } from '@/pages/checklist-templates';
 import { useAuthStore } from '@/stores/auth.store';
@@ -187,7 +186,6 @@ function App() {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/manual" element={<ManualPage />} />
               <Route path="/labels" element={<LabelsPage />} />
-              <Route path="/time-tracking" element={<TimeTrackingPage />} />
             </Route>
 
             {/* Redirect root to dashboard */}

@@ -6,6 +6,18 @@
 
 ## Ολοκληρωμένα Σήμερα
 
+### Time Tracking Module Removed (Complete)
+- [x] Documented specs in `.claude/todo-future-features.md`
+- [x] Deleted `frontend/src/pages/time-tracking/` folder
+- [x] Deleted `frontend/src/services/timeentry.service.ts`
+- [x] Deleted `backend/src/controllers/timeentry.controller.ts`
+- [x] Removed route from `App.tsx`
+- [x] Removed menu item from `Sidebar.tsx`
+- [x] Removed routes from `server.ts`
+- [x] Removed `TimeEntry` model from schema.prisma
+- [x] Removed `TimeEntryType` enum from schema.prisma
+- [x] TypeScript check: OK
+
 ### Fullscreen Popup Z-Index Fix (Complete)
 - [x] Fixed popups appearing behind fullscreen modals
 - [x] Added `nested` prop to Modal component (z-[80])

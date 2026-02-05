@@ -10,7 +10,7 @@
 **Local Development:** Working (port 5174)
 **Database (Local):** Fresh seed with demo data + room type icons
 **Database (Cloud):** Needs `prisma db push --force-reset` then seed
-**Latest Commit:** `cafa629` - feat: Add project filters and fix report metrics for floor-level assets
+**Latest Commit:** `9cb7ae8` - fix: Ensure popups appear in front of fullscreen modals
 
 ### Seed Data Summary
 
@@ -36,6 +36,29 @@
 ---
 
 ## Session (2026-02-05) - Latest
+
+### Time Tracking Module Removed (Complete)
+**User Request:** Document Time Tracking specs for future, then remove module from v1
+
+**Documentation:**
+- Added full specs to `.claude/todo-future-features.md`
+- Database schema, API endpoints, features, permissions
+
+**Files Deleted:**
+- `frontend/src/pages/time-tracking/TimeTrackingPage.tsx`
+- `frontend/src/pages/time-tracking/index.ts`
+- `frontend/src/services/timeentry.service.ts`
+- `backend/src/controllers/timeentry.controller.ts`
+
+**Files Modified:**
+- `frontend/src/App.tsx` - Removed route & import
+- `frontend/src/components/layout/Sidebar.tsx` - Removed menu item
+- `backend/src/server.ts` - Removed routes
+- `backend/prisma/schema.prisma` - Removed TimeEntry model & TimeEntryType enum
+
+**Note:** Database migration needed: `prisma db push`
+
+---
 
 ### Fullscreen Popup Z-Index Fix (Complete)
 **User Request:** Verify popups appear in front of fullscreen modals on all floor plans

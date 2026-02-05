@@ -86,7 +86,6 @@ model User {
   createdIssues           Issue[]           @relation("CreatedBy")
   projectMembers          ProjectMember[]
   signatures              Signature[]
-  timeEntries             TimeEntry[]
 
   @@map("users")
 }
@@ -132,7 +131,6 @@ model Project {
   issues           Issue[]
   members          ProjectMember[]
   signatures       Signature[]
-  timeEntries      TimeEntry[]
   assets           Asset[]         @relation("ProjectAssets")
 
   @@map("projects")
@@ -203,7 +201,6 @@ model Room {
   issues        Issue[]
   floor         Floor       @relation(fields: [floorId], references: [id], onDelete: Cascade)
   signatures    Signature[]
-  timeEntries   TimeEntry[]
 
   @@map("rooms")
 }
@@ -246,7 +243,6 @@ model Asset {
   room          Room?       @relation(fields: [roomId], references: [id], onDelete: Cascade)
   floor         Floor?      @relation("FloorAssets", fields: [floorId], references: [id], onDelete: Cascade)
   checklists    Checklist[]
-  timeEntries   TimeEntry[]
 
   @@map("assets")
 }
@@ -424,29 +420,6 @@ model Signature {
   @@map("signatures")
 }
 
-model TimeEntry {
-  id          String        @id @default(cuid())
-  projectId   String        @map("project_id")
-  userId      String        @map("user_id")
-  roomId      String?       @map("room_id")
-  assetId     String?       @map("asset_id")
-  type        TimeEntryType @default(OTHER)
-  description String?
-  date        DateTime      @default(now())
-  startTime   DateTime?     @map("start_time")
-  endTime     DateTime?     @map("end_time")
-  hours       Float
-  notes       String?
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-  asset       Asset?        @relation(fields: [assetId], references: [id])
-  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  room        Room?         @relation(fields: [roomId], references: [id])
-  user        User          @relation(fields: [userId], references: [id])
-
-  @@map("time_entries")
-}
-
 model GeneratedReport {
   id            String     @id @default(cuid())
   projectId     String     @map("project_id")
@@ -539,16 +512,6 @@ enum SignatureType {
   ROOM_HANDOVER
   STAGE_COMPLETION
   FINAL_ACCEPTANCE
-}
-
-enum TimeEntryType {
-  INSTALLATION
-  CONFIGURATION
-  TESTING
-  TROUBLESHOOTING
-  TRAVEL
-  MEETING
-  OTHER
 }
 
 enum ReportType {
