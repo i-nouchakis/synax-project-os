@@ -49,6 +49,7 @@ import { floorService, type Room, type CreateRoomData, type UpdateRoomData, type
 import { assetService, type Asset, type AssetType, type CreateAssetData, type UpdateAssetData, type AssetStatus } from '@/services/asset.service';
 import { uploadService } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth.store';
+import { useUIStore } from '@/stores/ui.store';
 import { assetModelService, roomTypeService, manufacturerService } from '@/services/lookup.service';
 
 const roomStatusOptions = [
@@ -97,6 +98,7 @@ export function FloorDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const { floorPlansHiddenByDefault } = useUIStore();
   const canManage = user?.role === 'ADMIN' || user?.role === 'PM';
 
   const [isCreateRoomModalOpen, setIsCreateRoomModalOpen] = useState(false);
@@ -111,7 +113,7 @@ export function FloorDetailPage() {
   const [isCropSaving, setIsCropSaving] = useState(false);
   const [confirmCropRoom, setConfirmCropRoom] = useState<Room | null>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
-  const [showFloorPlan, setShowFloorPlan] = useState(true);
+  const [showFloorPlan, setShowFloorPlan] = useState(!floorPlansHiddenByDefault);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Asset state

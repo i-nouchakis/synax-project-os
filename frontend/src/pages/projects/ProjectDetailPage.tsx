@@ -42,6 +42,7 @@ import {
   ModalActions,
   Select,
   Input,
+  Textarea,
 } from '@/components/ui';
 import { projectService, type ProjectStatus, type UpdateProjectData } from '@/services/project.service';
 import { userService } from '@/services/user.service';
@@ -49,6 +50,7 @@ import { buildingService, type CreateBuildingData, type UpdateBuildingData, type
 import { reportService } from '@/services/report.service';
 import { uploadService } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth.store';
+import { useUIStore } from '@/stores/ui.store';
 import { FloorPlanCanvas, DownloadFloorplanModal } from '@/components/floor-plan';
 
 const statusBadgeVariants: Record<ProjectStatus, 'info' | 'primary' | 'warning' | 'success' | 'default'> = {
@@ -64,6 +66,7 @@ export function ProjectDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuthStore();
+  const { floorPlansHiddenByDefault } = useUIStore();
   const canManage = currentUser?.role === 'ADMIN' || currentUser?.role === 'PM';
 
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
@@ -73,7 +76,7 @@ export function ProjectDetailPage() {
   const [deletingBuilding, setDeletingBuilding] = useState<Building | null>(null);
 
   // Masterplan state
-  const [showMasterplan, setShowMasterplan] = useState(true);
+  const [showMasterplan, setShowMasterplan] = useState(!floorPlansHiddenByDefault);
   const [isMasterplanEditMode, setIsMasterplanEditMode] = useState(false);
   const [isUploadingMasterplan, setIsUploadingMasterplan] = useState(false);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
@@ -1054,11 +1057,13 @@ function AddBuildingModal({ isOpen, onClose, onSubmit, isLoading, pendingPinPosi
               required
               leftIcon={<Building2 size={16} />}
             />
-            <Input
+            <Textarea
               label="Description (Optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description of this building..."
+              minRows={2}
+              maxRows={5}
             />
           </div>
         </ModalSection>
@@ -1169,10 +1174,12 @@ function EditProjectModal({ isOpen, onClose, onSubmit, isLoading, project }: Edi
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               leftIcon={<MapPin size={16} />}
             />
-            <Input
+            <Textarea
               label="Description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              minRows={2}
+              maxRows={5}
             />
           </div>
         </ModalSection>
@@ -1268,11 +1275,13 @@ function EditBuildingModal({ isOpen, onClose, onSubmit, isLoading, building }: E
               required
               leftIcon={<Building2 size={16} />}
             />
-            <Input
+            <Textarea
               label="Description (Optional)"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Brief description of this building..."
+              minRows={2}
+              maxRows={5}
             />
           </div>
         </ModalSection>

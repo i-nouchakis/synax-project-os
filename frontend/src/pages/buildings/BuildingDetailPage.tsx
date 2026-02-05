@@ -26,6 +26,7 @@ import { buildingService, type BuildingFloor } from '@/services/building.service
 import { floorService, type CreateFloorData, type UpdateFloorData } from '@/services/floor.service';
 import { uploadService } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth.store';
+import { useUIStore } from '@/stores/ui.store';
 import { toast } from 'sonner';
 
 export default function BuildingDetailPage() {
@@ -33,6 +34,7 @@ export default function BuildingDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const { floorPlansHiddenByDefault } = useUIStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canManage = user?.role === 'ADMIN' || user?.role === 'PM';
 
@@ -42,7 +44,7 @@ export default function BuildingDetailPage() {
   const [deletingFloor, setDeletingFloor] = useState<BuildingFloor | null>(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [isEditingPins, setIsEditingPins] = useState(false);
-  const [showFloorplan, setShowFloorplan] = useState(true);
+  const [showFloorplan, setShowFloorplan] = useState(!floorPlansHiddenByDefault);
   const [floorForm, setFloorForm] = useState({ name: '', level: 0 });
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFloorId, setSelectedFloorId] = useState<string | null>(null);
