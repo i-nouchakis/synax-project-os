@@ -46,10 +46,16 @@ export async function reportRoutes(app: FastifyInstance) {
       blocked: allRooms.filter(r => r.status === 'BLOCKED').length,
     };
 
-    // Get assets
+    // Get assets (both room-level and floor-level)
     const roomIds = allRooms.map(r => r.id);
+    const floorIds = floors.map(f => f.id);
     const assets = await prisma.asset.findMany({
-      where: { roomId: { in: roomIds } },
+      where: {
+        OR: [
+          { roomId: { in: roomIds } },
+          { floorId: { in: floorIds }, roomId: null },
+        ],
+      },
       include: {
         assetType: true,
       },
@@ -458,10 +464,16 @@ export async function reportRoutes(app: FastifyInstance) {
     // Get all rooms for summary
     const allRooms = floors.flatMap(f => f.rooms);
     const roomIds = allRooms.map(r => r.id);
+    const floorIds = floors.map(f => f.id);
 
-    // Get assets count by type
+    // Get assets count by type (both room-level and floor-level)
     const assets = await prisma.asset.findMany({
-      where: { roomId: { in: roomIds } },
+      where: {
+        OR: [
+          { roomId: { in: roomIds } },
+          { floorId: { in: floorIds }, roomId: null },
+        ],
+      },
       include: { assetType: true },
     });
 
@@ -555,7 +567,7 @@ export async function reportRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'Project not found' });
     }
 
-    // Get all assets with full details
+    // Get all assets with full details (both room-level and floor-level)
     const floors = await prisma.floor.findMany({
       where: { building: { projectId } },
       include: {
@@ -569,13 +581,41 @@ export async function reportRoutes(app: FastifyInstance) {
             },
           },
         },
+        assets: {
+          where: { roomId: null },
+          include: {
+            assetType: true,
+            installedBy: { select: { id: true, name: true } },
+          },
+        },
       },
       orderBy: { level: 'asc' },
     });
 
-    const assets = floors.flatMap(floor =>
-      floor.rooms.flatMap(room =>
-        room.assets.map(asset => ({
+    // Combine room-level and floor-level assets
+    const assets = [
+      // Room-level assets
+      ...floors.flatMap(floor =>
+        floor.rooms.flatMap(room =>
+          room.assets.map(asset => ({
+            id: asset.id,
+            name: asset.name,
+            type: asset.assetType?.name,
+            model: asset.model,
+            serialNumber: asset.serialNumber,
+            macAddress: asset.macAddress,
+            ipAddress: asset.ipAddress,
+            status: asset.status,
+            floor: floor.name,
+            room: room.name,
+            installedBy: asset.installedBy?.name,
+            installedAt: asset.installedAt,
+          }))
+        )
+      ),
+      // Floor-level assets
+      ...floors.flatMap(floor =>
+        floor.assets.map(asset => ({
           id: asset.id,
           name: asset.name,
           type: asset.assetType?.name,
@@ -585,12 +625,12 @@ export async function reportRoutes(app: FastifyInstance) {
           ipAddress: asset.ipAddress,
           status: asset.status,
           floor: floor.name,
-          room: room.name,
+          room: 'Floor-level',
           installedBy: asset.installedBy?.name,
           installedAt: asset.installedAt,
         }))
-      )
-    );
+      ),
+    ];
 
     // Group by type
     const assetsByType = assets.reduce((acc, asset) => {
@@ -688,9 +728,16 @@ export async function reportRoutes(app: FastifyInstance) {
 
         const allRooms = floors.flatMap(f => f.rooms);
         const roomIds = allRooms.map(r => r.id);
+        const floorIds = floors.map(f => f.id);
 
+        // Get both room-level and floor-level assets
         const assets = await prisma.asset.findMany({
-          where: { roomId: { in: roomIds } },
+          where: {
+            OR: [
+              { roomId: { in: roomIds } },
+              { floorId: { in: floorIds }, roomId: null },
+            ],
+          },
         });
 
         const checklists = await prisma.checklist.findMany({
@@ -771,9 +818,16 @@ export async function reportRoutes(app: FastifyInstance) {
 
         const allRooms = floors.flatMap(f => f.rooms);
         const roomIds = allRooms.map(r => r.id);
+        const floorIds = floors.map(f => f.id);
 
+        // Get both room-level and floor-level assets
         const assets = await prisma.asset.findMany({
-          where: { roomId: { in: roomIds } },
+          where: {
+            OR: [
+              { roomId: { in: roomIds } },
+              { floorId: { in: floorIds }, roomId: null },
+            ],
+          },
           include: { assetType: true },
         });
 

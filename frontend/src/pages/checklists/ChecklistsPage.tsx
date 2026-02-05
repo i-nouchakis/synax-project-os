@@ -23,6 +23,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, Select, Badge, Pagination, usePagination, SortableHeader } from '@/components/ui';
 import { useSortable } from '@/hooks/useSortable';
 import { useSearchStore } from '@/stores/search.store';
+import { projectService } from '@/services/project.service';
 import { api } from '@/lib/api';
 
 type ChecklistStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
@@ -49,9 +50,11 @@ interface ChecklistWithAsset {
       floor?: {
         id: string;
         name: string;
-        project?: {
-          id: string;
-          name: string;
+        building?: {
+          project?: {
+            id: string;
+            name: string;
+          };
         };
       };
     };
@@ -122,6 +125,13 @@ export function ChecklistsPage() {
   const { query: search } = useSearchStore();
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [projectFilter, setProjectFilter] = useState('');
+
+  // Fetch projects for filter
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => projectService.getAll(),
+  });
 
   // Fetch all checklists
   const { data: checklists = [], isLoading } = useQuery({
@@ -134,6 +144,9 @@ export function ChecklistsPage() {
 
   // Filter checklists
   const filteredChecklists = checklists.filter((checklist) => {
+    // Project filter
+    if (projectFilter && checklist.asset?.room?.floor?.building?.project?.id !== projectFilter) return false;
+
     // Status filter
     if (statusFilter && checklist.status !== statusFilter) return false;
 
@@ -144,7 +157,7 @@ export function ChecklistsPage() {
     if (search) {
       const searchLower = search.toLowerCase();
       const matchesAsset = checklist.asset?.name?.toLowerCase().includes(searchLower);
-      const matchesProject = checklist.asset?.room?.floor?.project?.name?.toLowerCase().includes(searchLower);
+      const matchesProject = checklist.asset?.room?.floor?.building?.project?.name?.toLowerCase().includes(searchLower);
       const matchesRoom = checklist.asset?.room?.name?.toLowerCase().includes(searchLower);
       if (!matchesAsset && !matchesProject && !matchesRoom) return false;
     }
@@ -241,6 +254,14 @@ export function ChecklistsPage() {
       {/* Filters */}
       <div className="flex gap-2">
         <Select
+          value={projectFilter}
+          onChange={(e) => setProjectFilter(e.target.value)}
+          options={[
+            { value: '', label: 'All Projects' },
+            ...projects.map((p) => ({ value: p.id, label: p.name })),
+          ]}
+        />
+        <Select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
           options={typeOptions}
@@ -279,7 +300,7 @@ export function ChecklistsPage() {
                     <tr className="border-b border-surface-border bg-surface-secondary">
                       <SortableHeader label="Type" sortKey="type" direction={getSortDirection('type')} onSort={requestSort} align="left" />
                       <SortableHeader label="Asset" sortKey="asset.name" direction={getSortDirection('asset.name')} onSort={requestSort} align="left" />
-                      <SortableHeader label="Location" sortKey="asset.room.floor.project.name" direction={getSortDirection('asset.room.floor.project.name')} onSort={requestSort} align="left" />
+                      <SortableHeader label="Location" sortKey="asset.room.floor.building.project.name" direction={getSortDirection('asset.room.floor.building.project.name')} onSort={requestSort} align="left" />
                       <th className="text-left text-caption font-medium text-text-secondary px-4 py-3">Progress</th>
                       <SortableHeader label="Status" sortKey="status" direction={getSortDirection('status')} onSort={requestSort} align="left" />
                       <SortableHeader label="Assigned" sortKey="assignedTo.name" direction={getSortDirection('assignedTo.name')} onSort={requestSort} align="left" />
@@ -322,7 +343,7 @@ export function ChecklistsPage() {
                           <div className="text-body-sm">
                             <div className="flex items-center gap-1 text-text-primary">
                               <Building2 size={12} />
-                              <span>{checklist.asset?.room?.floor?.project?.name || '-'}</span>
+                              <span>{checklist.asset?.room?.floor?.building?.project?.name || '-'}</span>
                             </div>
                             <p className="text-caption text-text-tertiary">
                               {checklist.asset?.room?.floor?.name} / {checklist.asset?.room?.name}

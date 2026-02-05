@@ -6,6 +6,33 @@
 
 ## Ολοκληρωμένα Σήμερα
 
+### Project Filters (Complete)
+- [x] Added project filter dropdown to ChecklistsPage
+- [x] Added project filter dropdown to IssuesPage
+- [x] Fixed ChecklistsPage data path (added missing `building` layer)
+- [x] TypeScript check: OK
+
+### Report Metrics Fix (Complete)
+- [x] Investigated Project Metrics calculation
+- [x] Found issue: floor-level assets not counted
+- [x] Fixed `/summary`, `/client`, `/assets` endpoints
+- [x] Fixed PDF export queries
+- [x] Added OR condition for floor-level assets
+- [x] TypeScript check: OK
+- [x] Tested API response matches database
+
+### Sortable Table Columns (Complete)
+- [x] Created `useSortable` hook for reusable sorting
+- [x] Created `SortableHeader` component with chevron icons
+- [x] Updated 10 tables across 7 pages:
+  - UsersPage, ChecklistsPage, InventoryPage (2), FloorDetailPage (2)
+  - RoomDetailPage, ReportsPage (3)
+- [x] Support for nested object sorting
+- [x] Sort direction cycles: asc → desc → none
+- [x] TypeScript check: OK
+- [x] Commit: `f591b15`
+- [x] Pushed to main
+
 ### AssetsPage Restructure (Complete)
 - [x] Group assets by project (accordion style)
 - [x] Per-project search field (visible when expanded)

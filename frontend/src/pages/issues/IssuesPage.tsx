@@ -81,6 +81,7 @@ export function IssuesPage() {
   const { query: search } = useSearchStore();
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const [projectFilter, setProjectFilter] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
 
@@ -138,15 +139,23 @@ export function IssuesPage() {
 
   // Filter issues
   const filteredIssues = issues.filter((issue) => {
-    if (!search) return true;
-    const searchLower = search.toLowerCase();
-    return (
-      issue.title.toLowerCase().includes(searchLower) ||
-      issue.description?.toLowerCase().includes(searchLower) ||
-      issue.project?.name.toLowerCase().includes(searchLower) ||
-      issue.room?.name?.toLowerCase().includes(searchLower) ||
-      issue.causedBy?.toLowerCase().includes(searchLower)
-    );
+    // Project filter
+    if (projectFilter && issue.projectId !== projectFilter) return false;
+
+    // Search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      const matchesSearch = (
+        issue.title.toLowerCase().includes(searchLower) ||
+        issue.description?.toLowerCase().includes(searchLower) ||
+        issue.project?.name.toLowerCase().includes(searchLower) ||
+        issue.room?.name?.toLowerCase().includes(searchLower) ||
+        issue.causedBy?.toLowerCase().includes(searchLower)
+      );
+      if (!matchesSearch) return false;
+    }
+
+    return true;
   });
 
   // Pagination
@@ -264,6 +273,14 @@ export function IssuesPage() {
 
       {/* Filters */}
       <div className="flex gap-2">
+        <Select
+          value={projectFilter}
+          onChange={(e) => setProjectFilter(e.target.value)}
+          options={[
+            { value: '', label: 'All Projects' },
+            ...projects.map((p) => ({ value: p.id, label: p.name })),
+          ]}
+        />
         <Select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}

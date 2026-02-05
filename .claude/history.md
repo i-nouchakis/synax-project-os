@@ -48,6 +48,14 @@
 - View/Edit and Remove from Plan for placed assets
 - Import from Inventory (replaced Create New) in Room page
 - Unified popup sizes across all menus
+- AssetsPage restructured with project grouping and accordion
+- Per-project search in AssetsPage (visible when section expanded)
+- Fullscreen mode for BuildingDetailPage floor plan
+- **Sortable table columns** across all 10 tables in the app
+- **Report Metrics fix** - floor-level assets now counted
+- **Project filters** added to ChecklistsPage and IssuesPage
+  - Created `useSortable` hook and `SortableHeader` component
+  - Supports nested object sorting (e.g., `asset.room.floor.name`)
 - Popup position persistence across steps
 - Updated CLAUDE.md with mandatory workflow rules
 - **Settings Interface section** with floor plan visibility toggle

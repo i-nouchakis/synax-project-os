@@ -10,7 +10,7 @@
 **Local Development:** Working (port 5174)
 **Database (Local):** Fresh seed with demo data + room type icons
 **Database (Cloud):** Needs `prisma db push --force-reset` then seed
-**Latest Commit:** `6b1612d` - docs: Update Manual with new AssetsPage features
+**Latest Commit:** `f591b15` - feat: Add sortable column headers to all tables (pending new commit)
 
 ### Seed Data Summary
 
@@ -36,6 +36,63 @@
 ---
 
 ## Session (2026-02-05) - Latest
+
+### Project Filters for Checklists & Issues (Complete)
+**User Request:** Add project filter dropdown to ChecklistsPage and IssuesPage
+
+**Implementation:**
+- Added project filter to ChecklistsPage (first dropdown)
+- Added project filter to IssuesPage (first dropdown)
+- Fixed ChecklistsPage path: `asset.room.floor.building.project` (was missing `building`)
+- Fixed interface type to match API response
+
+**Files Modified:**
+- `frontend/src/pages/checklists/ChecklistsPage.tsx`
+- `frontend/src/pages/issues/IssuesPage.tsx`
+
+---
+
+### Report Metrics Fix - Floor-level Assets (Complete)
+**User Request:** Verify Project Metrics are correct and update when data changes
+
+**Investigation Found:**
+- Floor-level assets were NOT counted in report stats
+- Query only checked `roomId`, missing assets with `floorId` only
+
+**Fix Applied:**
+- Modified `/summary`, `/client`, `/assets` endpoints
+- Modified PDF export queries
+- Added OR condition: `roomId IN rooms` OR `floorId IN floors AND roomId IS NULL`
+
+**File Modified:**
+- `backend/src/controllers/report.controller.ts`
+
+---
+
+### Sortable Table Columns (Complete)
+**User Request:** Add click-to-sort functionality to ALL table column headers
+
+**Implementation:**
+- Created `useSortable` hook for reusable sorting logic
+- Created `SortableHeader` component with visual sort indicators (chevrons)
+- Sort direction cycles: asc → desc → none (returns to original order)
+- Supports nested object sorting (e.g., `asset.room.floor.name`)
+
+**Tables Updated (10 total):**
+1. UsersPage - Users table
+2. ChecklistsPage - Checklists table
+3. InventoryPage - Equipment table & Materials table
+4. FloorDetailPage - Rooms table & Floor Assets table
+5. RoomDetailPage - Assets table
+6. ReportsPage - Equipment Summary, Technician Performance, Material Usage
+
+**Files Created:**
+- `frontend/src/hooks/useSortable.ts`
+- `frontend/src/components/ui/sortable-header.tsx`
+
+**Commit:** `f591b15`
+
+---
 
 ### AssetsPage Restructure (Complete)
 **User Request:** Restructure AssetsPage like Buildings/Floors/Rooms with project grouping
