@@ -27,7 +27,9 @@ export interface Asset {
   ipAddress?: string;
   status: AssetStatus;
   notes?: string;
-  roomId: string;
+  projectId?: string | null;
+  roomId?: string | null;
+  floorId?: string | null;
   assetTypeId?: string;
   installedById?: string;
   installedAt?: string;
@@ -40,6 +42,22 @@ export interface Asset {
     id: string;
     name: string;
     floor?: {
+      id: string;
+      name: string;
+      building?: {
+        id: string;
+        name: string;
+        project?: {
+          id: string;
+          name: string;
+        };
+      };
+    };
+  };
+  floor?: {
+    id: string;
+    name: string;
+    building?: {
       id: string;
       name: string;
       project?: {
@@ -69,6 +87,28 @@ export interface CreateAssetData {
   notes?: string;
   pinX?: number;
   pinY?: number;
+  status?: AssetStatus;
+}
+
+export interface BulkEquipmentSerial {
+  serialNumber?: string;
+  macAddress?: string;
+}
+
+export interface CreateBulkEquipmentData {
+  namePrefix: string;
+  quantity: number;
+  startNumber?: number;
+  assetTypeId?: string;
+  model?: string;
+  notes?: string;
+  serials?: BulkEquipmentSerial[];
+  status?: AssetStatus;
+}
+
+interface BulkAssetsResponse {
+  assets: Asset[];
+  count: number;
 }
 
 export interface UpdateAssetData extends Partial<CreateAssetData> {
@@ -104,6 +144,12 @@ export const assetService = {
   async getTypes(): Promise<AssetType[]> {
     const response = await api.get<AssetTypesResponse>('/assets/types');
     return response.assetTypes;
+  },
+
+  // Create asset type
+  async createType(data: { name: string; icon?: string }): Promise<AssetType> {
+    const response = await api.post<{ assetType: AssetType }>('/assets/types', data);
+    return response.assetType;
   },
 
   // Get asset by ID
@@ -167,5 +213,64 @@ export const assetService = {
       }
       throw err;
     }
+  },
+
+  // Get assets directly in floor (not in rooms)
+  async getByFloor(floorId: string): Promise<Asset[]> {
+    const response = await api.get<AssetsResponse>(`/assets/floors/${floorId}`);
+    return response.assets;
+  },
+
+  // Create asset directly in floor
+  async createInFloor(floorId: string, data: CreateAssetData): Promise<Asset> {
+    const response = await api.post<AssetResponse>(`/assets/floors/${floorId}`, data);
+    return response.asset;
+  },
+
+  // === Project Equipment Methods ===
+
+  // Get all equipment for a project (optionally filtered by status)
+  async getByProject(projectId: string, status?: AssetStatus): Promise<Asset[]> {
+    const params = status ? `?status=${status}` : '';
+    const response = await api.get<AssetsResponse>(`/assets/projects/${projectId}${params}`);
+    return response.assets;
+  },
+
+  // Get available (IN_STOCK) unassigned equipment for a project
+  async getAvailableByProject(projectId: string): Promise<Asset[]> {
+    const response = await api.get<AssetsResponse>(`/assets/projects/${projectId}/available`);
+    return response.assets;
+  },
+
+  // Create new equipment in project inventory
+  async createInProject(projectId: string, data: CreateAssetData): Promise<Asset> {
+    const response = await api.post<AssetResponse>(`/assets/projects/${projectId}`, data);
+    return response.asset;
+  },
+
+  // Create multiple equipment in project inventory (bulk)
+  async createBulkInProject(projectId: string, data: CreateBulkEquipmentData): Promise<Asset[]> {
+    const response = await api.post<BulkAssetsResponse>(`/assets/projects/${projectId}/bulk`, data);
+    return response.assets;
+  },
+
+  // Assign equipment to a room with position
+  async assignToRoom(assetId: string, roomId: string, pinX?: number, pinY?: number): Promise<Asset> {
+    const response = await api.put<AssetResponse>(`/assets/${assetId}/assign`, {
+      roomId,
+      pinX,
+      pinY,
+    });
+    return response.asset;
+  },
+
+  // Assign equipment to a floor with position
+  async assignToFloor(assetId: string, floorId: string, pinX?: number, pinY?: number): Promise<Asset> {
+    const response = await api.put<AssetResponse>(`/assets/${assetId}/assign`, {
+      floorId,
+      pinX,
+      pinY,
+    });
+    return response.asset;
   },
 };

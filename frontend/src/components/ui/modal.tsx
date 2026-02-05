@@ -55,10 +55,10 @@ export function Modal({
         className={cn(
           'bg-surface border border-surface-border rounded-xl shadow-xl w-full flex flex-col',
           'animate-in fade-in-0 zoom-in-95 duration-200',
-          size === 'sm' && 'max-w-sm max-h-[85vh]',
-          size === 'md' && 'max-w-md max-h-[85vh]',
-          size === 'lg' && 'max-w-2xl max-h-[85vh]',
-          size === 'xl' && 'max-w-4xl max-h-[85vh]',
+          size === 'sm' && 'max-w-md max-h-[85vh]',
+          size === 'md' && 'max-w-xl max-h-[85vh]',
+          size === 'lg' && 'max-w-3xl max-h-[85vh]',
+          size === 'xl' && 'max-w-5xl max-h-[85vh]',
           size === 'full' && 'max-w-[95vw] max-h-[95vh]'
         )}
       >

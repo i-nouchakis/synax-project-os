@@ -839,6 +839,10 @@ function AssetModelsTab() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
+  // State for adding new manufacturer inline
+  const [isAddManufacturerOpen, setIsAddManufacturerOpen] = useState(false);
+  const [newManufacturerName, setNewManufacturerName] = useState('');
+
   const { data, isLoading } = useQuery({
     queryKey: ['lookups', 'asset-models'],
     queryFn: () => assetModelService.getAllAdmin(),
@@ -887,6 +891,21 @@ function AssetModelsTab() {
       toast.success('Asset model deleted');
     },
     onError: () => toast.error('Error deleting entry'),
+  });
+
+  // Create manufacturer mutation
+  const createManufacturerMutation = useMutation({
+    mutationFn: (name: string) => manufacturerService.create({ name }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['lookups', 'manufacturers'] });
+      setFormData({ ...formData, manufacturerId: data.item.id });
+      setNewManufacturerName('');
+      setIsAddManufacturerOpen(false);
+      toast.success(`Manufacturer "${data.item.name}" created`);
+    },
+    onError: () => {
+      toast.error('Failed to create manufacturer');
+    },
   });
 
   const closeModal = () => {
@@ -992,16 +1011,26 @@ function AssetModelsTab() {
               <label className="block text-caption font-medium text-text-secondary mb-1.5">
                 Manufacturer *
               </label>
-              <select
-                value={formData.manufacturerId}
-                onChange={(e) => setFormData({ ...formData, manufacturerId: e.target.value })}
-                className="w-full px-3 py-2 bg-background border border-surface-border rounded-md text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-              >
-                <option value="">Select manufacturer</option>
-                {manufacturers.map((m) => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
+              <div className="flex gap-2">
+                <select
+                  value={formData.manufacturerId}
+                  onChange={(e) => setFormData({ ...formData, manufacturerId: e.target.value })}
+                  className="flex-1 px-3 py-2 bg-background border border-surface-border rounded-md text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                >
+                  <option value="">Select manufacturer</option>
+                  {manufacturers.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setIsAddManufacturerOpen(true)}
+                  className="h-10 w-10 flex items-center justify-center rounded-lg border border-surface-border bg-surface-secondary hover:bg-surface-hover text-text-secondary hover:text-primary transition-colors"
+                  title="Add new manufacturer"
+                >
+                  <Plus size={18} />
+                </button>
+              </div>
             </div>
             <Input
               label="Model Name *"
@@ -1036,6 +1065,43 @@ function AssetModelsTab() {
           />
         </ModalSection>
       </Modal>
+
+      {/* Add Manufacturer Mini Modal */}
+      {isAddManufacturerOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsAddManufacturerOpen(false)} />
+          <div className="relative bg-surface rounded-lg shadow-xl border border-surface-border p-6 w-full max-w-sm mx-4">
+            <h3 className="text-h4 text-text-primary mb-4">Add New Manufacturer</h3>
+            <Input
+              label="Manufacturer Name"
+              value={newManufacturerName}
+              onChange={(e) => setNewManufacturerName(e.target.value)}
+              placeholder="e.g., Cisco"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2 mt-6">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setIsAddManufacturerOpen(false);
+                  setNewManufacturerName('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => createManufacturerMutation.mutate(newManufacturerName)}
+                isLoading={createManufacturerMutation.isPending}
+                disabled={!newManufacturerName.trim()}
+              >
+                Add
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <DeleteConfirmModal
         isOpen={deleteModalOpen}

@@ -21,6 +21,7 @@ import {
   CardContent,
   Button,
   Input,
+  Textarea,
   Badge,
   Modal,
   ModalSection,
@@ -578,11 +579,13 @@ export function ChecklistTemplatesPage() {
                 placeholder="e.g., Network Equipment Setup"
                 required
               />
-              <Input
+              <Textarea
                 label="Description"
                 value={templateForm.description}
                 onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
                 placeholder="Brief description of this template"
+                minRows={2}
+                maxRows={6}
               />
             </div>
           </ModalSection>
@@ -689,11 +692,13 @@ export function ChecklistTemplatesPage() {
                 placeholder="e.g., Verify cable connections"
                 required
               />
-              <Input
+              <Textarea
                 label="Description"
                 value={itemForm.description}
                 onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
                 placeholder="Additional instructions or notes"
+                minRows={2}
+                maxRows={6}
               />
             </div>
           </ModalSection>

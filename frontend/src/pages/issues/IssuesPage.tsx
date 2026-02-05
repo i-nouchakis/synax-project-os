@@ -28,6 +28,7 @@ import {
   CardHeader,
   CardTitle,
   Input,
+  Textarea,
   Select,
   Badge,
   Button,
@@ -449,6 +450,26 @@ interface CreateIssueModalProps {
 }
 
 function CreateIssueModal({ isOpen, onClose, projects, onSubmit, isLoading, issueCauseOptions }: CreateIssueModalProps) {
+  const queryClient = useQueryClient();
+  const [isAddCauseOpen, setIsAddCauseOpen] = useState(false);
+  const [newCauseName, setNewCauseName] = useState('');
+  const [selectedCause, setSelectedCause] = useState('');
+
+  // Create issue cause mutation
+  const createCauseMutation = useMutation({
+    mutationFn: (name: string) => issueCauseService.create({ name }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['lookups', 'issue-causes'] });
+      setSelectedCause(data.item.name);
+      setNewCauseName('');
+      setIsAddCauseOpen(false);
+      toast.success(`Issue cause "${data.item.name}" created`);
+    },
+    onError: () => {
+      toast.error('Failed to create issue cause');
+    },
+  });
+
   return (
     <Modal
       isOpen={isOpen}
@@ -498,25 +519,72 @@ function CreateIssueModal({ isOpen, onClose, projects, onSubmit, isLoading, issu
         {/* Details Section */}
         <ModalSection title="Details" icon={<FileText size={14} />}>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1.5">
-                Description
-              </label>
-              <textarea
-                name="description"
-                rows={4}
-                className="w-full px-3 py-2 bg-surface border border-surface-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
-                placeholder="Provide detailed information about the issue..."
-              />
-            </div>
-            <Select
-              label="Caused By (Optional)"
-              name="causedBy"
-              options={issueCauseOptions}
+            <Textarea
+              label="Description"
+              name="description"
+              placeholder="Provide detailed information about the issue..."
+              minRows={3}
+              maxRows={8}
             />
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <Select
+                  label="Caused By (Optional)"
+                  name="causedBy"
+                  value={selectedCause}
+                  onChange={(e) => setSelectedCause(e.target.value)}
+                  options={issueCauseOptions}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddCauseOpen(true)}
+                className="h-10 w-10 flex items-center justify-center rounded-lg border border-surface-border bg-surface-secondary hover:bg-surface-hover text-text-secondary hover:text-primary transition-colors"
+                title="Add new issue cause"
+              >
+                <Plus size={18} />
+              </button>
+            </div>
           </div>
         </ModalSection>
       </form>
+
+      {/* Add Issue Cause Mini Modal */}
+      {isAddCauseOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsAddCauseOpen(false)} />
+          <div className="relative bg-surface rounded-lg shadow-xl border border-surface-border p-6 w-full max-w-sm mx-4">
+            <h3 className="text-h4 text-text-primary mb-4">Add New Issue Cause</h3>
+            <Input
+              label="Cause Name"
+              value={newCauseName}
+              onChange={(e) => setNewCauseName(e.target.value)}
+              placeholder="e.g., Third Party Delay"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2 mt-6">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setIsAddCauseOpen(false);
+                  setNewCauseName('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => createCauseMutation.mutate(newCauseName)}
+                isLoading={createCauseMutation.isPending}
+                disabled={!newCauseName.trim()}
+              >
+                Add
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }

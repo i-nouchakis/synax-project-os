@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
   Input,
+  Textarea,
   Select,
   Badge,
   Pagination,
@@ -353,7 +354,7 @@ export function TimeTrackingPage() {
                   required
                 />
 
-                <Input
+                <Textarea
                   label="Description"
                   value={formData.description || ''}
                   onChange={(e) =>
@@ -361,14 +362,18 @@ export function TimeTrackingPage() {
                   }
                   placeholder="What did you work on?"
                   className="md:col-span-2"
+                  minRows={2}
+                  maxRows={4}
                 />
               </div>
 
-              <Input
+              <Textarea
                 label="Notes"
                 value={formData.notes || ''}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Additional notes..."
+                minRows={2}
+                maxRows={4}
               />
 
               <div className="flex justify-end gap-2">

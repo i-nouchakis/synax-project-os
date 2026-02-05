@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { Asset } from './asset.service';
 
 export type RoomStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
 
@@ -40,6 +41,7 @@ export interface Floor {
     };
   };
   rooms?: Room[];
+  assets?: Asset[];
   _count?: {
     rooms: number;
   };

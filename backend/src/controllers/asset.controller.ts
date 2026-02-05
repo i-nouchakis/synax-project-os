@@ -16,6 +16,21 @@ const createAssetSchema = z.object({
   pinY: z.number().optional(),
 });
 
+// Schema for bulk equipment creation in project inventory
+const createBulkEquipmentSchema = z.object({
+  namePrefix: z.string().min(1),
+  quantity: z.number().min(1).max(100).default(1),
+  startNumber: z.number().min(0).default(1),
+  assetTypeId: z.string().optional(),
+  model: z.string().optional(),
+  notes: z.string().optional(),
+  // Optional array of serial numbers (if provided, must match quantity)
+  serials: z.array(z.object({
+    serialNumber: z.string().optional(),
+    macAddress: z.string().optional(),
+  })).optional(),
+});
+
 const updateAssetSchema = createAssetSchema.partial().extend({
   status: z.enum(['PLANNED', 'IN_STOCK', 'INSTALLED', 'CONFIGURED', 'VERIFIED', 'FAULTY']).optional(),
   pinX: z.number().optional(),
@@ -76,6 +91,15 @@ export async function assetRoutes(app: FastifyInstance) {
             },
           },
         },
+        floor: {
+          include: {
+            building: {
+              include: {
+                project: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
         installedBy: { select: { id: true, name: true } },
         _count: { select: { checklists: true } },
       },
@@ -96,6 +120,33 @@ export async function assetRoutes(app: FastifyInstance) {
     });
 
     return reply.send({ assetTypes });
+  });
+
+  // POST /api/assets/types - Create asset type
+  app.post('/types', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { name, icon } = request.body as { name: string; icon?: string };
+
+    if (!name) {
+      return reply.status(400).send({ error: 'Name is required' });
+    }
+
+    // Check if already exists
+    const existing = await prisma.assetType.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' } },
+    });
+
+    if (existing) {
+      return reply.status(400).send({ error: 'Asset type already exists' });
+    }
+
+    const assetType = await prisma.assetType.create({
+      data: { name, icon },
+      include: {
+        _count: { select: { assets: true } },
+      },
+    });
+
+    return reply.status(201).send({ assetType });
   });
 
   // GET /api/assets/lookup/:code - Lookup asset by serial number or MAC address
@@ -123,6 +174,15 @@ export async function assetRoutes(app: FastifyInstance) {
                     project: { select: { id: true, name: true } },
                   },
                 },
+              },
+            },
+          },
+        },
+        floor: {
+          include: {
+            building: {
+              include: {
+                project: { select: { id: true, name: true } },
               },
             },
           },
@@ -157,6 +217,15 @@ export async function assetRoutes(app: FastifyInstance) {
                     project: { select: { id: true, name: true } },
                   },
                 },
+              },
+            },
+          },
+        },
+        floor: {
+          include: {
+            building: {
+              include: {
+                project: { select: { id: true, name: true } },
               },
             },
           },
@@ -198,6 +267,15 @@ export async function assetRoutes(app: FastifyInstance) {
             },
           },
         },
+        floor: {
+          include: {
+            building: {
+              include: {
+                project: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
         installedBy: { select: { id: true, name: true, email: true } },
         checklists: {
           include: {
@@ -228,8 +306,11 @@ export async function assetRoutes(app: FastifyInstance) {
     try {
       const data = createAssetSchema.parse(request.body);
 
-      // Verify room exists
-      const room = await prisma.room.findUnique({ where: { id: roomId } });
+      // Verify room exists and get projectId
+      const room = await prisma.room.findUnique({
+        where: { id: roomId },
+        include: { floor: { include: { building: { select: { projectId: true } } } } },
+      });
       if (!room) {
         return reply.status(404).send({ error: 'Room not found' });
       }
@@ -237,6 +318,7 @@ export async function assetRoutes(app: FastifyInstance) {
       const asset = await prisma.asset.create({
         data: {
           roomId,
+          projectId: room.floor.building.projectId,
           ...data,
         },
         include: {
@@ -345,5 +427,277 @@ export async function assetRoutes(app: FastifyInstance) {
     });
 
     return reply.send({ assets });
+  });
+
+  // GET /api/assets/floors/:floorId - Get assets directly in floor (not in rooms)
+  app.get('/floors/:floorId', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { floorId } = request.params as { floorId: string };
+
+    const assets = await prisma.asset.findMany({
+      where: { floorId, roomId: null },
+      include: {
+        assetType: true,
+        installedBy: { select: { id: true, name: true } },
+        _count: { select: { checklists: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return reply.send({ assets });
+  });
+
+  // POST /api/assets/floors/:floorId - Create asset directly in floor
+  app.post('/floors/:floorId', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { floorId } = request.params as { floorId: string };
+
+    try {
+      const data = createAssetSchema.parse(request.body);
+
+      // Verify floor exists and get projectId
+      const floor = await prisma.floor.findUnique({
+        where: { id: floorId },
+        include: { building: { select: { projectId: true } } },
+      });
+      if (!floor) {
+        return reply.status(404).send({ error: 'Floor not found' });
+      }
+
+      const asset = await prisma.asset.create({
+        data: {
+          floorId,
+          roomId: null,
+          projectId: floor.building.projectId,
+          ...data,
+        },
+        include: {
+          assetType: true,
+          floor: { select: { id: true, name: true } },
+        },
+      });
+
+      return reply.status(201).send({ asset });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+      }
+      throw error;
+    }
+  });
+
+  // ============================================
+  // PROJECT EQUIPMENT (INVENTORY) ENDPOINTS
+  // ============================================
+
+  // GET /api/assets/projects/:projectId - Get all equipment for a project
+  app.get('/projects/:projectId', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { projectId } = request.params as { projectId: string };
+    const { status } = request.query as { status?: string };
+
+    const where: any = { projectId };
+    if (status) {
+      where.status = status;
+    }
+
+    const assets = await prisma.asset.findMany({
+      where,
+      include: {
+        assetType: true,
+        room: { select: { id: true, name: true } },
+        floor: { select: { id: true, name: true } },
+        installedBy: { select: { id: true, name: true } },
+        _count: { select: { checklists: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return reply.send({ assets });
+  });
+
+  // GET /api/assets/projects/:projectId/available - Get available equipment (IN_STOCK, not assigned to room/floor)
+  app.get('/projects/:projectId/available', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { projectId } = request.params as { projectId: string };
+
+    const assets = await prisma.asset.findMany({
+      where: {
+        projectId,
+        status: 'IN_STOCK',
+        roomId: null,
+        floorId: null,
+      },
+      include: {
+        assetType: true,
+        _count: { select: { checklists: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return reply.send({ assets });
+  });
+
+  // POST /api/assets/projects/:projectId - Create asset in project inventory (single)
+  app.post('/projects/:projectId', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { projectId } = request.params as { projectId: string };
+
+    try {
+      const data = createAssetSchema.parse(request.body);
+
+      // Verify project exists
+      const project = await prisma.project.findUnique({ where: { id: projectId } });
+      if (!project) {
+        return reply.status(404).send({ error: 'Project not found' });
+      }
+
+      const asset = await prisma.asset.create({
+        data: {
+          projectId,
+          status: 'IN_STOCK',
+          ...data,
+        },
+        include: {
+          assetType: true,
+        },
+      });
+
+      return reply.status(201).send({ asset });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+      }
+      throw error;
+    }
+  });
+
+  // POST /api/assets/projects/:projectId/bulk - Create multiple assets in project inventory
+  app.post('/projects/:projectId/bulk', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { projectId } = request.params as { projectId: string };
+
+    try {
+      const data = createBulkEquipmentSchema.parse(request.body);
+
+      // Verify project exists
+      const project = await prisma.project.findUnique({ where: { id: projectId } });
+      if (!project) {
+        return reply.status(404).send({ error: 'Project not found' });
+      }
+
+      // Validate serials array length if provided
+      if (data.serials && data.serials.length !== data.quantity) {
+        return reply.status(400).send({
+          error: `Serials array length (${data.serials.length}) must match quantity (${data.quantity})`
+        });
+      }
+
+      // Generate assets
+      const assetsToCreate = [];
+      for (let i = 0; i < data.quantity; i++) {
+        const sequenceNum = data.startNumber + i;
+        const paddedNum = sequenceNum.toString().padStart(3, '0');
+        const name = `${data.namePrefix}-${paddedNum}`;
+
+        assetsToCreate.push({
+          name,
+          projectId,
+          status: 'IN_STOCK' as const,
+          assetTypeId: data.assetTypeId,
+          model: data.model,
+          notes: data.notes,
+          serialNumber: data.serials?.[i]?.serialNumber || undefined,
+          macAddress: data.serials?.[i]?.macAddress || undefined,
+        });
+      }
+
+      // Create all assets in a transaction
+      const createdAssets = await prisma.$transaction(
+        assetsToCreate.map(assetData =>
+          prisma.asset.create({
+            data: assetData,
+            include: { assetType: true },
+          })
+        )
+      );
+
+      return reply.status(201).send({
+        assets: createdAssets,
+        count: createdAssets.length,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+      }
+      throw error;
+    }
+  });
+
+  // PUT /api/assets/:id/assign - Assign asset to room with optional pin position
+  app.put('/:id/assign', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const { roomId, floorId, pinX, pinY } = request.body as {
+      roomId?: string;
+      floorId?: string;
+      pinX?: number;
+      pinY?: number;
+    };
+
+    if (!roomId && !floorId) {
+      return reply.status(400).send({ error: 'Either roomId or floorId is required' });
+    }
+
+    // Verify asset exists
+    const asset = await prisma.asset.findUnique({ where: { id } });
+    if (!asset) {
+      return reply.status(404).send({ error: 'Asset not found' });
+    }
+
+    // Build update data
+    const updateData: any = {};
+
+    if (roomId) {
+      // Verify room exists and get projectId for validation
+      const room = await prisma.room.findUnique({
+        where: { id: roomId },
+        include: { floor: { include: { building: true } } },
+      });
+      if (!room) {
+        return reply.status(404).send({ error: 'Room not found' });
+      }
+      // Validate asset belongs to same project
+      if (asset.projectId && asset.projectId !== room.floor.building.projectId) {
+        return reply.status(400).send({ error: 'Asset belongs to a different project' });
+      }
+      updateData.roomId = roomId;
+      updateData.floorId = null; // Clear floor assignment when assigning to room
+    } else if (floorId) {
+      // Verify floor exists
+      const floor = await prisma.floor.findUnique({
+        where: { id: floorId },
+        include: { building: true },
+      });
+      if (!floor) {
+        return reply.status(404).send({ error: 'Floor not found' });
+      }
+      // Validate asset belongs to same project
+      if (asset.projectId && asset.projectId !== floor.building.projectId) {
+        return reply.status(400).send({ error: 'Asset belongs to a different project' });
+      }
+      updateData.floorId = floorId;
+      updateData.roomId = null; // Clear room assignment when assigning to floor
+    }
+
+    // Set pin position if provided
+    if (pinX !== undefined) updateData.pinX = pinX;
+    if (pinY !== undefined) updateData.pinY = pinY;
+
+    const updatedAsset = await prisma.asset.update({
+      where: { id },
+      data: updateData,
+      include: {
+        assetType: true,
+        room: { select: { id: true, name: true } },
+        floor: { select: { id: true, name: true } },
+        installedBy: { select: { id: true, name: true } },
+      },
+    });
+
+    return reply.send({ asset: updatedAsset });
   });
 }

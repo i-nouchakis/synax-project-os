@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Calendar,
   Building2,
+  Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -23,6 +24,7 @@ import {
   ModalSection,
   ModalActions,
   Input,
+  Textarea,
   Select,
 } from '@/components/ui';
 import { projectService, type Project, type CreateProjectData, type UpdateProjectData, type ProjectStatus } from '@/services/project.service';
@@ -53,11 +55,24 @@ export function ProjectsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteConfirmProject, setDeleteConfirmProject] = useState<Project | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch projects
   const { data: projects = [], isLoading, error } = useQuery({
     queryKey: ['projects'],
     queryFn: projectService.getAll,
+  });
+
+  // Filter projects based on search query
+  const filteredProjects = projects.filter((project) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      project.name.toLowerCase().includes(query) ||
+      project.clientName.toLowerCase().includes(query) ||
+      project.location?.toLowerCase().includes(query) ||
+      project.status.toLowerCase().includes(query)
+    );
   });
 
   // Create project mutation
@@ -111,18 +126,32 @@ export function ProjectsPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-h1">Projects</h1>
-          <p className="text-body text-text-secondary mt-1">
-            Manage your ICT installation projects
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-h1">Projects</h1>
+            <p className="text-body text-text-secondary mt-1">
+              Manage your ICT installation projects
+            </p>
+          </div>
+          {canManage && (
+            <Button onClick={() => setIsCreateModalOpen(true)} leftIcon={<Plus size={18} />}>
+              New Project
+            </Button>
+          )}
         </div>
-        {canManage && (
-          <Button onClick={() => setIsCreateModalOpen(true)} leftIcon={<Plus size={18} />}>
-            New Project
-          </Button>
-        )}
+
+        {/* Search Bar */}
+        <div className="relative max-w-md">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search projects..."
+            className="w-full pl-10 pr-4 py-2.5 bg-surface border border-surface-border rounded-lg text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          />
+        </div>
       </div>
 
       {/* Projects Grid */}
@@ -145,9 +174,19 @@ export function ProjectsPage() {
             )}
           </CardContent>
         </Card>
+      ) : filteredProjects.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Search size={48} className="mx-auto text-text-tertiary mb-4" />
+            <h3 className="text-h3 text-text-primary mb-2">No results found</h3>
+            <p className="text-body text-text-secondary">
+              No projects match "{searchQuery}"
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map((project) => (
+          {filteredProjects.map((project) => (
             <Card
               key={project.id}
               className="hover:border-primary/50 transition-colors cursor-pointer"
@@ -392,18 +431,14 @@ function ProjectFormModal({
               placeholder="Athens, Greece"
               leftIcon={<MapPin size={16} />}
             />
-            <div>
-              <label className="block text-body-sm font-medium text-text-secondary mb-1.5">
-                Description
-              </label>
-              <textarea
-                value={formData.description || ''}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Project description..."
-                rows={3}
-                className="w-full bg-surface border border-surface-border rounded-md px-3 py-2 text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none"
-              />
-            </div>
+            <Textarea
+              label="Description"
+              value={formData.description || ''}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Project description..."
+              minRows={2}
+              maxRows={6}
+            />
           </div>
         </ModalSection>
 

@@ -76,6 +76,21 @@ interface PhotoResponse {
   photo: ChecklistPhoto;
 }
 
+export interface CustomChecklistItem {
+  name: string;
+  description?: string;
+  requiresPhoto?: boolean;
+  isRequired?: boolean;
+}
+
+export interface CreateChecklistOptions {
+  type: ChecklistType;
+  assignedToId?: string;
+  useDefault?: boolean;
+  templateIds?: string[];
+  customItems?: CustomChecklistItem[];
+}
+
 export const checklistService = {
   // Get all checklists for an asset
   async getByAsset(assetId: string): Promise<Checklist[]> {
@@ -89,17 +104,14 @@ export const checklistService = {
     return response.checklist;
   },
 
-  // Create checklist for asset (supports multiple templates)
-  async create(
-    assetId: string,
-    type: ChecklistType,
-    assignedToId?: string,
-    templateIds?: string[]
-  ): Promise<Checklist> {
+  // Create checklist for asset (supports default, templates, or custom items)
+  async create(assetId: string, options: CreateChecklistOptions): Promise<Checklist> {
     const response = await api.post<ChecklistResponse>(`/checklists/asset/${assetId}`, {
-      type,
-      assignedToId,
-      templateIds: templateIds?.length ? templateIds : undefined,
+      type: options.type,
+      assignedToId: options.assignedToId,
+      useDefault: options.useDefault,
+      templateIds: options.templateIds?.length ? options.templateIds : undefined,
+      customItems: options.customItems?.length ? options.customItems : undefined,
     });
     return response.checklist;
   },

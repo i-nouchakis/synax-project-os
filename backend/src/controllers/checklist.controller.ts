@@ -8,6 +8,13 @@ const createChecklistSchema = z.object({
   assignedToId: z.string().optional(),
   templateId: z.string().optional(), // Optional: use a single checklist template (legacy)
   templateIds: z.array(z.string()).optional(), // Optional: use multiple templates (items merged)
+  useDefault: z.boolean().optional(), // Use the default template for this type
+  customItems: z.array(z.object({
+    name: z.string().min(1),
+    description: z.string().optional(),
+    requiresPhoto: z.boolean().optional(),
+    isRequired: z.boolean().optional(),
+  })).optional(), // Custom items (no template)
 });
 
 const updateChecklistItemSchema = z.object({
@@ -162,43 +169,19 @@ export async function checklistRoutes(app: FastifyInstance) {
       }> = [];
       let templateId: string | undefined;
 
-      // Handle multiple templates (new way) or single template (legacy)
-      const templateIdsToUse = data.templateIds || (data.templateId ? [data.templateId] : []);
-
-      if (templateIdsToUse.length > 0) {
-        // Fetch all specified templates
-        const templates = await prisma.checklistTemplate.findMany({
-          where: { id: { in: templateIdsToUse } },
-          include: { items: { orderBy: { order: 'asc' } } },
-        });
-
-        if (templates.length !== templateIdsToUse.length) {
-          const foundIds = templates.map(t => t.id);
-          const missingIds = templateIdsToUse.filter(id => !foundIds.includes(id));
-          return reply.status(400).send({ error: `Templates not found: ${missingIds.join(', ')}` });
-        }
-
-        // If single template, store templateId for sync purposes
-        if (templates.length === 1) {
-          templateId = templates[0].id;
-        }
-
-        // Merge items from all templates, maintaining order
-        let currentOrder = 0;
-        for (const template of templates) {
-          for (const item of template.items) {
-            itemsToCreate.push({
-              name: item.name,
-              description: item.description || undefined,
-              requiresPhoto: item.requiresPhoto,
-              isRequired: item.isRequired,
-              order: currentOrder++,
-              sourceItemId: item.id, // Link to template item for sync
-            });
-          }
-        }
-      } else {
-        // Try to find a default template for this type
+      // MODE 1: Custom items provided - use them directly (no template)
+      if (data.customItems && data.customItems.length > 0) {
+        itemsToCreate = data.customItems.map((item, index) => ({
+          name: item.name,
+          description: item.description || undefined,
+          requiresPhoto: item.requiresPhoto || false,
+          isRequired: item.isRequired !== false,
+          order: index,
+          // No sourceItemId - custom items are not linked to templates
+        }));
+      }
+      // MODE 2: Use default template explicitly requested
+      else if (data.useDefault) {
         const defaultTemplate = await prisma.checklistTemplate.findFirst({
           where: {
             type: data.type,
@@ -213,26 +196,94 @@ export async function checklistRoutes(app: FastifyInstance) {
           orderBy: { assetTypeId: 'desc' }, // Prefer specific asset type templates
         });
 
-        if (defaultTemplate) {
-          templateId = defaultTemplate.id;
-          itemsToCreate = defaultTemplate.items.map((item) => ({
-            name: item.name,
-            description: item.description || undefined,
-            requiresPhoto: item.requiresPhoto,
-            isRequired: item.isRequired,
-            order: item.order,
-            sourceItemId: item.id,
-          }));
-        } else {
-          // Fallback to old asset type template (legacy)
-          const legacyTemplate = asset.assetType?.checklistTemplate as { items?: Array<{ name: string; requiresPhoto?: boolean }> } | null;
-          const legacyItems = legacyTemplate?.items || [];
-          itemsToCreate = legacyItems.map((item, index) => ({
-            name: item.name,
-            requiresPhoto: item.requiresPhoto || false,
-            isRequired: true,
-            order: index,
-          }));
+        if (!defaultTemplate) {
+          return reply.status(400).send({ error: `No default template found for type ${data.type}` });
+        }
+
+        templateId = defaultTemplate.id;
+        itemsToCreate = defaultTemplate.items.map((item) => ({
+          name: item.name,
+          description: item.description || undefined,
+          requiresPhoto: item.requiresPhoto,
+          isRequired: item.isRequired,
+          order: item.order,
+          sourceItemId: item.id,
+        }));
+      }
+      // MODE 3: Specific templates selected
+      else {
+        const templateIdsToUse = data.templateIds || (data.templateId ? [data.templateId] : []);
+
+        if (templateIdsToUse.length > 0) {
+          // Fetch all specified templates
+          const templates = await prisma.checklistTemplate.findMany({
+            where: { id: { in: templateIdsToUse } },
+            include: { items: { orderBy: { order: 'asc' } } },
+          });
+
+          if (templates.length !== templateIdsToUse.length) {
+            const foundIds = templates.map(t => t.id);
+            const missingIds = templateIdsToUse.filter(id => !foundIds.includes(id));
+            return reply.status(400).send({ error: `Templates not found: ${missingIds.join(', ')}` });
+          }
+
+          // If single template, store templateId for sync purposes
+          if (templates.length === 1) {
+            templateId = templates[0].id;
+          }
+
+          // Merge items from all templates, maintaining order
+          let currentOrder = 0;
+          for (const template of templates) {
+            for (const item of template.items) {
+              itemsToCreate.push({
+                name: item.name,
+                description: item.description || undefined,
+                requiresPhoto: item.requiresPhoto,
+                isRequired: item.isRequired,
+                order: currentOrder++,
+                sourceItemId: item.id, // Link to template item for sync
+              });
+            }
+          }
+        }
+        // MODE 4: No mode specified - try default template as fallback, or create empty
+        else {
+          const defaultTemplate = await prisma.checklistTemplate.findFirst({
+            where: {
+              type: data.type,
+              isDefault: true,
+              isActive: true,
+              OR: [
+                { assetTypeId: asset.assetTypeId },
+                { assetTypeId: null },
+              ],
+            },
+            include: { items: { orderBy: { order: 'asc' } } },
+            orderBy: { assetTypeId: 'desc' },
+          });
+
+          if (defaultTemplate) {
+            templateId = defaultTemplate.id;
+            itemsToCreate = defaultTemplate.items.map((item) => ({
+              name: item.name,
+              description: item.description || undefined,
+              requiresPhoto: item.requiresPhoto,
+              isRequired: item.isRequired,
+              order: item.order,
+              sourceItemId: item.id,
+            }));
+          } else {
+            // Fallback to old asset type template (legacy)
+            const legacyTemplate = asset.assetType?.checklistTemplate as { items?: Array<{ name: string; requiresPhoto?: boolean }> } | null;
+            const legacyItems = legacyTemplate?.items || [];
+            itemsToCreate = legacyItems.map((item, index) => ({
+              name: item.name,
+              requiresPhoto: item.requiresPhoto || false,
+              isRequired: true,
+              order: index,
+            }));
+          }
         }
       }
 

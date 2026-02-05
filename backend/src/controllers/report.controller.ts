@@ -392,7 +392,9 @@ export async function reportRoutes(app: FastifyInstance) {
       recentActivity: recentActivity.map(item => ({
         itemName: item.name,
         assetName: item.checklist.asset.name,
-        location: `${item.checklist.asset.room.floor?.name} / ${item.checklist.asset.room.name}`,
+        location: item.checklist.asset.room
+          ? `${item.checklist.asset.room.floor?.name} / ${item.checklist.asset.room.name}`
+          : 'Floor-level',
         completedBy: item.completedBy?.name,
         completedAt: item.completedAt,
       })),
@@ -926,7 +928,9 @@ export async function reportRoutes(app: FastifyInstance) {
           recentActivity: recentActivity.map(a => ({
             itemName: a.name,
             assetName: a.checklist.asset.name,
-            location: `${a.checklist.asset.room.floor?.name} / ${a.checklist.asset.room.name}`,
+            location: a.checklist.asset.room
+              ? `${a.checklist.asset.room.floor?.name} / ${a.checklist.asset.room.name}`
+              : 'Floor-level',
             completedBy: a.completedBy?.name,
             completedAt: a.completedAt,
           })),

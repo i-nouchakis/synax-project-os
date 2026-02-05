@@ -21,8 +21,8 @@ const updateFloorSchema = z.object({
 const createRoomSchema = z.object({
   name: z.string().min(1),
   type: z.string().optional(),
-  pinX: z.number().optional(),
-  pinY: z.number().optional(),
+  pinX: z.number().nullable().optional(),
+  pinY: z.number().nullable().optional(),
   notes: z.string().optional(),
 });
 
@@ -53,7 +53,7 @@ export async function floorRoutes(app: FastifyInstance) {
     return reply.send({ floors });
   });
 
-  // GET /api/floors/:id - Get floor with rooms
+  // GET /api/floors/:id - Get floor with rooms and floor-level assets
   app.get('/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
 
@@ -72,6 +72,15 @@ export async function floorRoutes(app: FastifyInstance) {
             _count: { select: { assets: true, issues: true } },
           },
           orderBy: { name: 'asc' },
+        },
+        assets: {
+          where: { roomId: null },
+          include: {
+            assetType: true,
+            installedBy: { select: { id: true, name: true } },
+            _count: { select: { checklists: true } },
+          },
+          orderBy: { createdAt: 'desc' },
         },
       },
     });

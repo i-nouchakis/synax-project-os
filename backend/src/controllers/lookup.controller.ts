@@ -38,10 +38,6 @@ const createAssetModelSchema = z.object({
   order: z.number().int().optional(),
 });
 
-const updateOrderSchema = z.object({
-  order: z.number().int(),
-});
-
 const updateActiveSchema = z.object({
   isActive: z.boolean(),
 });

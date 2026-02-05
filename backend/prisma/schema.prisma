@@ -133,6 +133,7 @@ model Project {
   members          ProjectMember[]
   signatures       Signature[]
   timeEntries      TimeEntry[]
+  assets           Asset[]         @relation("ProjectAssets")
 
   @@map("projects")
 }
@@ -180,6 +181,7 @@ model Floor {
   updatedAt     DateTime @updatedAt @map("updated_at")
   building      Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
   rooms         Room[]
+  assets        Asset[]  @relation("FloorAssets")
 
   @@map("floors")
 }
@@ -220,7 +222,9 @@ model AssetType {
 
 model Asset {
   id            String      @id @default(cuid())
-  roomId        String      @map("room_id")
+  projectId     String?     @map("project_id")
+  roomId        String?     @map("room_id")
+  floorId       String?     @map("floor_id")
   assetTypeId   String?     @map("asset_type_id")
   name          String
   labelCode     String?     @unique @map("label_code")
@@ -228,7 +232,7 @@ model Asset {
   serialNumber  String?     @map("serial_number")
   macAddress    String?     @map("mac_address")
   ipAddress     String?     @map("ip_address")
-  status        AssetStatus @default(PLANNED)
+  status        AssetStatus @default(IN_STOCK)
   installedById String?     @map("installed_by_id")
   installedAt   DateTime?   @map("installed_at")
   notes         String?
@@ -236,9 +240,11 @@ model Asset {
   updatedAt     DateTime    @updatedAt @map("updated_at")
   pinX          Float?      @map("pin_x")
   pinY          Float?      @map("pin_y")
+  project       Project?    @relation("ProjectAssets", fields: [projectId], references: [id], onDelete: Cascade)
   assetType     AssetType?  @relation(fields: [assetTypeId], references: [id])
   installedBy   User?       @relation("InstalledBy", fields: [installedById], references: [id])
-  room          Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  room          Room?       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  floor         Floor?      @relation("FloorAssets", fields: [floorId], references: [id], onDelete: Cascade)
   checklists    Checklist[]
   timeEntries   TimeEntry[]
 

@@ -15,16 +15,19 @@ import {
   Settings,
   FileText,
   ClipboardList,
-  Sparkles,
   Star,
+  PenLine,
+  X,
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button, Badge, Modal, ModalSection, ModalActions } from '@/components/ui';
+import { Button, Badge, Modal, ModalSection, ModalActions, Input } from '@/components/ui';
 import {
   checklistService,
   type Checklist,
   type ChecklistItem,
   type ChecklistType,
+  type CustomChecklistItem,
   checklistTypeLabels,
 } from '@/services/checklist.service';
 import { uploadService } from '@/services/upload.service';
@@ -52,6 +55,8 @@ const typeIcons: Record<ChecklistType, React.ReactNode> = {
   DOCUMENTATION: <FileText size={18} className="text-emerald-500" />,
 };
 
+type CreateMode = 'default' | 'template' | 'custom';
+
 export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPanelProps) {
   const queryClient = useQueryClient();
   const [expandedChecklist, setExpandedChecklist] = useState<string | null>(null);
@@ -63,7 +68,14 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedType, setSelectedType] = useState<ChecklistType | null>(null);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
-  const [createMode, setCreateMode] = useState<'template' | 'custom'>('template');
+  const [createMode, setCreateMode] = useState<CreateMode>('default');
+
+  // Custom items state
+  const [showCustomItemsModal, setShowCustomItemsModal] = useState(false);
+  const [customItems, setCustomItems] = useState<CustomChecklistItem[]>([]);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemRequiresPhoto, setNewItemRequiresPhoto] = useState(false);
+  const [newItemIsRequired, setNewItemIsRequired] = useState(true);
 
   // Fetch checklists
   const { data: checklists = [], isLoading } = useQuery({
@@ -94,6 +106,10 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
   // Combine and sort templates (type-specific first, then general)
   const availableTemplates = [...templates.filter(t => t.type === selectedType), ...generalTemplates];
 
+  // Find the default template for the selected type
+  const defaultTemplate = availableTemplates.find(t => t.isDefault && t.type === selectedType)
+    || availableTemplates.find(t => t.isDefault);
+
   // Generate all checklists mutation
   const generateMutation = useMutation({
     mutationFn: () => checklistService.generateAll(assetId),
@@ -108,8 +124,12 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
 
   // Create single checklist mutation
   const createChecklistMutation = useMutation({
-    mutationFn: (data: { type: ChecklistType; templateIds?: string[] }) =>
-      checklistService.create(assetId, data.type, undefined, data.templateIds),
+    mutationFn: (options: {
+      type: ChecklistType;
+      useDefault?: boolean;
+      templateIds?: string[];
+      customItems?: CustomChecklistItem[];
+    }) => checklistService.create(assetId, options),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checklists', assetId] });
       toast.success('Checklist created');
@@ -125,22 +145,42 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
     setShowCreateModal(true);
     setSelectedType(null);
     setSelectedTemplateIds([]);
-    setCreateMode('template');
+    setCreateMode('default');
+    setCustomItems([]);
   };
 
   const closeCreateModal = () => {
     setShowCreateModal(false);
     setSelectedType(null);
     setSelectedTemplateIds([]);
-    setCreateMode('template');
+    setCreateMode('default');
+    setCustomItems([]);
+    setShowCustomItemsModal(false);
   };
 
   const handleCreateChecklist = () => {
     if (!selectedType) return;
-    createChecklistMutation.mutate({
-      type: selectedType,
-      templateIds: createMode === 'template' && selectedTemplateIds.length > 0 ? selectedTemplateIds : undefined,
-    });
+
+    if (createMode === 'default') {
+      createChecklistMutation.mutate({
+        type: selectedType,
+        useDefault: true,
+      });
+    } else if (createMode === 'template') {
+      createChecklistMutation.mutate({
+        type: selectedType,
+        templateIds: selectedTemplateIds.length > 0 ? selectedTemplateIds : undefined,
+      });
+    } else if (createMode === 'custom') {
+      if (customItems.length === 0) {
+        toast.error('Please add at least one item');
+        return;
+      }
+      createChecklistMutation.mutate({
+        type: selectedType,
+        customItems,
+      });
+    }
   };
 
   // Toggle template selection
@@ -157,6 +197,26 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
     return availableTemplates
       .filter(t => selectedTemplateIds.includes(t.id))
       .reduce((sum, t) => sum + t.items.length, 0);
+  };
+
+  // Custom items handlers
+  const handleAddCustomItem = () => {
+    if (!newItemName.trim()) {
+      toast.error('Please enter an item name');
+      return;
+    }
+    setCustomItems(prev => [...prev, {
+      name: newItemName.trim(),
+      requiresPhoto: newItemRequiresPhoto,
+      isRequired: newItemIsRequired,
+    }]);
+    setNewItemName('');
+    setNewItemRequiresPhoto(false);
+    setNewItemIsRequired(true);
+  };
+
+  const handleRemoveCustomItem = (index: number) => {
+    setCustomItems(prev => prev.filter((_, i) => i !== index));
   };
 
   // Get existing checklist types
@@ -222,6 +282,15 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
     if (checklist.items.length === 0) return 0;
     const completed = checklist.items.filter((item) => item.completed).length;
     return Math.round((completed / checklist.items.length) * 100);
+  };
+
+  // Check if can create with current mode
+  const canCreate = () => {
+    if (!selectedType) return false;
+    if (createMode === 'default') return !!defaultTemplate;
+    if (createMode === 'template') return selectedTemplateIds.length > 0;
+    if (createMode === 'custom') return customItems.length > 0;
+    return false;
   };
 
   if (isLoading) {
@@ -394,7 +463,6 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
                             <button
                               onClick={() => {
                                 setUploadingItemId(item.id);
-                                // Trigger file input
                                 const input = document.createElement('input');
                                 input.type = 'file';
                                 input.accept = 'image/*';
@@ -446,7 +514,7 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
             {viewingPhotos.photos.length === 0 ? (
               <p className="text-center text-text-secondary py-8">No photos</p>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {viewingPhotos.photos.map((photo) => (
                   <div key={photo.id} className="relative group">
                     <img
@@ -481,7 +549,7 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
         onClose={closeCreateModal}
         title="Create Checklist"
         icon={<ClipboardList size={18} />}
-        size="md"
+        size="lg"
         footer={
           <ModalActions>
             <Button variant="secondary" onClick={closeCreateModal}>
@@ -490,94 +558,143 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
             <Button
               onClick={handleCreateChecklist}
               isLoading={createChecklistMutation.isPending}
-              disabled={!selectedType}
+              disabled={!canCreate()}
             >
               Create Checklist
             </Button>
           </ModalActions>
         }
       >
-        <div className="space-y-5">
+        <div className="space-y-6">
           {/* Step 1: Select Type */}
-          <ModalSection title="1. Select Checklist Type">
-            <div className="grid grid-cols-2 gap-2">
+          <ModalSection title="Step 1: Select Checklist Type" icon={<ListChecks size={14} />}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {availableTypes.map((type) => (
                 <button
                   key={type}
                   onClick={() => {
                     setSelectedType(type);
                     setSelectedTemplateIds([]);
+                    setCustomItems([]);
                   }}
-                  className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
                     selectedType === type
                       ? 'border-primary bg-primary/10'
-                      : 'border-surface-border hover:border-primary/50'
+                      : 'border-surface-border hover:border-primary/50 hover:bg-surface-hover'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-surface flex items-center justify-center">
                     {typeIcons[type]}
                   </div>
-                  <span className="text-body font-medium text-text-primary">
+                  <span className="text-body-sm font-medium text-text-primary text-center">
                     {checklistTypeLabels[type]}
                   </span>
                 </button>
               ))}
             </div>
+            {availableTypes.length === 0 && (
+              <p className="text-center text-text-secondary py-4">
+                All checklist types have been created for this asset
+              </p>
+            )}
           </ModalSection>
 
           {/* Step 2: Choose Mode */}
           {selectedType && (
-            <ModalSection title="2. Choose Mode">
-              <div className="space-y-2">
+            <ModalSection title="Step 2: Choose Creation Mode" icon={<Settings size={14} />}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* Default Option */}
                 <button
-                  onClick={() => setCreateMode('template')}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                  onClick={() => {
+                    setCreateMode('default');
+                    setSelectedTemplateIds([]);
+                    setCustomItems([]);
+                  }}
+                  disabled={!defaultTemplate}
+                  className={`flex flex-col p-4 rounded-lg border-2 transition-all text-left ${
+                    createMode === 'default'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-surface-border hover:border-primary/50 hover:bg-surface-hover'
+                  } ${!defaultTemplate ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                      <Star size={20} className="text-warning fill-warning" />
+                    </div>
+                    <p className="text-body font-semibold text-text-primary">Default</p>
+                  </div>
+                  {defaultTemplate ? (
+                    <p className="text-caption text-text-tertiary mt-2">
+                      Uses "{defaultTemplate.name}" with {defaultTemplate.items.length} pre-defined items
+                    </p>
+                  ) : (
+                    <p className="text-caption text-text-tertiary mt-2">
+                      No default template available for this type
+                    </p>
+                  )}
+                </button>
+
+                {/* Select Templates Option */}
+                <button
+                  onClick={() => {
+                    setCreateMode('template');
+                    setCustomItems([]);
+                  }}
+                  className={`flex flex-col p-4 rounded-lg border-2 transition-all text-left ${
                     createMode === 'template'
                       ? 'border-primary bg-primary/10'
-                      : 'border-surface-border hover:border-primary/50'
+                      : 'border-surface-border hover:border-primary/50 hover:bg-surface-hover'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <ClipboardList size={18} className="text-primary" />
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <ClipboardList size={20} className="text-primary" />
+                    </div>
+                    <p className="text-body font-semibold text-text-primary">Select Templates</p>
                   </div>
-                  <div className="flex-1 text-left">
-                    <p className="text-body font-medium text-text-primary">Use Template</p>
-                    <p className="text-caption text-text-tertiary">
-                      Start with a predefined template with auto-sync
-                    </p>
-                  </div>
+                  <p className="text-caption text-text-tertiary mt-2">
+                    Choose one or more templates and merge their items together
+                  </p>
                 </button>
+
+                {/* Custom Items Option */}
                 <button
                   onClick={() => {
                     setCreateMode('custom');
                     setSelectedTemplateIds([]);
+                    setShowCustomItemsModal(true);
                   }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                  className={`flex flex-col p-4 rounded-lg border-2 transition-all text-left ${
                     createMode === 'custom'
                       ? 'border-primary bg-primary/10'
-                      : 'border-surface-border hover:border-primary/50'
+                      : 'border-surface-border hover:border-primary/50 hover:bg-surface-hover'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center">
-                    <Sparkles size={18} className="text-text-secondary" />
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                      <PenLine size={20} className="text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-body font-semibold text-text-primary">Custom Items</p>
+                      {customItems.length > 0 && (
+                        <Badge variant="success" size="sm">{customItems.length} items</Badge>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 text-left">
-                    <p className="text-body font-medium text-text-primary">Custom (Empty)</p>
-                    <p className="text-caption text-text-tertiary">
-                      Create an empty checklist and add items manually
-                    </p>
-                  </div>
+                  <p className="text-caption text-text-tertiary mt-2">
+                    Create your own custom checklist items from scratch
+                  </p>
                 </button>
               </div>
             </ModalSection>
           )}
 
-          {/* Step 3: Select Templates (Multi-select) */}
+          {/* Step 3: Select Templates (only if template mode) */}
           {selectedType && createMode === 'template' && (
             <ModalSection
               title={
                 <div className="flex items-center justify-between w-full">
-                  <span>3. Select Templates</span>
+                  <span>Step 3: Select Templates</span>
                   {selectedTemplateIds.length > 0 && (
                     <Badge variant="primary" size="sm">
                       {selectedTemplateIds.length} selected • {getTotalSelectedItems()} items
@@ -585,62 +702,56 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
                   )}
                 </div>
               }
+              icon={<ClipboardList size={14} />}
             >
               {availableTemplates.length === 0 ? (
-                <div className="text-center py-6 text-text-secondary">
-                  <ClipboardList size={32} className="mx-auto mb-2 opacity-50" />
-                  <p className="text-body">No templates available</p>
-                  <p className="text-caption">Create one in Settings → Templates</p>
+                <div className="text-center py-8 text-text-secondary">
+                  <ClipboardList size={40} className="mx-auto mb-3 opacity-50" />
+                  <p className="text-body font-medium">No templates available</p>
+                  <p className="text-caption mt-1">Create templates in Settings → Checklist Templates</p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  <p className="text-caption text-text-tertiary mb-2">
-                    Select one or more templates. Items will be merged into the checklist.
-                  </p>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
                   {availableTemplates.map((template) => {
                     const isSelected = selectedTemplateIds.includes(template.id);
                     return (
                       <button
                         key={template.id}
                         onClick={() => toggleTemplateSelection(template.id)}
-                        className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                        className={`w-full flex items-center gap-4 p-4 rounded-lg border-2 transition-all ${
                           isSelected
                             ? 'border-primary bg-primary/10'
-                            : 'border-surface-border hover:border-primary/50'
+                            : 'border-surface-border hover:border-primary/50 hover:bg-surface-hover'
                         }`}
                       >
                         {/* Checkbox */}
-                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                        <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                           isSelected
                             ? 'bg-primary border-primary'
                             : 'border-surface-border'
                         }`}>
-                          {isSelected && (
-                            <CheckCircle2 size={14} className="text-white" />
-                          )}
+                          {isSelected && <Check size={16} className="text-white" />}
                         </div>
                         <div className="flex-1 text-left min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-body font-medium text-text-primary truncate">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-body font-medium text-text-primary">
                               {template.name}
                             </p>
                             {template.isDefault && (
                               <Star size={14} className="text-warning fill-warning flex-shrink-0" />
                             )}
-                            <Badge variant="default" size="sm" className="flex-shrink-0">
+                            <Badge variant="default" size="sm">
                               {templateTypeLabels[template.type]}
                             </Badge>
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <p className="text-caption text-text-tertiary">
+                            <Badge variant="primary" size="sm">
                               {template.items.length} items
-                            </p>
-                            {template.description && (
-                              <p className="text-caption text-text-tertiary truncate">
-                                • {template.description}
-                              </p>
-                            )}
+                            </Badge>
                           </div>
+                          {template.description && (
+                            <p className="text-caption text-text-tertiary mt-1 truncate">
+                              {template.description}
+                            </p>
+                          )}
                         </div>
                       </button>
                     );
@@ -649,6 +760,177 @@ export function ChecklistPanel({ assetId, assetName: _assetName }: ChecklistPane
               )}
             </ModalSection>
           )}
+
+          {/* Step 3: Custom Items Summary (only if custom mode and items exist) */}
+          {selectedType && createMode === 'custom' && customItems.length > 0 && (
+            <ModalSection
+              title={`Step 3: Custom Items (${customItems.length})`}
+              icon={<PenLine size={14} />}
+            >
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {customItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-surface-secondary rounded-lg border border-surface-border"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                        <span className="text-caption font-semibold text-emerald-500">{index + 1}</span>
+                      </div>
+                      <span className="text-body text-text-primary truncate">{item.name}</span>
+                      {item.isRequired && (
+                        <Badge variant="error" size="sm">Required</Badge>
+                      )}
+                      {item.requiresPhoto && (
+                        <Badge variant="warning" size="sm">
+                          <Camera size={10} className="mr-1" />
+                          Photo
+                        </Badge>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleRemoveCustomItem(index)}
+                      className="p-2 hover:bg-surface-hover rounded-lg text-text-secondary hover:text-error transition-colors ml-2"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowCustomItemsModal(true)}
+                leftIcon={<Plus size={14} />}
+                className="w-full mt-3"
+              >
+                Add More Items
+              </Button>
+            </ModalSection>
+          )}
+        </div>
+      </Modal>
+
+      {/* Custom Items Modal (nested) */}
+      <Modal
+        isOpen={showCustomItemsModal}
+        onClose={() => setShowCustomItemsModal(false)}
+        title="Add Custom Items"
+        icon={<PenLine size={18} />}
+        size="lg"
+        footer={
+          <ModalActions>
+            <Button variant="secondary" onClick={() => setShowCustomItemsModal(false)}>
+              Done ({customItems.length} items)
+            </Button>
+          </ModalActions>
+        }
+      >
+        <div className="space-y-6">
+          {/* Add new item form */}
+          <ModalSection title="Add New Item" icon={<Plus size={14} />}>
+            <div className="space-y-4">
+              <Input
+                label="Item Name"
+                placeholder="Enter checklist item description..."
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCustomItem();
+                  }
+                }}
+              />
+              <div className="flex flex-wrap items-center gap-6">
+                <label className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-surface-hover transition-colors">
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                    newItemIsRequired ? 'bg-primary border-primary' : 'border-surface-border'
+                  }`}>
+                    {newItemIsRequired && <Check size={14} className="text-white" />}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={newItemIsRequired}
+                    onChange={(e) => setNewItemIsRequired(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <span className="text-body text-text-primary">Required Item</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-surface-hover transition-colors">
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                    newItemRequiresPhoto ? 'bg-warning border-warning' : 'border-surface-border'
+                  }`}>
+                    {newItemRequiresPhoto && <Check size={14} className="text-white" />}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={newItemRequiresPhoto}
+                    onChange={(e) => setNewItemRequiresPhoto(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Camera size={16} className="text-warning" />
+                    <span className="text-body text-text-primary">Requires Photo</span>
+                  </div>
+                </label>
+              </div>
+              <Button
+                onClick={handleAddCustomItem}
+                disabled={!newItemName.trim()}
+                leftIcon={<Plus size={16} />}
+                className="w-full"
+              >
+                Add Item
+              </Button>
+            </div>
+          </ModalSection>
+
+          {/* Current items list */}
+          <ModalSection title={`Items List (${customItems.length})`} icon={<ListChecks size={14} />}>
+            {customItems.length === 0 ? (
+              <div className="text-center py-8 text-text-secondary">
+                <ListChecks size={40} className="mx-auto mb-3 opacity-50" />
+                <p className="text-body font-medium">No items yet</p>
+                <p className="text-caption mt-1">Add your first checklist item using the form above</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto">
+                {customItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-surface-secondary rounded-lg border border-surface-border"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                        <span className="text-caption font-semibold text-emerald-500">{index + 1}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-body text-text-primary truncate">{item.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {item.isRequired && (
+                            <Badge variant="error" size="sm">Required</Badge>
+                          )}
+                          {item.requiresPhoto && (
+                            <Badge variant="warning" size="sm">
+                              <Camera size={10} className="mr-1" />
+                              Photo Required
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveCustomItem(index)}
+                      className="p-2 hover:bg-surface-hover rounded-lg text-text-secondary hover:text-error transition-colors ml-3"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ModalSection>
         </div>
       </Modal>
     </div>

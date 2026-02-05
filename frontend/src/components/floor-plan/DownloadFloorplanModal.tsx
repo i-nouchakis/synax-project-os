@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Download, Check, Square, CheckSquare } from 'lucide-react';
+import { Download, Check, Square, CheckSquare, Maximize2, Minimize2 } from 'lucide-react';
 import { Button, Modal, ModalSection, ModalActions, Select } from '@/components/ui';
 import { jsPDF } from 'jspdf';
 
@@ -59,6 +59,7 @@ export function DownloadFloorplanModal({
   const [selectedPins, setSelectedPins] = useState<Set<string>>(new Set(pins.map(p => p.id)));
   const [isDownloading, setIsDownloading] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
 
@@ -93,8 +94,8 @@ export function DownloadFloorplanModal({
     if (!ctx) return;
 
     // Set canvas size to fit container while maintaining aspect ratio
-    const maxWidth = 600;
-    const maxHeight = 400;
+    const maxWidth = isFullScreen ? window.innerWidth - 100 : 600;
+    const maxHeight = isFullScreen ? window.innerHeight - 300 : 400;
     const scale = Math.min(maxWidth / img.width, maxHeight / img.height);
 
     canvas.width = img.width * scale;
@@ -144,7 +145,7 @@ export function DownloadFloorplanModal({
       ctx.fillStyle = '#ffffff';
       ctx.fillText(labelText, x, labelY);
     });
-  }, [imageLoaded, pins, selectedPins]);
+  }, [imageLoaded, pins, selectedPins, isFullScreen]);
 
   useEffect(() => {
     drawPreview();
@@ -369,22 +370,35 @@ export function DownloadFloorplanModal({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => {
+        setIsFullScreen(false);
+        onClose();
+      }}
       title="Download Floor Plan"
-      size="lg"
+      size={isFullScreen ? 'full' : 'lg'}
     >
       <ModalSection>
         <div className="space-y-4">
-          {/* Format selector */}
-          <div>
-            <label className="block text-body-sm text-text-secondary mb-2">
-              Format
-            </label>
-            <Select
-              value={format}
-              onChange={(e) => setFormat(e.target.value as DownloadFormat)}
-              options={formatOptions}
-            />
+          {/* Format selector and fullscreen toggle */}
+          <div className="flex items-end gap-4">
+            <div className="flex-1">
+              <label className="block text-body-sm text-text-secondary mb-2">
+                Format
+              </label>
+              <Select
+                value={format}
+                onChange={(e) => setFormat(e.target.value as DownloadFormat)}
+                options={formatOptions}
+              />
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsFullScreen(!isFullScreen)}
+              leftIcon={isFullScreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            >
+              {isFullScreen ? 'Exit Full Screen' : 'Full Screen'}
+            </Button>
           </div>
 
           {/* Preview */}
@@ -392,11 +406,11 @@ export function DownloadFloorplanModal({
             <label className="block text-body-sm text-text-secondary mb-2">
               Preview
             </label>
-            <div className="bg-background rounded-lg p-4 flex items-center justify-center min-h-[300px]">
+            <div className={`bg-background rounded-lg p-4 flex items-center justify-center ${isFullScreen ? 'min-h-[calc(100vh-400px)]' : 'min-h-[300px]'}`}>
               {imageLoaded ? (
                 <canvas
                   ref={canvasRef}
-                  className="max-w-full max-h-[400px] rounded shadow-md"
+                  className={`max-w-full rounded shadow-md ${isFullScreen ? 'max-h-[calc(100vh-420px)]' : 'max-h-[400px]'}`}
                 />
               ) : (
                 <div className="text-text-tertiary">Loading preview...</div>

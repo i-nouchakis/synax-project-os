@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
   FolderKanban,
+  Building2,
   Layers,
   Box,
   ClipboardCheck,
@@ -51,6 +52,7 @@ const getNavigation = (openIssuesCount: number): NavSection[] => [
     title: 'Project',
     items: [
       { label: 'Projects', icon: <FolderKanban size={20} />, href: '/projects' },
+      { label: 'Buildings', icon: <Building2 size={20} />, href: '/buildings' },
       { label: 'Floors', icon: <Layers size={20} />, href: '/floors' },
       { label: 'Assets', icon: <Box size={20} />, href: '/assets' },
     ],
