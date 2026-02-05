@@ -55,6 +55,10 @@
 - **Checklist Templates** drag & drop reordering + accordion behavior
 - **Global Search** in header (context-aware, replaced local search)
 - **Custom Date Picker** with English locale and dark theme
+- **FloorsPage** restructured to group by project
+- **RoomsPage** new menu item with project grouping
+- **Room Type Icons** with react-icons library (60+ icons)
+- **IconPicker** component for selecting room type icons
 
 ---
 
@@ -119,16 +123,14 @@ backend/src/
 
 ## Git Commits (Recent)
 
+- `38064b1` - feat: Add Rooms page with room type icons
+- `b1eb778` - feat: Restructure FloorsPage to display floors grouped by project
 - `95fc493` - feat: Add global search and custom date picker with English locale
 - `170a04a` - feat: Add drag & drop reordering and accordion behavior to Checklist Templates
 - `7ebb96f` - fix: Remove unused assetSearchQuery state from RoomPlanCanvas
 - `da78485` - fix: Remove unused code and fix null type for pinX/pinY
 - `0f0a698` - fix: Resolve TypeScript strict mode errors for production build
 - `aa5b380` - feat: Major enhancements to Inventory, Checklists, and UI components
-- `8b9a893` - feat: Add Settings toggle for floor plan visibility preference
-- `ce7c9eb` - fix: Keep IN_STOCK assets available in project inventory
-- `7be53f0` - feat: Comprehensive seed, import modal, workflow rules
-- `d418dca` - feat: Add draggable popups and import from inventory for room assets
 
 ---
 

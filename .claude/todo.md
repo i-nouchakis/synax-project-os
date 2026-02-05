@@ -6,6 +6,25 @@
 
 ## Ολοκληρωμένα Σήμερα
 
+### RoomsPage & Room Type Icons (Complete)
+- [x] Added /rooms route with rooms grouped by project
+- [x] Added "Rooms" menu item in Sidebar (below Floors)
+- [x] Installed react-icons library
+- [x] Created IconPicker component with 60+ room icons
+- [x] Updated LookupsPage for room type icon selection
+- [x] Updated room.controller.ts to include roomTypeIcon
+- [x] Updated seed.ts with icons for all 20 room types
+- [x] Updated existing room types in database with icons
+- [x] Commit: `38064b1`
+- [x] Pushed to main
+
+### FloorsPage Restructure (Complete)
+- [x] Group floors by project (accordion style)
+- [x] Show building name in each floor card
+- [x] Sort: project → building → floor level
+- [x] Commit: `b1eb778`
+- [x] Pushed to main
+
 ### Custom Date Picker (Complete)
 - [x] Installed react-datepicker + date-fns
 - [x] Created DateInput component with English locale

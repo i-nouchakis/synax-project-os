@@ -8,9 +8,9 @@
 
 **Production Server:** Running (Contabo) - needs db push + seed
 **Local Development:** Working (port 5174)
-**Database (Local):** Fresh seed with demo data
+**Database (Local):** Fresh seed with demo data + room type icons
 **Database (Cloud):** Needs `prisma db push --force-reset` then seed
-**Latest Commit:** `95fc493` - feat: Add global search and custom date picker
+**Latest Commit:** `38064b1` - feat: Add Rooms page with room type icons
 
 ### Seed Data Summary
 
