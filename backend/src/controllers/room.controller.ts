@@ -16,6 +16,53 @@ export async function roomRoutes(app: FastifyInstance) {
   // Apply authentication to all routes
   app.addHook('preHandler', authenticate);
 
+  // GET /api/rooms - Get all rooms
+  app.get('/', async (_request: FastifyRequest, reply: FastifyReply) => {
+    // Fetch rooms and room types in parallel
+    const [rooms, roomTypes] = await Promise.all([
+      prisma.room.findMany({
+        include: {
+          floor: {
+            select: {
+              id: true,
+              name: true,
+              level: true,
+              building: {
+                select: {
+                  id: true,
+                  name: true,
+                  project: { select: { id: true, name: true, clientName: true } },
+                },
+              },
+            },
+          },
+          _count: { select: { assets: true, issues: true } },
+        },
+        orderBy: [
+          { floor: { building: { project: { name: 'asc' } } } },
+          { floor: { building: { name: 'asc' } } },
+          { floor: { level: 'asc' } },
+          { name: 'asc' },
+        ],
+      }),
+      prisma.lookupRoomType.findMany({
+        where: { isActive: true },
+        select: { name: true, icon: true },
+      }),
+    ]);
+
+    // Create a map of room type name to icon
+    const roomTypeIconMap = new Map(roomTypes.map(rt => [rt.name, rt.icon]));
+
+    // Add roomTypeIcon to each room
+    const roomsWithIcons = rooms.map(room => ({
+      ...room,
+      roomTypeIcon: room.type ? roomTypeIconMap.get(room.type) || null : null,
+    }));
+
+    return reply.send({ rooms: roomsWithIcons });
+  });
+
   // GET /api/rooms/:id - Get room by ID with assets
   app.get('/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };

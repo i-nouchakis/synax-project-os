@@ -115,15 +115,31 @@ async function main() {
   // ============================================
   console.log('🏷️  Creating room types...');
   const roomTypes = [
-    'Guest Room', 'Suite', 'Conference Room', 'Server Room', 'Reception',
-    'Restaurant', 'Bar', 'Kitchen', 'Storage', 'Office',
-    'Gym', 'Spa', 'Pool Area', 'Parking', 'Lobby',
-    'Corridor', 'Elevator Area', 'Bathroom', 'Laundry', 'Staff Room',
+    { name: 'Guest Room', icon: 'MdBed' },
+    { name: 'Suite', icon: 'FaBed' },
+    { name: 'Conference Room', icon: 'MdMeetingRoom' },
+    { name: 'Server Room', icon: 'FaServer' },
+    { name: 'Reception', icon: 'BsReception4' },
+    { name: 'Restaurant', icon: 'MdRestaurant' },
+    { name: 'Bar', icon: 'MdLocalBar' },
+    { name: 'Kitchen', icon: 'MdKitchen' },
+    { name: 'Storage', icon: 'MdStorage' },
+    { name: 'Office', icon: 'MdDesk' },
+    { name: 'Gym', icon: 'MdFitnessCenter' },
+    { name: 'Spa', icon: 'MdSpa' },
+    { name: 'Pool Area', icon: 'MdPool' },
+    { name: 'Parking', icon: 'MdLocalParking' },
+    { name: 'Lobby', icon: 'BsLamp' },
+    { name: 'Corridor', icon: 'MdDoorFront' },
+    { name: 'Elevator Area', icon: 'MdElevator' },
+    { name: 'Bathroom', icon: 'MdBathtub' },
+    { name: 'Laundry', icon: 'MdLocalLaundryService' },
+    { name: 'Staff Room', icon: 'GiOfficeChair' },
   ];
 
   for (let i = 0; i < roomTypes.length; i++) {
     await prisma.lookupRoomType.create({
-      data: { name: roomTypes[i], order: i },
+      data: { name: roomTypes[i].name, icon: roomTypes[i].icon, order: i },
     });
   }
   console.log('✅ Room types created');

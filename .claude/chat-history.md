@@ -37,6 +37,65 @@
 
 ## Session (2026-02-05) - Latest
 
+### Room Type Icons (react-icons)
+**User Request:** Add icon picker for room types, display icons in RoomsPage
+
+**Implementation:**
+- Installed `react-icons` library (40,000+ icons from FA, Material, etc.)
+- Created `IconPicker` component with curated ~60 room-related icons
+- Updated `LookupsPage` to use new IconPicker for Room Types
+- Updated `room.controller.ts` to include `roomTypeIcon` in getAll response
+- Updated `RoomsPage` to display room type icons
+- Updated seed.ts with icons for all 20 room types
+- Updated existing database room types with icons
+
+**Files Created:**
+- `frontend/src/components/ui/icon-picker.tsx`
+
+**Files Modified:**
+- `frontend/package.json` (react-icons)
+- `frontend/src/components/ui/index.ts`
+- `frontend/src/pages/lookups/LookupsPage.tsx`
+- `frontend/src/pages/rooms/RoomsPage.tsx`
+- `frontend/src/services/room.service.ts`
+- `backend/src/controllers/room.controller.ts`
+- `backend/prisma/seed.ts`
+
+**Room Type Icons Mapping:**
+- Guest Room: MdBed, Suite: FaBed, Conference Room: MdMeetingRoom
+- Server Room: FaServer, Reception: BsReception4
+- Restaurant: MdRestaurant, Bar: MdLocalBar, Kitchen: MdKitchen
+- Storage: MdStorage, Office: MdDesk, Gym: MdFitnessCenter
+- Spa: MdSpa, Pool Area: MdPool, Parking: MdLocalParking
+- Lobby: BsLamp, Corridor: MdDoorFront, Elevator: MdElevator
+- Bathroom: MdBathtub, Laundry: MdLocalLaundryService, Staff: GiOfficeChair
+
+---
+
+### RoomsPage (New Menu Item)
+**User Request:** Add Rooms to sidebar menu, display rooms by project like Buildings/Floors
+
+**Implementation:**
+- Added GET /api/rooms endpoint (backend)
+- Created RoomsPage.tsx with project grouping
+- Room cards show: building name, floor name, status badge, asset count
+- Added route /rooms in App.tsx
+- Added "Rooms" menu item in Sidebar (below Floors)
+- Added search placeholder in Header
+
+**Files Created:**
+- `frontend/src/pages/rooms/RoomsPage.tsx`
+- `frontend/src/pages/rooms/index.ts`
+
+**Files Modified:**
+- `backend/src/controllers/room.controller.ts`
+- `frontend/src/services/room.service.ts`
+- `frontend/src/App.tsx`
+- `frontend/src/components/layout/Sidebar.tsx`
+- `frontend/src/components/layout/Header.tsx`
+
+---
+
 ### FloorsPage Restructure (By Project)
 **User Request:** Display floors organized by Project like BuildingsPage
 

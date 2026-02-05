@@ -7,6 +7,7 @@ export interface Room {
   id: string;
   name: string;
   type?: string;
+  roomTypeIcon?: string | null;
   pinX?: number;
   pinY?: number;
   status: RoomStatus;
@@ -26,6 +27,7 @@ export interface Room {
       project?: {
         id: string;
         name: string;
+        clientName?: string;
       };
     };
   };
@@ -49,7 +51,17 @@ interface RoomResponse {
   room: Room;
 }
 
+interface RoomsResponse {
+  rooms: Room[];
+}
+
 export const roomService = {
+  // Get all rooms
+  async getAll(): Promise<Room[]> {
+    const response = await api.get<RoomsResponse>('/rooms');
+    return response.rooms;
+  },
+
   // Get room by ID with assets
   async getById(id: string): Promise<Room> {
     const response = await api.get<RoomResponse>(`/rooms/${id}`);

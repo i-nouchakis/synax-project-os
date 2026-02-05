@@ -12,46 +12,13 @@ import {
   Globe,
   Tag,
   ListFilter,
-  // Icons for Room Types picker
-  Server,
-  Router,
-  Database,
-  Network,
-  Briefcase,
-  Users,
-  Home,
-  Building,
-  MoveHorizontal,
-  Archive,
-  Wrench,
-  Bed,
-  UtensilsCrossed,
-  Wine,
-  Waves,
-  Dumbbell,
-  Sparkles,
-  Car,
-  Circle,
-  Monitor,
-  Cpu,
-  HardDrive,
-  Wifi,
-  Cable,
-  Plug,
-  Lightbulb,
-  Fan,
-  Thermometer,
-  Lock,
-  Key,
-  Camera,
-  Shield,
-  type LucideIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Modal, ModalSection, ModalActions } from '../../components/ui/modal';
+import { IconPicker, getRoomTypeIcon, ROOM_TYPE_ICONS } from '../../components/ui/icon-picker';
 import {
   roomTypeService,
   inventoryUnitService,
@@ -78,56 +45,6 @@ const TABS: { id: TabType; label: string; icon: React.ReactNode }[] = [
   { id: 'asset-models', label: 'Asset Models', icon: <Box size={18} /> },
 ];
 
-// Available icons for Room Types
-const ROOM_TYPE_ICONS: { name: string; icon: LucideIcon; label: string }[] = [
-  // IT & Network
-  { name: 'server', icon: Server, label: 'Server' },
-  { name: 'router', icon: Router, label: 'Router' },
-  { name: 'database', icon: Database, label: 'Database' },
-  { name: 'network', icon: Network, label: 'Network' },
-  { name: 'monitor', icon: Monitor, label: 'Monitor' },
-  { name: 'cpu', icon: Cpu, label: 'CPU' },
-  { name: 'hard-drive', icon: HardDrive, label: 'Hard Drive' },
-  { name: 'wifi', icon: Wifi, label: 'WiFi' },
-  { name: 'cable', icon: Cable, label: 'Cable' },
-  // Rooms & Spaces
-  { name: 'door-open', icon: DoorOpen, label: 'Door' },
-  { name: 'briefcase', icon: Briefcase, label: 'Office' },
-  { name: 'users', icon: Users, label: 'Meeting' },
-  { name: 'home', icon: Home, label: 'Home/Suite' },
-  { name: 'building', icon: Building, label: 'Building' },
-  { name: 'building-2', icon: Building2, label: 'Building 2' },
-  { name: 'move-horizontal', icon: MoveHorizontal, label: 'Hallway' },
-  { name: 'archive', icon: Archive, label: 'Storage' },
-  // Hospitality
-  { name: 'bed', icon: Bed, label: 'Bedroom' },
-  { name: 'utensils', icon: UtensilsCrossed, label: 'Restaurant' },
-  { name: 'wine', icon: Wine, label: 'Bar' },
-  { name: 'waves', icon: Waves, label: 'Pool' },
-  { name: 'dumbbell', icon: Dumbbell, label: 'Gym' },
-  { name: 'sparkles', icon: Sparkles, label: 'Spa' },
-  // Utilities
-  { name: 'wrench', icon: Wrench, label: 'Utility' },
-  { name: 'plug', icon: Plug, label: 'Electrical' },
-  { name: 'lightbulb', icon: Lightbulb, label: 'Lighting' },
-  { name: 'fan', icon: Fan, label: 'HVAC' },
-  { name: 'thermometer', icon: Thermometer, label: 'Climate' },
-  // Security
-  { name: 'lock', icon: Lock, label: 'Security' },
-  { name: 'key', icon: Key, label: 'Access' },
-  { name: 'camera', icon: Camera, label: 'CCTV' },
-  { name: 'shield', icon: Shield, label: 'Shield' },
-  // Other
-  { name: 'car', icon: Car, label: 'Parking' },
-  { name: 'box', icon: Box, label: 'Box' },
-  { name: 'circle', icon: Circle, label: 'Other' },
-];
-
-// Get icon component by name
-function getIconByName(name: string): LucideIcon | null {
-  const found = ROOM_TYPE_ICONS.find(i => i.name === name);
-  return found?.icon || null;
-}
 
 export function LookupsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('room-types');
@@ -316,8 +233,8 @@ function RoomTypesTab() {
         </ModalSection>
         <ModalSection title="Select Icon">
           <IconPicker
-            selectedIcon={formData.icon}
-            onSelect={(iconName) => setFormData({ ...formData, icon: iconName })}
+            value={formData.icon}
+            onChange={(iconName) => setFormData({ ...formData, icon: iconName })}
           />
         </ModalSection>
       </Modal>
@@ -1060,8 +977,8 @@ function AssetModelsTab() {
         </ModalSection>
         <ModalSection title="Select Icon">
           <IconPicker
-            selectedIcon={formData.icon}
-            onSelect={(iconName) => setFormData({ ...formData, icon: iconName })}
+            value={formData.icon}
+            onChange={(iconName) => setFormData({ ...formData, icon: iconName })}
           />
         </ModalSection>
       </Modal>
@@ -1197,7 +1114,7 @@ interface LookupItemWithIconProps {
 }
 
 function LookupItemWithIcon({ name, subtitle, iconName, onEdit, onDelete }: LookupItemWithIconProps) {
-  const IconComponent = iconName ? getIconByName(iconName) : null;
+  const IconComponent = iconName ? getRoomTypeIcon(iconName) : null;
 
   return (
     <div className="flex items-center justify-between px-4 py-3 rounded-lg border transition-all bg-surface border-surface-border hover:bg-surface-hover">
@@ -1236,37 +1153,6 @@ function LookupItemWithIcon({ name, subtitle, iconName, onEdit, onDelete }: Look
           <Trash2 size={16} className="text-text-secondary hover:text-error" />
         </button>
       </div>
-    </div>
-  );
-}
-
-// ============================================
-// Icon Picker Component
-// ============================================
-interface IconPickerProps {
-  selectedIcon: string;
-  onSelect: (iconName: string) => void;
-}
-
-function IconPicker({ selectedIcon, onSelect }: IconPickerProps) {
-  return (
-    <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
-      {ROOM_TYPE_ICONS.map(({ name, icon: Icon, label }) => (
-        <button
-          key={name}
-          type="button"
-          onClick={() => onSelect(name)}
-          className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 ${
-            selectedIcon === name
-              ? 'border-primary bg-primary/10 text-primary'
-              : 'border-surface-border bg-surface hover:bg-surface-hover hover:border-primary/50 text-text-secondary'
-          }`}
-          title={label}
-        >
-          <Icon size={20} />
-          <span className="text-tiny truncate w-full text-center">{label}</span>
-        </button>
-      ))}
     </div>
   );
 }

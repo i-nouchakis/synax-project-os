@@ -28,6 +28,7 @@ const getSearchPlaceholder = (pathname: string): string => {
   if (pathname.startsWith('/projects')) return 'Search projects...';
   if (pathname.startsWith('/buildings')) return 'Search buildings...';
   if (pathname.startsWith('/floors')) return 'Search floors...';
+  if (pathname.startsWith('/rooms')) return 'Search rooms...';
   if (pathname.startsWith('/assets')) return 'Search assets...';
   if (pathname.startsWith('/inventory')) return 'Search inventory...';
   if (pathname.startsWith('/issues')) return 'Search issues...';

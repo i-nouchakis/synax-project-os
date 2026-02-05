@@ -17,7 +17,7 @@ import { ProjectDetailPage } from '@/pages/projects/ProjectDetailPage';
 import { FloorsPage } from '@/pages/floors/FloorsPage';
 import { FloorDetailPage } from '@/pages/floors/FloorDetailPage';
 import { BuildingDetailPage, BuildingsPage } from '@/pages/buildings';
-import { RoomDetailPage } from '@/pages/rooms/RoomDetailPage';
+import { RoomsPage, RoomDetailPage } from '@/pages/rooms';
 import { AssetsPage } from '@/pages/assets/AssetsPage';
 import { AssetDetailPage } from '@/pages/assets/AssetDetailPage';
 import { ChecklistsPage } from '@/pages/checklists';
@@ -176,6 +176,7 @@ function App() {
               <Route path="/buildings/:id" element={<BuildingDetailPage />} />
               <Route path="/floors" element={<FloorsPage />} />
               <Route path="/floors/:id" element={<FloorDetailPage />} />
+              <Route path="/rooms" element={<RoomsPage />} />
               <Route path="/rooms/:id" element={<RoomDetailPage />} />
               <Route path="/assets" element={<AssetsPage />} />
               <Route path="/assets/:id" element={<AssetDetailPage />} />
