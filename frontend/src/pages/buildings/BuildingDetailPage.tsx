@@ -43,6 +43,7 @@ export default function BuildingDetailPage() {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [isEditingPins, setIsEditingPins] = useState(false);
   const [showFloorplan, setShowFloorplan] = useState(true);
+  const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const [floorForm, setFloorForm] = useState({ name: '', level: 0 });
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFloorId, setSelectedFloorId] = useState<string | null>(null);
@@ -256,6 +257,7 @@ export default function BuildingDetailPage() {
                     selectedPinId={selectedFloorId}
                     isEditable={isEditingPins}
                     showLegend={false}
+                    onMaximize={() => setIsFullScreenOpen(true)}
                     onPinClick={(pin) => {
                       setSelectedFloorId(pin.id);
                       navigate(`/floors/${pin.id}`);
@@ -470,6 +472,87 @@ export default function BuildingDetailPage() {
             .map(f => ({ id: f.id, name: f.name, x: f.pinX!, y: f.pinY!, status: 'IN_PROGRESS' as const }))}
           pinType="floor"
         />
+      )}
+
+      {/* Full Screen Floor Plan Modal */}
+      {building.floorplanUrl && building.floorplanType !== 'PDF' && (
+        <Modal
+          isOpen={isFullScreenOpen}
+          onClose={() => setIsFullScreenOpen(false)}
+          title={`${building.name} - Floor Plan`}
+          icon={<Building2 size={18} />}
+          size="full"
+        >
+          {/* Edit mode toggle in fullscreen */}
+          {canManage && (
+            <div className="flex items-center justify-end gap-2 mb-2 -mt-2">
+              {isEditingPins && (
+                <>
+                  {(building.floors || []).filter(f => f.pinX === null || f.pinY === null).length > 0 && (
+                    <span className="text-caption text-text-secondary">
+                      {(building.floors || []).filter(f => f.pinX === null || f.pinY === null).length} floors to place
+                    </span>
+                  )}
+                  <Badge variant="info" size="sm">
+                    Click to add | Drag to move
+                  </Badge>
+                </>
+              )}
+              <Button
+                size="sm"
+                variant={isEditingPins ? 'primary' : 'secondary'}
+                leftIcon={isEditingPins ? <Unlock size={16} /> : <Lock size={16} />}
+                onClick={() => setIsEditingPins(!isEditingPins)}
+              >
+                {isEditingPins ? 'Editing' : 'Edit Pins'}
+              </Button>
+            </div>
+          )}
+          <div className="h-[calc(95vh-120px)] -mx-6 -mb-6">
+            <FloorPlanCanvas
+              imageUrl={building.floorplanUrl}
+              pins={(building.floors || [])
+                .filter(f => f.pinX !== null && f.pinY !== null)
+                .map(f => ({
+                  id: f.id,
+                  x: f.pinX!,
+                  y: f.pinY!,
+                  name: f.name,
+                  status: 'IN_PROGRESS' as const,
+                }))}
+              availableItems={isEditingPins ? (building.floors || [])
+                .filter(f => f.pinX === null || f.pinY === null)
+                .map(f => ({ id: f.id, name: f.name, level: f.level })) : []}
+              selectedPinId={selectedFloorId}
+              isEditable={isEditingPins}
+              showMaximize={false}
+              showLegend={false}
+              onPinClick={(pin) => {
+                setSelectedFloorId(pin.id);
+                navigate(`/floors/${pin.id}`);
+              }}
+              onPinMove={(pinId, x, y) => {
+                updateFloorPositionMutation.mutate({
+                  floorId: pinId,
+                  pinX: Math.round(x),
+                  pinY: Math.round(y),
+                });
+              }}
+              onPlaceItem={(floorId, x, y) => {
+                updateFloorPositionMutation.mutate({
+                  floorId,
+                  pinX: Math.round(x),
+                  pinY: Math.round(y),
+                });
+                toast.success('Floor placed on floorplan');
+              }}
+              onAddPin={(x, y) => {
+                setPendingPinPosition({ x: Math.round(x), y: Math.round(y) });
+                setShowFloorModal(true);
+              }}
+            />
+          </div>
+        </Modal>
       )}
     </div>
   );
