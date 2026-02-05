@@ -796,13 +796,30 @@ function AssetsSection() {
     <ManualSection
       icon={<Box size={24} />}
       title="Assets"
-      description="Track equipment and devices"
+      description="Track equipment and devices across all projects"
     >
       <div className="space-y-6">
         <p className="text-body text-text-primary">
-          Assets represent the equipment and devices installed in each room. The system tracks
-          their status, specifications, and completion progress.
+          Assets represent the equipment and devices installed in floors and rooms. The Assets page
+          displays all assets grouped by project, making it easy to browse and search within each project.
         </p>
+
+        <h3 className="text-h3 text-text-primary">Assets Page Overview</h3>
+        <p className="text-body text-text-secondary">
+          The Assets page shows assets organized by project with expandable sections:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li><strong>Stats Cards</strong> - Total, Installed, Configured, and Faulty counts</li>
+          <li><strong>Filters</strong> - Filter by asset type and status</li>
+          <li><strong>Project Sections</strong> - Accordion-style groups, one open at a time</li>
+          <li><strong>Per-Project Search</strong> - Search field appears when section is expanded</li>
+          <li><strong>Asset Cards</strong> - Show icon, name, type, location, and status</li>
+        </ul>
+
+        <Tip>
+          Only assets assigned to a floor or room are displayed. Use the project-level search
+          to quickly find assets by name, type, model, serial number, MAC, or location.
+        </Tip>
 
         <h3 className="text-h3 text-text-primary">Asset Properties</h3>
         <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
@@ -811,12 +828,12 @@ function AssetsSection() {
           <li><strong>Serial Number</strong> - Manufacturer serial</li>
           <li><strong>MAC Address</strong> - Network address (if applicable)</li>
           <li><strong>Status</strong> - Installation progress</li>
-          <li><strong>Position</strong> - X/Y coordinates on room floor plan</li>
+          <li><strong>Position</strong> - X/Y coordinates on floor/room plan</li>
         </ul>
 
         <h3 className="text-h3 text-text-primary">Asset Status Lifecycle</h3>
         <div className="flex flex-wrap gap-2 my-4">
-          {['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'VERIFIED', 'FAILED'].map((status) => (
+          {['PLANNED', 'IN_STOCK', 'INSTALLED', 'CONFIGURED', 'VERIFIED', 'FAULTY'].map((status) => (
             <span
               key={status}
               className="px-3 py-1 rounded-full text-body-sm bg-surface-secondary text-text-secondary"
@@ -829,11 +846,11 @@ function AssetsSection() {
         <h3 className="text-h3 text-text-primary">Adding an Asset</h3>
         <Steps
           steps={[
-            { title: 'Open Room', description: 'Navigate to the room detail page.' },
-            { title: 'Click "Add Asset"', description: 'Use the button in the Assets section.' },
-            { title: 'Select Type', description: 'Choose the asset type from the dropdown.' },
-            { title: 'Enter Details', description: 'Fill in name, serial number, and MAC address.' },
-            { title: 'Save', description: 'Click "Add Asset" to create.' },
+            { title: 'Open Room or Floor', description: 'Navigate to a room or floor detail page.' },
+            { title: 'Click "Add Asset"', description: 'Use the button to import from inventory.' },
+            { title: 'Select Assets', description: 'Choose one or more assets from the project inventory.' },
+            { title: 'Import', description: 'Click "Import" to add them to the room/floor.' },
+            { title: 'Place on Plan', description: 'Optionally place assets on the floor plan.' },
           ]}
         />
 
