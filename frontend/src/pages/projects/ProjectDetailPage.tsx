@@ -28,6 +28,10 @@ import {
   Unlock,
   Map,
   Download,
+  FolderOpen,
+  File,
+  Eye,
+  ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -49,6 +53,7 @@ import { userService } from '@/services/user.service';
 import { buildingService, type CreateBuildingData, type UpdateBuildingData, type Building } from '@/services/building.service';
 import { reportService } from '@/services/report.service';
 import { uploadService } from '@/services/upload.service';
+import { projectFileService, FILE_CATEGORIES, formatFileSize, getFileIcon, type ProjectFile, type FileCategory } from '@/services/project-file.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { FloorPlanCanvas, DownloadFloorplanModal } from '@/components/floor-plan';
 
@@ -83,6 +88,12 @@ export function ProjectDetailPage() {
   const [pendingBuildingPinPosition, setPendingBuildingPinPosition] = useState<{ x: number; y: number } | null>(null);
   const masterplanInputRef = useRef<HTMLInputElement>(null);
 
+  // Project Files state
+  const [uploadCategory, setUploadCategory] = useState<FileCategory>('OTHER');
+  const [deletingFile, setDeletingFile] = useState<ProjectFile | null>(null);
+  const [filesFilterCategory, setFilesFilterCategory] = useState<FileCategory | 'ALL'>('ALL');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Fetch project
   const { data: project, isLoading, error } = useQuery({
     queryKey: ['project', id],
@@ -96,6 +107,67 @@ export function ProjectDetailPage() {
     queryFn: () => reportService.getSummary(id!),
     enabled: !!id,
   });
+
+  // Fetch project files
+  const { data: projectFiles = [] } = useQuery({
+    queryKey: ['project-files', id],
+    queryFn: () => projectFileService.getByProject(id!),
+    enabled: !!id,
+  });
+
+  // Upload file mutation
+  const uploadFileMutation = useMutation({
+    mutationFn: ({ file, category }: { file: File; category: FileCategory }) =>
+      projectFileService.upload(id!, file, category),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-files', id] });
+      toast.success('File uploaded successfully');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to upload file');
+    },
+  });
+
+  // Delete file mutation
+  const deleteFileMutation = useMutation({
+    mutationFn: (fileId: string) => projectFileService.delete(fileId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-files', id] });
+      setDeletingFile(null);
+      toast.success('File deleted successfully');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to delete file');
+    },
+  });
+
+  // Handle file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    uploadFileMutation.mutate({ file, category: uploadCategory });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Download file via blob (cross-origin URLs don't support download attribute)
+  const handleDownloadFile = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast.error('Failed to download file');
+    }
+  };
 
   // Create building mutation
   const createBuildingMutation = useMutation({
@@ -726,6 +798,174 @@ export function ProjectDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Project Files */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
+          <CardTitle className="flex items-center gap-2">
+            <FolderOpen size={20} />
+            Project Files ({projectFiles.length})
+          </CardTitle>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Category filter */}
+            <div className="relative">
+              <select
+                value={filesFilterCategory}
+                onChange={(e) => setFilesFilterCategory(e.target.value as FileCategory | 'ALL')}
+                className="appearance-none bg-surface border border-surface-border rounded-md px-3 py-1.5 pr-8 text-body-sm text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+              >
+                <option value="ALL">All Categories</option>
+                {FILE_CATEGORIES.map((cat) => (
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none" />
+            </div>
+            {canManage && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <div className="relative">
+                  <select
+                    value={uploadCategory}
+                    onChange={(e) => setUploadCategory(e.target.value as FileCategory)}
+                    className="appearance-none bg-surface border border-surface-border rounded-md px-3 py-1.5 pr-8 text-body-sm text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                  >
+                    {FILE_CATEGORIES.map((cat) => (
+                      <option key={cat.value} value={cat.value}>{cat.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none" />
+                </div>
+                <Button
+                  size="sm"
+                  leftIcon={<Upload size={16} />}
+                  onClick={() => fileInputRef.current?.click()}
+                  isLoading={uploadFileMutation.isPending}
+                >
+                  Upload
+                </Button>
+              </>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {projectFiles.length === 0 ? (
+            <div className="text-center py-8 text-text-secondary">
+              <FolderOpen size={32} className="mx-auto mb-2 opacity-50" />
+              <p>No files uploaded yet</p>
+              {canManage && (
+                <p className="text-caption mt-1">Upload contracts, drawings, reports and more</p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {projectFiles
+                .filter((f) => filesFilterCategory === 'ALL' || f.category === filesFilterCategory)
+                .map((file) => {
+                  const iconType = getFileIcon(file.mimeType);
+                  return (
+                    <div
+                      key={file.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary hover:bg-surface-hover transition-colors group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          {iconType === 'image' ? <Image size={20} className="text-primary" /> :
+                           iconType === 'pdf' ? <FileText size={20} className="text-red-500" /> :
+                           <File size={20} className="text-primary" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-body-sm font-medium text-text-primary truncate">{file.filename}</p>
+                          <div className="flex items-center gap-2 text-caption text-text-secondary flex-wrap">
+                            <Badge variant="default" size="sm">{file.category}</Badge>
+                            <span>{formatFileSize(file.size)}</span>
+                            {file.uploadedBy && <span>by {file.uploadedBy.name}</span>}
+                            <span>{new Date(file.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded hover:bg-surface text-text-secondary hover:text-primary"
+                          title="View file"
+                        >
+                          <Eye size={16} />
+                        </a>
+                        <button
+                          onClick={() => handleDownloadFile(file.url, file.filename)}
+                          className="p-2 rounded hover:bg-surface text-text-secondary hover:text-primary"
+                          title="Download file"
+                        >
+                          <Download size={16} />
+                        </button>
+                        {canManage && (
+                          <button
+                            onClick={() => setDeletingFile(file)}
+                            className="p-2 rounded hover:bg-surface text-text-secondary hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Delete file"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              {projectFiles.filter((f) => filesFilterCategory === 'ALL' || f.category === filesFilterCategory).length === 0 && (
+                <div className="text-center py-4 text-text-secondary text-body-sm">
+                  No files in this category
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Delete File Confirmation Modal */}
+      {deletingFile && (
+        <Modal
+          isOpen={!!deletingFile}
+          onClose={() => setDeletingFile(null)}
+          title="Delete File"
+          icon={<AlertTriangle size={18} />}
+          size="sm"
+          nested
+          footer={
+            <ModalActions>
+              <Button variant="secondary" onClick={() => setDeletingFile(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => deleteFileMutation.mutate(deletingFile.id)}
+                isLoading={deleteFileMutation.isPending}
+              >
+                Delete File
+              </Button>
+            </ModalActions>
+          }
+        >
+          <div className="text-center py-4">
+            <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={24} className="text-error" />
+            </div>
+            <p className="text-body text-text-primary mb-2">
+              Are you sure you want to delete <strong>{deletingFile.filename}</strong>?
+            </p>
+            <p className="text-body-sm text-text-secondary">
+              This action cannot be undone.
+            </p>
+          </div>
+        </Modal>
+      )}
 
       {/* Add Building Modal */}
       <AddBuildingModal

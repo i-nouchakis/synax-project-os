@@ -2,11 +2,13 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma.js';
 import { authenticate, requireRole } from '../middleware/auth.middleware.js';
+import { sendValidationError } from '../utils/errors.js';
 
 const createProjectSchema = z.object({
   name: z.string().min(2),
   description: z.string().optional(),
   clientName: z.string().min(2),
+  clientId: z.string().optional(),
   location: z.string().optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
@@ -111,7 +113,7 @@ export async function projectRoutes(app: FastifyInstance) {
       return reply.status(201).send({ project });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+        return sendValidationError(reply, error);
       }
       throw error;
     }
@@ -137,7 +139,7 @@ export async function projectRoutes(app: FastifyInstance) {
       return reply.send({ project });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+        return sendValidationError(reply, error);
       }
       throw error;
     }

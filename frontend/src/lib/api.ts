@@ -57,10 +57,11 @@ class ApiClient {
     if (!response.ok) {
       const error: ApiError = await response.json().catch(() => ({
         statusCode: response.status,
-        error: 'Error',
+        error: response.statusText || 'Error',
         message: response.statusText,
       }));
-      throw new Error(error.message || 'API Error');
+      // Backend sends errors as { error: "message" } - prefer that field
+      throw new Error(error.error || error.message || 'An unexpected error occurred');
     }
 
     return response.json();
@@ -88,8 +89,11 @@ class ApiClient {
   }
 
   // DELETE request
-  delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+  delete<T>(endpoint: string, data?: unknown): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'DELETE',
+      body: data ? JSON.stringify(data) : undefined,
+    });
   }
 }
 

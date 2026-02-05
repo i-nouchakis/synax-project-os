@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma.js';
 import { authenticate, requireRole } from '../middleware/auth.middleware.js';
+import { sendValidationError } from '../utils/errors.js';
 
 const createFloorSchema = z.object({
   buildingId: z.string(),
@@ -121,7 +122,7 @@ export async function floorRoutes(app: FastifyInstance) {
       return reply.status(201).send({ floor });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+        return sendValidationError(reply, error);
       }
       throw error;
     }
@@ -143,7 +144,7 @@ export async function floorRoutes(app: FastifyInstance) {
       return reply.send({ floor });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+        return sendValidationError(reply, error);
       }
       throw error;
     }
@@ -195,7 +196,7 @@ export async function floorRoutes(app: FastifyInstance) {
       return reply.status(201).send({ room });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+        return sendValidationError(reply, error);
       }
       throw error;
     }
@@ -217,7 +218,7 @@ export async function floorRoutes(app: FastifyInstance) {
       return reply.send({ room });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+        return sendValidationError(reply, error);
       }
       throw error;
     }

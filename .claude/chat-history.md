@@ -8,9 +8,9 @@
 
 **Production Server:** Running (Contabo) - needs db push + seed
 **Local Development:** Working (port 5174)
-**Database (Local):** Fresh seed with demo data + room type icons
+**Database (Local):** Fresh seed with demo data + room type icons + Label model
 **Database (Cloud):** Needs `prisma db push --force-reset` then seed
-**Latest Commit:** `9cb7ae8` - fix: Ensure popups appear in front of fullscreen modals
+**Latest Feature:** Messenger (1:1 + group chat, polling-based, unread badges)
 
 ### Seed Data Summary
 
@@ -36,6 +36,130 @@
 ---
 
 ## Session (2026-02-05) - Latest
+
+### Descriptive Error Messages (Complete)
+**User Request:** Replace generic "API Error" with meaningful error messages throughout the app
+
+**Root Cause Found:**
+- Frontend `api.ts` read `error.message` but backend sends `error.error`
+- Zod validation errors returned generic "Validation error" instead of readable messages
+
+**Implementation:**
+1. **Frontend `api.ts`** - Fixed error field: `error.error || error.message`
+2. **Backend `utils/errors.ts`** - New utility: `formatZodError()` + `sendValidationError()`
+   - Converts Zod errors to readable: "email must be a valid email address"
+   - Handles: too_small, too_big, invalid_type, invalid_string, invalid_enum
+3. **Updated 13 controllers** (44 replacements total)
+
+**Test Results:**
+- Wrong credentials → "Invalid credentials" ✅
+- Invalid email → "email must be a valid email address" ✅
+- Short password → "password must be at least 6 characters" ✅
+- Existing email → "Email already registered" ✅
+- Short name → "name must be at least 2 characters" ✅
+
+**Files Created:** `backend/src/utils/errors.ts`
+**Files Modified:** `frontend/src/lib/api.ts` + 13 backend controllers
+
+---
+
+### Business Flows Documentation (Complete)
+**User Request:** Create comprehensive business flows MD file in docs folder
+
+**Implementation:**
+- Created `docs/BUSINESS-FLOWS.md` (~1000 lines)
+- Bilingual: English + Greek throughout
+- Target audience: Developers AND Stakeholders
+
+**Document Structure:**
+1. **Executive Summary** (EN/EL)
+2. **System Overview** - Architecture diagram, tech stack
+3. **User Roles & Permissions** - Role hierarchy, permissions matrix, descriptions
+4. **Entity Hierarchy** - ER diagram, hierarchy tree, relationships
+5. **Business Flows** (7 comprehensive flows):
+   - Project Setup Flow
+   - Equipment Lifecycle (state machine)
+   - Issue Management Flow
+   - Checklist Workflow
+   - Label Management Flow
+   - Inventory Management Flow
+   - Reporting Flow
+6. **Status Transitions** - State diagrams for Project, Room, Asset, Issue, Checklist, Label
+7. **Integration Points** - Canvas workflows, API summary
+8. **Glossary** - Terms in EN and EL
+
+**Key Features:**
+- Mermaid diagrams throughout (flowcharts, state machines, ER diagrams)
+- Color-coded status indicators
+- Step-by-step workflow explanations
+- Tables for permissions, metrics, statuses
+
+---
+
+### Label-Asset Integration (Complete)
+**User Request:** Integrate Labels service with Inventory/Equipment - labels stored per project, assignable to assets via dropdown
+
+**Implementation:**
+
+**1. Database (Prisma Schema)**
+- Added `Label` model with fields: id, projectId, code (unique), type, status, assetId
+- Added `LabelType` enum: CABLE, RACK, ASSET, ROOM
+- Added `LabelStatus` enum: AVAILABLE, PRINTED, ASSIGNED
+- One-to-one relation: Label ↔ Asset
+
+**2. Backend API** (`/api/labels`)
+- `GET /project/:projectId` - Get all labels for project
+- `GET /project/:projectId/available` - Get available/printed labels (not assigned)
+- `POST /project/:projectId` - Create single label
+- `POST /project/:projectId/batch` - Create batch labels
+- `PUT /:id/assign/:assetId` - Assign label to asset (updates both Label and Asset)
+- `PUT /:id/unassign` - Remove label from asset
+- `PUT /:id/mark-printed` - Mark single label as printed
+- `PUT /mark-printed-batch` - Mark multiple labels as printed
+- `DELETE /:id` - Delete label (only if not assigned)
+- `DELETE /batch` - Delete multiple labels
+
+**3. Frontend Service** (`label.service.ts`)
+- Full TypeScript types and API methods
+- Label type/status labels and colors
+
+**4. Labels Page Rewrite** (`LabelsPage.tsx`)
+- Project selection required to view/create labels
+- Stats cards: Total, Available, Printed, Assigned
+- Batch generation form with type, prefix, start number, count
+- Table view with checkbox selection, status badges
+- Print selected (QR codes) / Delete selected actions
+
+**5. Inventory Equipment Forms**
+- Replaced labelCode text input with Label dropdown
+- Shows available labels + current label (if editing)
+- Handles label assignment/unassignment on save
+
+**6. Floor/Room Asset Edit**
+- Same label dropdown integration
+- FloorDetailPage: Create/Edit asset modals
+- RoomDetailPage: Create/Edit asset modals
+
+**Files Created:**
+- `backend/src/controllers/label.controller.ts`
+- `frontend/src/services/label.service.ts`
+
+**Files Modified:**
+- `backend/prisma/schema.prisma` - Label model
+- `backend/src/server.ts` - Label routes
+- `frontend/src/pages/labels/LabelsPage.tsx` - Full rewrite
+- `frontend/src/pages/inventory/InventoryPage.tsx` - Label dropdown in modals
+- `frontend/src/pages/floors/FloorDetailPage.tsx` - Label dropdown in asset modals
+- `frontend/src/pages/rooms/RoomDetailPage.tsx` - Label dropdown in asset modals
+
+**API Test Results:**
+- ✅ Create batch labels (5 created)
+- ✅ Get available labels (returns unassigned only)
+- ✅ Assign label to asset (status → ASSIGNED, asset.labelCode updated)
+- ✅ Verify available labels decreased after assignment
+- ✅ Unassign label (status → AVAILABLE, asset.labelCode cleared)
+
+---
 
 ### Time Tracking Module Removed (Complete)
 **User Request:** Document Time Tracking specs for future, then remove module from v1
@@ -472,6 +596,185 @@
 - `frontend/src/components/room-plan/RoomPlanCanvas.tsx`
 - `frontend/src/pages/rooms/RoomDetailPage.tsx`
 - `frontend/src/services/room.service.ts`
+
+---
+
+## Session (2026-02-05) - Canvas Drawing & Cables System Planning
+
+### Context Restoration from Summary
+Συνέχεια από session που συνοψίστηκε λόγω μεγάλου context.
+
+### User Request (Planning Phase)
+**Αίτημα:** Διάβασμα canvas service και σχεδιασμός νέας λειτουργίας για:
+1. Σχεδίαση και εισαγωγή cables διασύνδεσης μεταξύ assets
+2. Γενικά να γίνει εργαλείο σχεδίασης (drawing tool)
+3. **Σημαντικό:** ΜΟΝΟ planning, όχι υλοποίηση
+
+### Implementation Planning (Multi-Round)
+
+**Round 1: Initial Ideas Presentation**
+- Διάβασα FloorPlanCanvas.tsx και RoomPlanCanvas.tsx
+- Παρουσίασα ιδέες για:
+  - Cable/Connection System (data models, routing algorithms, cable bundling)
+  - Drawing Tools (shapes: Rectangle, Circle, Line, Arrow, Text, Freehand, Polygon)
+  - Architecture overview (Konva.js, Zustand, Prisma)
+  - Implementation phases (6 phases, ~15 days)
+- Έθεσα 6 ερωτήσεις διευκρίνισης
+
+**User Feedback:**
+- Routing: "Φτιαξε να αποφασίζει ο χρηστης" (user decides mode)
+- Scope: "Και τα δυο" (both floor and room level)
+- Export: "Ναι εννοείτε και με δυανότητα αφαίρεσης" (with removal options)
+- Layers: "ναι" (full layer management)
+- Priority: "Δεν με ενδιαφερει η σειρά, αρκει σωστά" (correctness over speed)
+
+**Round 2: MD File Creation**
+- Created `.claude/features/canvas-drawing-cables.md`
+- Complete V1 implementation plan with:
+  - Prisma models (Cable, CableBundle, DrawingShape)
+  - TypeScript types
+  - UI components (Toolbar, Layers Panel, Properties Panel)
+  - 7 drawing tools
+  - 4 routing algorithms (Straight, Orthogonal, Auto, Custom)
+  - Backend API design
+  - Implementation phases
+
+**Round 3: Critical Review & V1 Fixes**
+**User Request:** "Θελω να ξαναδιαβάσεις την υλοποίηση και να σκεγτείς είτε ανκάνουμε κα΄που λάθος έιτε αν μπορούμε να προσθέσουμε και άλλες ιδδές"
+
+**Identified V1 Issues & Fixes:**
+1. **Cable Model Restrictive** - Added ConnectionType enum (ASSET, ROOM, FLOOR)
+2. **Cable Bundling Missing** - Added CableBundle model for visual grouping
+3. **Routing Too Simple** - Enhanced orthogonal with 4 strategies
+4. **Scale/Measurement Unclear** - Added calibration tool
+5. **Export Only PDF** - Added SVG, PNG, JSON export
+
+**V2 Advanced Features (40+ items in 8 groups):**
+- **Group A:** Advanced Shapes (Ellipse, Rounded Rect, Star, Polygon, Arc, Bezier)
+- **Group B:** Drawing Tools (Pan, Eraser, Eyedropper, Clone, Path/Pen tool)
+- **Group C:** Annotations (Callouts, Dimension lines, Symbol library)
+- **Group D:** Utilities (Grid/Snap, Context menu, Mini-map, Paint bucket, History panel)
+- **Group E:** Cable Advanced (Bundles, Port diagrams, Cable schedule, Wire colors, Trace)
+- **Group F:** Smart Features (Auto-distribute, Mirror/Flip, Rotate, Snap to angles, Constraints)
+- **Group G:** Performance (Spatial indexing, Canvas virtualization, Shape simplification)
+- **Group H:** Export (SVG, DXF, JSON backup/restore)
+
+**Round 4: UI Mockups**
+**User Request:** "ναι αμε θα ήθελα" (Yes, would like mockups)
+
+- Updated `.claude/features/canvas-drawing-cables.md` with ASCII mockups:
+  - Main Canvas Layout
+  - Drawing Toolbar (expanded view)
+  - Layers Panel (detailed)
+  - Cable Creation Workflow (4 steps)
+  - Shape Drawing (Rectangle example)
+  - Measurement Tool Workflow
+
+- Created `.claude/features/canvas-drawing-cables-v2.md` with extensive V2 mockups:
+  - Symbol Library panel
+  - Port Diagram popup
+  - Cable Schedule table
+  - Path Tool (Pen) workflow
+  - History Panel
+  - Smart Guides visualization
+
+**Round 5: Timeline Discussion**
+**User Question:** "Σοβαρα θα χρειαστεις 40 ημέρες για να το αναπτύξεις?" (40 days seriously?)
+
+**My Response:**
+- 40 days for human developer (8-hour workdays)
+- With Claude: Different calculation
+- **V1 Core:** 28-32 hours pure coding, 4-6 weeks calendar time (depends on session frequency)
+- **V2 Advanced:** 20-30 days additional
+- Broke down by sessions: 17 sessions for V1
+
+**Round 6: Save to TODO**
+**User Request:** "Οχι θελω να τα γράψεις στο todo list προκειμένου να το ξεκινήσουεμ αργότερα γαιτι κα΄νω άλλη ανάπτυξη τώρα !! Φρόντισε να μην χάσουμε data απο το chat !"
+
+**Translation:** Don't start now, save to TODO list for later because working on other development. Make sure we don't lose chat data!
+
+### Files Created
+
+**Planning Documents:**
+1. `.claude/features/canvas-drawing-cables.md` (~1500 lines)
+   - V1 Core implementation plan
+   - Prisma schema with enums
+   - TypeScript types
+   - UI components design
+   - Routing algorithms (4 types)
+   - Backend API design
+   - ASCII mockups for all UI
+
+2. `.claude/features/canvas-drawing-cables-v2.md` (~800 lines)
+   - 40+ V2 advanced features
+   - 8 feature groups (A-H)
+   - Code examples (Spatial indexing, Path tool, etc.)
+   - Extensive ASCII mockups
+
+### TODO List Updated
+
+Added comprehensive section to `.claude/todo.md`:
+- **V1 Implementation:** 7 phases, ~200 checkboxes
+  - Phase 1: Backend Data Models (6-8h)
+  - Phase 2: Canvas State Management (4-5h)
+  - Phase 3: UI Components (6-8h)
+  - Phase 4: Drawing Tools (8-10h)
+  - Phase 5: Cable System (6-8h)
+  - Phase 6: Backend API (4-5h)
+  - Phase 7: Polish & Core Features (4-6h)
+
+- **V2 Implementation:** 3 phases, ~50 checkboxes
+  - Phase 8: Essential V2 (5-7 days)
+  - Phase 9: Professional Tools (7-10 days)
+  - Phase 10: Advanced Features (8-13 days)
+
+- **Implementation Notes:**
+  - Key technologies (Konva.js, React Konva, Zustand, Prisma, jsPDF, rbush)
+  - Architecture decisions (flexible connections, cable bundling, layers, JSON fields)
+  - User preferences summary
+  - Testing checklist (before "Done")
+  - Timeline estimates (3 scenarios: Intensive/Normal/Casual)
+
+### Key Technical Decisions
+
+**Data Models:**
+- `Cable` with flexible ConnectionType (ASSET, ROOM, FLOOR)
+- `CableBundle` for visual grouping
+- `DrawingShape` with JSON data field (flexible properties)
+- Enums: CableType, RoutingMode, ShapeType, ConnectionType
+
+**Routing Algorithms:**
+1. **STRAIGHT** - Direct line A→B
+2. **ORTHOGONAL** - 4 strategies (H-first, V-first, Shortest, Avoid-obstacles)
+3. **AUTO** - A* pathfinding around obstacles
+4. **CUSTOM** - User places waypoints
+
+**User Preferences:**
+- User decides routing mode (not auto)
+- Both floor and room level support
+- Multi-format export (PDF, SVG, PNG, JSON, DXF)
+- Full layer management (add, delete, rename, reorder, lock, hide, opacity)
+- Correctness prioritized over speed
+
+**Performance Optimizations (V2):**
+- Spatial Indexing (R-tree via rbush)
+- Canvas Virtualization (only render visible)
+- Shape Simplification (LOD)
+
+### Status
+
+**Current State:** Planning Complete ✅
+- All features documented in MD files
+- TODO list ready for future implementation
+- No code written (as requested)
+- Chat data preserved in todo.md and chat-history.md
+
+**Next Steps (When Ready):**
+1. User will request to start implementation
+2. Begin with Phase 1: Backend Data Models
+3. Follow the 7-phase V1 plan
+4. TypeScript check before each completion
+5. Then proceed to V2 if desired
 
 ---
 

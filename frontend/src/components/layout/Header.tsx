@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchStore } from '@/stores/search.store';
-import { Search, Bell, Wifi, WifiOff, RefreshCw, LogOut, User, Settings, CloudOff, QrCode, AlertTriangle, CheckCircle2, Box, Clock } from 'lucide-react';
+import { Search, Bell, Wifi, WifiOff, RefreshCw, LogOut, User, Settings, CloudOff, QrCode, AlertTriangle, CheckCircle2, Box, Clock, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui';
 import { QRScannerModal } from '@/components/qr';
@@ -12,6 +12,8 @@ import { api } from '@/lib/api';
 
 interface HeaderProps {
   sidebarCollapsed?: boolean;
+  isMobile?: boolean;
+  onToggleMobileSidebar?: () => void;
 }
 
 interface ActivityItem {
@@ -25,6 +27,9 @@ interface ActivityItem {
 
 // Get search placeholder based on current route
 const getSearchPlaceholder = (pathname: string): string => {
+  if (pathname.startsWith('/clients')) return 'Search clients...';
+  if (pathname.startsWith('/calendar')) return 'Search events...';
+  if (pathname.startsWith('/messenger')) return 'Search conversations...';
   if (pathname.startsWith('/projects')) return 'Search projects...';
   if (pathname.startsWith('/buildings')) return 'Search buildings...';
   if (pathname.startsWith('/floors')) return 'Search floors...';
@@ -37,7 +42,7 @@ const getSearchPlaceholder = (pathname: string): string => {
   return 'Search...';
 };
 
-export function Header({ sidebarCollapsed = false }: HeaderProps) {
+export function Header({ sidebarCollapsed = false, isMobile = false, onToggleMobileSidebar }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { query, setQuery } = useSearchStore();
@@ -139,10 +144,21 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
     <header
       className={cn(
         'fixed top-0 right-0 h-16 bg-background/95 backdrop-blur border-b border-surface-border',
-        'flex items-center justify-between px-6 z-30 transition-all duration-300',
-        sidebarCollapsed ? 'left-16' : 'left-64'
+        'flex items-center justify-between px-4 md:px-6 z-30 transition-all duration-300',
+        isMobile ? 'left-0' : sidebarCollapsed ? 'left-16' : 'left-64'
       )}
     >
+      {/* Hamburger menu (mobile only) */}
+      {isMobile && (
+        <button
+          onClick={onToggleMobileSidebar}
+          className="p-2 mr-2 rounded-md hover:bg-surface-hover text-text-secondary"
+          title="Menu"
+        >
+          <Menu size={22} />
+        </button>
+      )}
+
       {/* Search */}
       <div className="flex-1 max-w-md">
         <div className="relative">
@@ -168,7 +184,7 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
       {/* Right section */}
       <div className="flex items-center gap-4">
         {/* Sync Status */}
-        <div className="flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-2">
           {isSyncing ? (
             <Badge variant="primary" size="sm" dot>
               <RefreshCw size={14} className="animate-spin mr-1" />

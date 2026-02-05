@@ -29,6 +29,9 @@ import { ManualPage } from '@/pages/manual';
 import { LabelsPage } from '@/pages/labels';
 import { LookupsPage } from '@/pages/lookups';
 import { ChecklistTemplatesPage } from '@/pages/checklist-templates';
+import { ClientsPage, ClientDetailPage } from '@/pages/clients';
+import { CalendarPage } from '@/pages/calendar/CalendarPage';
+import { MessengerPage } from '@/pages/messenger/MessengerPage';
 import { useAuthStore } from '@/stores/auth.store';
 import { useThemeStore } from '@/stores/theme.store';
 import { useOfflineStore } from '@/stores/offline.store';
@@ -169,6 +172,10 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/clients" element={<ClientsPage />} />
+              <Route path="/clients/:id" element={<ClientDetailPage />} />
+              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/messenger" element={<MessengerPage />} />
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/projects/:id" element={<ProjectDetailPage />} />
               <Route path="/buildings" element={<BuildingsPage />} />

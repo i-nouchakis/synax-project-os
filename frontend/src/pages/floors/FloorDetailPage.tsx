@@ -52,6 +52,7 @@ import { assetService, type Asset, type AssetType, type CreateAssetData, type Up
 import { uploadService } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { assetModelService, roomTypeService, manufacturerService } from '@/services/lookup.service';
+import { labelService, type Label } from '@/services/label.service';
 
 const roomStatusOptions = [
   { value: 'NOT_STARTED', label: 'Not Started' },
@@ -133,6 +134,23 @@ export function FloorDetailPage() {
   const { data: assetTypes = [] } = useQuery({
     queryKey: ['asset-types'],
     queryFn: () => assetService.getTypes(),
+  });
+
+  // Get project ID from floor hierarchy
+  const projectId = floor?.building?.project?.id;
+
+  // Fetch available labels for the project
+  const { data: availableLabels = [] } = useQuery({
+    queryKey: ['labels-available', projectId],
+    queryFn: () => labelService.getAvailable(projectId!),
+    enabled: !!projectId,
+  });
+
+  // Fetch all labels for the project (to show assigned label in edit modal)
+  const { data: allLabels = [] } = useQuery({
+    queryKey: ['labels-all', projectId],
+    queryFn: () => labelService.getByProject(projectId!),
+    enabled: !!projectId,
   });
 
   // Floor-level assets come from floor.assets
@@ -223,8 +241,26 @@ export function FloorDetailPage() {
     },
   });
 
-  // Get projectId from floor
-  const projectId = floor?.building?.project?.id;
+  // Label assignment mutation
+  const assignLabelMutation = useMutation({
+    mutationFn: ({ labelId, assetId }: { labelId: string; assetId: string }) =>
+      labelService.assign(labelId, assetId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['labels-available', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['labels-all', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['floor', id] });
+    },
+  });
+
+  // Label unassignment mutation
+  const unassignLabelMutation = useMutation({
+    mutationFn: (labelId: string) => labelService.unassign(labelId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['labels-available', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['labels-all', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['floor', id] });
+    },
+  });
 
   // Fetch available assets from project inventory (IN_STOCK, unassigned)
   const { data: projectInventory = [] } = useQuery({
@@ -1233,13 +1269,23 @@ export function FloorDetailPage() {
       <FloorAssetFormModal
         isOpen={isCreateAssetModalOpen}
         onClose={() => setIsCreateAssetModalOpen(false)}
-        onSubmit={(data) => createAssetMutation.mutate(data as CreateAssetData)}
+        onSubmit={async (data, labelId) => {
+          const asset = await assetService.createFloorAsset(id!, data as CreateAssetData);
+          if (labelId) {
+            await assignLabelMutation.mutateAsync({ labelId, assetId: asset.id });
+          }
+          queryClient.invalidateQueries({ queryKey: ['floor', id] });
+          setIsCreateAssetModalOpen(false);
+          toast.success('Asset created');
+        }}
         isLoading={createAssetMutation.isPending}
         title="Add Floor-Level Asset"
         assetTypes={assetTypes}
         projectName={floor.building?.project?.name}
         floorName={floor.name}
         nested
+        availableLabels={availableLabels}
+        allLabels={allLabels}
       />
 
       {/* Edit Asset Modal */}
@@ -1247,7 +1293,26 @@ export function FloorDetailPage() {
         <FloorAssetFormModal
           isOpen={!!editingAsset}
           onClose={() => setEditingAsset(null)}
-          onSubmit={(data) => updateAssetMutation.mutate({ assetId: editingAsset.id, data })}
+          onSubmit={async (data, labelId) => {
+            // Find the current label assigned to this equipment
+            const currentLabel = allLabels.find((l) => l.assetId === editingAsset.id);
+
+            // Update asset data
+            await assetService.update(editingAsset.id, data);
+
+            // Handle label changes
+            if (labelId && labelId !== currentLabel?.id) {
+              // Assign new label (backend auto-unassigns old one if exists)
+              await assignLabelMutation.mutateAsync({ labelId, assetId: editingAsset.id });
+            } else if (!labelId && currentLabel) {
+              // Unassign current label
+              await unassignLabelMutation.mutateAsync(currentLabel.id);
+            }
+
+            queryClient.invalidateQueries({ queryKey: ['floor', id] });
+            setEditingAsset(null);
+            toast.success('Asset updated');
+          }}
           isLoading={updateAssetMutation.isPending}
           title="Edit Asset"
           assetTypes={assetTypes}
@@ -1256,6 +1321,8 @@ export function FloorDetailPage() {
           projectName={floor.building?.project?.name}
           floorName={floor.name}
           nested
+          availableLabels={availableLabels}
+          allLabels={allLabels}
         />
       )}
 
@@ -1518,7 +1585,7 @@ function RoomFormModal({
 interface FloorAssetFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateAssetData | UpdateAssetData) => void;
+  onSubmit: (data: CreateAssetData | UpdateAssetData, labelId?: string) => void;
   isLoading: boolean;
   title: string;
   assetTypes: AssetType[];
@@ -1527,6 +1594,8 @@ interface FloorAssetFormModalProps {
   projectName?: string;
   floorName?: string;
   nested?: boolean;
+  availableLabels?: Label[];
+  allLabels?: Label[];
 }
 
 function FloorAssetFormModal({
@@ -1541,6 +1610,8 @@ function FloorAssetFormModal({
   projectName,
   floorName,
   nested,
+  availableLabels = [],
+  allLabels = [],
 }: FloorAssetFormModalProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<CreateAssetData & { status?: AssetStatus }>({
@@ -1553,6 +1624,9 @@ function FloorAssetFormModal({
     ipAddress: '',
     notes: '',
   });
+
+  // State for selected label
+  const [selectedLabelId, setSelectedLabelId] = useState<string>('');
 
   // State for adding new asset type
   const [isAddTypeOpen, setIsAddTypeOpen] = useState(false);
@@ -1717,6 +1791,9 @@ function FloorAssetFormModal({
         notes: initialData.notes || '',
         status: initialData.status,
       });
+      // Find the label assigned to this asset
+      const currentLabel = allLabels.find((l) => l.assetId === initialData.id);
+      setSelectedLabelId(currentLabel?.id || '');
     } else {
       setFormData({
         name: '',
@@ -1728,14 +1805,14 @@ function FloorAssetFormModal({
         ipAddress: '',
         notes: '',
       });
+      setSelectedLabelId('');
     }
-  }, [initialData]);
+  }, [initialData, allLabels]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const data: CreateAssetData & { status?: AssetStatus } = {
       name: formData.name,
-      labelCode: formData.labelCode || undefined,
       assetTypeId: formData.assetTypeId || undefined,
       model: formData.model || undefined,
       serialNumber: formData.serialNumber || undefined,
@@ -1746,7 +1823,7 @@ function FloorAssetFormModal({
     if (showStatus && formData.status) {
       data.status = formData.status;
     }
-    onSubmit(data);
+    onSubmit(data, selectedLabelId || undefined);
   };
 
   const assetTypeOptions = [
@@ -1828,31 +1905,22 @@ function FloorAssetFormModal({
         <ModalSection title="Identifiers" icon={<Hash size={14} />}>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-body-sm font-medium text-text-primary mb-1.5">
-                  Label Code
-                </label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={formData.labelCode || ''}
-                    onChange={(e) => setFormData({ ...formData, labelCode: e.target.value })}
-                    placeholder="SYN-FL01-AP-A7B3"
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={generateLabelCode}
-                    title="Auto-generate Label Code"
-                    className="shrink-0 h-10 w-10 p-0 flex items-center justify-center"
-                  >
-                    <Wand2 size={18} />
-                  </Button>
-                </div>
-                <p className="text-caption text-text-tertiary mt-1">
-                  Unique code for QR label scanning
-                </p>
-              </div>
+              <Select
+                label="Label"
+                value={selectedLabelId}
+                onChange={(e) => setSelectedLabelId(e.target.value)}
+                options={[
+                  { value: '', label: 'No label' },
+                  // Show the current label first if it exists
+                  ...allLabels
+                    .filter((l) => initialData && l.assetId === initialData.id)
+                    .map((l) => ({ value: l.id, label: `${l.code} (Current)` })),
+                  // Then show available labels
+                  ...availableLabels
+                    .filter((l) => !initialData || l.assetId !== initialData.id)
+                    .map((l) => ({ value: l.id, label: l.code })),
+                ]}
+              />
               <Input
                 label="Serial Number"
                 value={formData.serialNumber || ''}

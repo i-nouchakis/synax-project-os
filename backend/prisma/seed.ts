@@ -18,8 +18,8 @@ async function main() {
   await prisma.inventoryLog.deleteMany();
   await prisma.inventoryItem.deleteMany();
   await prisma.signature.deleteMany();
-  await prisma.timeEntry.deleteMany();
   await prisma.generatedReport.deleteMany();
+  await prisma.label.deleteMany();
   await prisma.asset.deleteMany();
   await prisma.room.deleteMany();
   await prisma.floor.deleteMany();
@@ -701,7 +701,8 @@ async function main() {
 
     // Create equipment (Assets) in different states
     let assetCounter = 0;
-    const projectAssets: { id: string; assetTypeId: string | null }[] = [];
+    const projectAssets: { id: string; assetTypeId: string | null; name: string }[] = [];
+    const allProjectAssets: { id: string; name: string }[] = [];
 
     // Create assets that will be INSTALLED (to be placed in rooms/floors)
     const toInstallCount = 8 + Math.floor(Math.random() * 8);
@@ -722,10 +723,9 @@ async function main() {
           serialNumber: `SN${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
           macAddress: Array(6).fill(0).map(() => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join(':').toUpperCase(),
           status: 'IN_STOCK',
-          labelCode: `${project.name.substring(0, 3).toUpperCase()}-${assetType.name.substring(0, 2).toUpperCase()}-${String(assetCounter).padStart(4, '0')}`,
         },
       });
-      projectAssets.push({ id: asset.id, assetTypeId: asset.assetTypeId });
+      projectAssets.push({ id: asset.id, assetTypeId: asset.assetTypeId, name: asset.name });
     }
 
     // Create IN_STOCK assets that will STAY in inventory (not installed)
@@ -738,7 +738,7 @@ async function main() {
         : modelsList[Math.floor(Math.random() * modelsList.length)];
 
       assetCounter++;
-      await prisma.asset.create({
+      const inStockAsset = await prisma.asset.create({
         data: {
           projectId: project.id,
           name: `${assetType.name} ${String(assetCounter).padStart(3, '0')}`,
@@ -747,9 +747,9 @@ async function main() {
           serialNumber: `SN${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
           macAddress: Array(6).fill(0).map(() => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join(':').toUpperCase(),
           status: 'IN_STOCK',
-          labelCode: `${project.name.substring(0, 3).toUpperCase()}-${assetType.name.substring(0, 2).toUpperCase()}-${String(assetCounter).padStart(4, '0')}`,
         },
       });
+      allProjectAssets.push({ id: inStockAsset.id, name: inStockAsset.name });
       // NOT added to projectAssets - these stay in inventory
     }
 
@@ -935,6 +935,68 @@ async function main() {
       }
     }
 
+    // ============================================
+    // LABELS for this project
+    // ============================================
+    console.log(`  🏷️ Creating labels for project...`);
+
+    // Get all assets for this project to assign labels
+    const projectAssetsForLabels = await prisma.asset.findMany({
+      where: { projectId: project.id },
+      take: 30, // Assign labels to first 30 assets
+    });
+
+    // Create labels and assign to assets
+    const labelTypes: ('CABLE' | 'RACK' | 'ASSET' | 'ROOM')[] = ['ASSET', 'CABLE', 'RACK'];
+    // Use project index + 1 for unique prefix (P01, P02, etc.)
+    const projectIndex = projectsData.findIndex(p => p.name === projectData.name) + 1;
+    const projectPrefix = `P${String(projectIndex).padStart(2, '0')}`;
+
+    let labelCounter = 0;
+    for (const asset of projectAssetsForLabels) {
+      labelCounter++;
+      const labelCode = `${projectPrefix}-AST-${String(labelCounter).padStart(4, '0')}`;
+
+      // Create label and assign to asset
+      await prisma.label.create({
+        data: {
+          projectId: project.id,
+          code: labelCode,
+          type: 'ASSET',
+          status: 'ASSIGNED',
+          assetId: asset.id,
+          assignedAt: new Date(),
+          printedAt: Math.random() > 0.3 ? new Date() : null, // 70% printed
+        },
+      });
+
+      // Update asset's labelCode
+      await prisma.asset.update({
+        where: { id: asset.id },
+        data: { labelCode },
+      });
+    }
+
+    // Create additional unassigned labels (available for future use)
+    const unassignedCount = 20;
+    for (let i = 0; i < unassignedCount; i++) {
+      labelCounter++;
+      const labelType = labelTypes[Math.floor(Math.random() * labelTypes.length)];
+      const typePrefix = labelType === 'ASSET' ? 'AST' : labelType === 'CABLE' ? 'CBL' : 'RCK';
+      const labelCode = `${projectPrefix}-${typePrefix}-${String(labelCounter).padStart(4, '0')}`;
+
+      const isPrinted = Math.random() > 0.5;
+      await prisma.label.create({
+        data: {
+          projectId: project.id,
+          code: labelCode,
+          type: labelType,
+          status: isPrinted ? 'PRINTED' : 'AVAILABLE',
+          printedAt: isPrinted ? new Date() : null,
+        },
+      });
+    }
+
     console.log(`  ✅ Project "${projectData.name}" created`);
   }
 
@@ -948,6 +1010,7 @@ async function main() {
   console.log(`   - Floors: ${await prisma.floor.count()}`);
   console.log(`   - Rooms: ${await prisma.room.count()}`);
   console.log(`   - Assets: ${await prisma.asset.count()}`);
+  console.log(`   - Labels: ${await prisma.label.count()}`);
   console.log(`   - Checklist Templates: ${await prisma.checklistTemplate.count()}`);
   console.log(`   - Checklists: ${await prisma.checklist.count()}`);
   console.log(`   - Issues: ${await prisma.issue.count()}`);

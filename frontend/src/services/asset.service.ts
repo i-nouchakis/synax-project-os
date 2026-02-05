@@ -41,9 +41,11 @@ export interface Asset {
   room?: {
     id: string;
     name: string;
+    floorplanUrl?: string | null;
     floor?: {
       id: string;
       name: string;
+      floorplanUrl?: string | null;
       building?: {
         id: string;
         name: string;
@@ -57,6 +59,7 @@ export interface Asset {
   floor?: {
     id: string;
     name: string;
+    floorplanUrl?: string | null;
     building?: {
       id: string;
       name: string;

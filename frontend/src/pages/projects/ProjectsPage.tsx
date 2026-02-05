@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Calendar,
   Building2,
+  Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -28,6 +29,7 @@ import {
   Select,
 } from '@/components/ui';
 import { projectService, type Project, type CreateProjectData, type UpdateProjectData, type ProjectStatus } from '@/services/project.service';
+import { clientService, type Client } from '@/services/client.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSearchStore } from '@/stores/search.store';
 
@@ -355,17 +357,40 @@ function ProjectFormModal({
     name: initialData?.name || '',
     description: initialData?.description || '',
     clientName: initialData?.clientName || '',
+    clientId: initialData?.clientId || '',
     location: initialData?.location || '',
     startDate: initialData?.startDate ? initialData.startDate.split('T')[0] : '',
     endDate: initialData?.endDate ? initialData.endDate.split('T')[0] : '',
     status: initialData?.status,
   });
 
+  // Fetch clients for dropdown
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => clientService.getAll(),
+    enabled: isOpen,
+  });
+
+  const handleClientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const clientId = e.target.value;
+    if (clientId) {
+      const selectedClient = clients.find((c: Client) => c.id === clientId);
+      setFormData({
+        ...formData,
+        clientId,
+        clientName: selectedClient?.name || '',
+      });
+    } else {
+      setFormData({ ...formData, clientId: '', clientName: '' });
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const data: CreateProjectData & { status?: ProjectStatus } = {
       name: formData.name,
       clientName: formData.clientName,
+      clientId: formData.clientId || undefined,
       description: formData.description || undefined,
       location: formData.location || undefined,
       startDate: formData.startDate ? new Date(formData.startDate).toISOString() : undefined,
@@ -376,6 +401,12 @@ function ProjectFormModal({
     }
     onSubmit(data);
   };
+
+  // Build client options
+  const clientOptions = [
+    { value: '', label: 'Select a client...' },
+    ...clients.map((c: Client) => ({ value: c.id, label: c.name })),
+  ];
 
   return (
     <Modal
@@ -406,14 +437,23 @@ function ProjectFormModal({
               required
               leftIcon={<FolderKanban size={16} />}
             />
-            <Input
-              label="Client Name"
-              value={formData.clientName}
-              onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-              placeholder="Astoria Hotels S.A."
+            <Select
+              label="Client"
+              value={formData.clientId || ''}
+              onChange={handleClientChange}
+              options={clientOptions}
               required
-              leftIcon={<Building2 size={16} />}
             />
+            {!formData.clientId && (
+              <Input
+                label="Client Name (manual)"
+                value={formData.clientName}
+                onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+                placeholder="Type client name if not in list"
+                required={!formData.clientId}
+                leftIcon={<Building2 size={16} />}
+              />
+            )}
             <Input
               label="Location"
               value={formData.location || ''}

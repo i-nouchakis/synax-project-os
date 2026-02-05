@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma.js';
 import { authenticate, requireRole } from '../middleware/auth.middleware.js';
+import { sendValidationError } from '../utils/errors.js';
 
 const createItemSchema = z.object({
   projectId: z.string(),
@@ -119,7 +120,7 @@ export async function inventoryRoutes(app: FastifyInstance) {
       return reply.status(201).send({ item: itemWithStock });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+        return sendValidationError(reply, error);
       }
       throw error;
     }
@@ -148,7 +149,7 @@ export async function inventoryRoutes(app: FastifyInstance) {
       return reply.send({ item: itemWithStock });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+        return sendValidationError(reply, error);
       }
       throw error;
     }
@@ -239,7 +240,7 @@ export async function inventoryRoutes(app: FastifyInstance) {
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+        return sendValidationError(reply, error);
       }
       throw error;
     }

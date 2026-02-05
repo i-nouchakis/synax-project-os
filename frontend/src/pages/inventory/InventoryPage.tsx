@@ -58,6 +58,7 @@ import {
   type BulkEquipmentSerial,
 } from '@/services/asset.service';
 import { assetModelService, type LookupAssetModel } from '@/services/lookup.service';
+import { labelService, type Label } from '@/services/label.service';
 
 type InventoryTab = 'materials' | 'equipment';
 
@@ -130,6 +131,20 @@ export function InventoryPage() {
       );
     },
     enabled: activeTab === 'equipment',
+  });
+
+  // Fetch available labels for the selected project (equipment tab)
+  const { data: availableLabels = [] } = useQuery({
+    queryKey: ['labels-available', projectFilter],
+    queryFn: () => labelService.getAvailable(projectFilter),
+    enabled: activeTab === 'equipment' && !!projectFilter,
+  });
+
+  // Fetch all labels for the selected project (to show assigned label in edit modal)
+  const { data: allLabels = [] } = useQuery({
+    queryKey: ['labels-all', projectFilter],
+    queryFn: () => labelService.getByProject(projectFilter),
+    enabled: activeTab === 'equipment' && !!projectFilter,
   });
 
   // Create item mutation
@@ -243,6 +258,27 @@ export function InventoryPage() {
     },
   });
 
+  // Label assignment mutation
+  const assignLabelMutation = useMutation({
+    mutationFn: ({ labelId, assetId }: { labelId: string; assetId: string }) =>
+      labelService.assign(labelId, assetId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['labels-available'] });
+      queryClient.invalidateQueries({ queryKey: ['labels-all'] });
+      queryClient.invalidateQueries({ queryKey: ['project-equipment'] });
+    },
+  });
+
+  // Label unassignment mutation
+  const unassignLabelMutation = useMutation({
+    mutationFn: (labelId: string) => labelService.unassign(labelId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['labels-available'] });
+      queryClient.invalidateQueries({ queryKey: ['labels-all'] });
+      queryClient.invalidateQueries({ queryKey: ['project-equipment'] });
+    },
+  });
+
   // Filter items by search
   const filteredItems = items.filter((item) => {
     if (!search) return true;
@@ -342,15 +378,20 @@ export function InventoryPage() {
   };
 
   // Handle update equipment
-  const handleUpdateEquipment = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdateEquipment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editingEquipment) return;
     const formData = new FormData(e.currentTarget);
-    updateEquipmentMutation.mutate({
+    const selectedLabelId = formData.get('labelId') as string;
+
+    // Find the current label assigned to this equipment
+    const currentLabel = allLabels.find((l) => l.assetId === editingEquipment.id);
+
+    // Update equipment data (without labelCode - that's managed by label assignment)
+    await updateEquipmentMutation.mutateAsync({
       id: editingEquipment.id,
       data: {
         name: formData.get('name') as string,
-        labelCode: (formData.get('labelCode') as string) || undefined,
         assetTypeId: (formData.get('assetTypeId') as string) || undefined,
         model: (formData.get('model') as string) || undefined,
         serialNumber: (formData.get('serialNumber') as string) || undefined,
@@ -360,6 +401,15 @@ export function InventoryPage() {
         status: formData.get('status') as AssetStatus,
       },
     });
+
+    // Handle label changes
+    if (selectedLabelId && selectedLabelId !== currentLabel?.id) {
+      // Assign new label (backend auto-unassigns old one if exists)
+      await assignLabelMutation.mutateAsync({ labelId: selectedLabelId, assetId: editingEquipment.id });
+    } else if (!selectedLabelId && currentLabel) {
+      // Unassign current label
+      await unassignLabelMutation.mutateAsync(currentLabel.id);
+    }
   };
 
   // Get equipment status badge
@@ -1028,7 +1078,17 @@ export function InventoryPage() {
         onClose={() => setIsCreateEquipmentModalOpen(false)}
         assetTypes={assetTypes}
         assetModels={assetModels}
-        onCreateSingle={(data) => createEquipmentMutation.mutate({ projectId: projectFilter, data })}
+        availableLabels={availableLabels}
+        onCreateSingle={async (data, labelId) => {
+          const asset = await assetService.createInProject(projectFilter, data);
+          if (labelId) {
+            await assignLabelMutation.mutateAsync({ labelId, assetId: asset.id });
+          }
+          queryClient.invalidateQueries({ queryKey: ['project-equipment'] });
+          queryClient.invalidateQueries({ queryKey: ['labels-available'] });
+          setIsCreateEquipmentModalOpen(false);
+          toast.success('Equipment added to inventory');
+        }}
         onCreateBulk={(data) => createBulkEquipmentMutation.mutate({ projectId: projectFilter, data })}
         isLoading={createEquipmentMutation.isPending || createBulkEquipmentMutation.isPending}
       />
@@ -1079,10 +1139,21 @@ export function InventoryPage() {
                   required
                   defaultValue={editingEquipment.name}
                 />
-                <Input
-                  label="Label Code"
-                  name="labelCode"
-                  defaultValue={editingEquipment.labelCode || ''}
+                <Select
+                  label="Label"
+                  name="labelId"
+                  defaultValue={allLabels.find((l) => l.assetId === editingEquipment.id)?.id || ''}
+                  options={[
+                    { value: '', label: 'No label' },
+                    // Show the current label first if it exists
+                    ...allLabels
+                      .filter((l) => l.assetId === editingEquipment.id)
+                      .map((l) => ({ value: l.id, label: `${l.code} (Current)` })),
+                    // Then show available labels
+                    ...availableLabels
+                      .filter((l) => l.assetId !== editingEquipment.id)
+                      .map((l) => ({ value: l.id, label: l.code })),
+                  ]}
                 />
                 <Select
                   label="Equipment Type"
@@ -1168,10 +1239,11 @@ interface BulkEquipmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   assetTypes: { id: string; name: string }[];
-  onCreateSingle: (data: CreateAssetData) => void;
+  onCreateSingle: (data: CreateAssetData, labelId?: string) => void;
   onCreateBulk: (data: CreateBulkEquipmentData) => void;
   isLoading: boolean;
   assetModels: LookupAssetModel[];
+  availableLabels: Label[];
 }
 
 function BulkEquipmentModal({
@@ -1182,6 +1254,7 @@ function BulkEquipmentModal({
   onCreateBulk,
   isLoading,
   assetModels,
+  availableLabels,
 }: BulkEquipmentModalProps) {
   const [quantity, setQuantity] = useState(1);
   const [namePrefix, setNamePrefix] = useState('');
@@ -1274,9 +1347,9 @@ function BulkEquipmentModal({
 
     if (quantity === 1) {
       // Single equipment creation
+      const labelId = (formData.get('labelId') as string) || undefined;
       onCreateSingle({
         name: formData.get('name') as string,
-        labelCode: (formData.get('labelCode') as string) || undefined,
         assetTypeId: (formData.get('assetTypeId') as string) || undefined,
         model: (formData.get('model') as string) || undefined,
         serialNumber: (formData.get('serialNumber') as string) || undefined,
@@ -1284,7 +1357,7 @@ function BulkEquipmentModal({
         ipAddress: (formData.get('ipAddress') as string) || undefined,
         notes: (formData.get('notes') as string) || undefined,
         status: selectedStatus,
-      });
+      }, labelId);
     } else {
       // Bulk equipment creation
       const filteredSerials = showSerials
@@ -1396,10 +1469,13 @@ function BulkEquipmentModal({
               </div>
             )}
             {quantity === 1 && (
-              <Input
-                label="Label Code"
-                name="labelCode"
-                placeholder="QR label code"
+              <Select
+                label="Label"
+                name="labelId"
+                options={[
+                  { value: '', label: 'No label' },
+                  ...availableLabels.map((l) => ({ value: l.id, label: l.code })),
+                ]}
               />
             )}
             <Select

@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma.js';
 import { authenticate, requireRole } from '../middleware/auth.middleware.js';
+import { sendValidationError } from '../utils/errors.js';
 
 const createChecklistSchema = z.object({
   type: z.enum(['CABLING', 'EQUIPMENT', 'CONFIG', 'DOCUMENTATION']),
@@ -310,7 +311,7 @@ export async function checklistRoutes(app: FastifyInstance) {
       return reply.status(201).send({ checklist });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+        return sendValidationError(reply, error);
       }
       throw error;
     }
@@ -465,7 +466,7 @@ export async function checklistRoutes(app: FastifyInstance) {
       return reply.send({ item });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+        return sendValidationError(reply, error);
       }
       throw error;
     }
@@ -495,7 +496,7 @@ export async function checklistRoutes(app: FastifyInstance) {
       return reply.status(201).send({ photo });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: 'Validation error', details: error.errors });
+        return sendValidationError(reply, error);
       }
       throw error;
     }

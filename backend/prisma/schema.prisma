@@ -86,6 +86,11 @@ model User {
   createdIssues           Issue[]           @relation("CreatedBy")
   projectMembers          ProjectMember[]
   signatures              Signature[]
+  uploadedFiles           ProjectFile[]    @relation("UploadedFiles")
+  calendarEvents          CalendarEvent[]           @relation("CalendarEvents")
+  calendarAttendances     CalendarEventAttendee[]   @relation("CalendarAttendees")
+  conversationParticipants ConversationParticipant[]
+  sentMessages            Message[]                 @relation("SentMessages")
 
   @@map("users")
 }
@@ -112,11 +117,27 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+model Client {
+  id            String    @id @default(cuid())
+  name          String
+  email         String?
+  phone         String?
+  address       String?
+  contactPerson String?   @map("contact_person")
+  notes         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  projects      Project[]
+
+  @@map("clients")
+}
+
 model Project {
   id               String            @id @default(cuid())
   name             String
   description      String?
   clientName       String            @map("client_name")
+  clientId         String?           @map("client_id")
   location         String?
   status           ProjectStatus     @default(PLANNING)
   startDate        DateTime?         @map("start_date")
@@ -125,6 +146,8 @@ model Project {
   masterplanType   String?           @map("masterplan_type")
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
+  client           Client?           @relation(fields: [clientId], references: [id])
+  files            ProjectFile[]
   buildings        Building[]
   generatedReports GeneratedReport[]
   inventory        InventoryItem[]
@@ -132,8 +155,26 @@ model Project {
   members          ProjectMember[]
   signatures       Signature[]
   assets           Asset[]         @relation("ProjectAssets")
+  labels           Label[]
+  calendarEvents   CalendarEvent[]
 
   @@map("projects")
+}
+
+model ProjectFile {
+  id         String          @id @default(cuid())
+  projectId  String          @map("project_id")
+  filename   String
+  url        String
+  mimeType   String?         @map("mime_type")
+  size       Int             @default(0)
+  category   FileCategory    @default(OTHER)
+  uploadedById String?       @map("uploaded_by_id")
+  createdAt  DateTime        @default(now()) @map("created_at")
+  project    Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy User?           @relation("UploadedFiles", fields: [uploadedById], references: [id])
+
+  @@map("project_files")
 }
 
 model Building {
@@ -243,6 +284,7 @@ model Asset {
   room          Room?       @relation(fields: [roomId], references: [id], onDelete: Cascade)
   floor         Floor?      @relation("FloorAssets", fields: [floorId], references: [id], onDelete: Cascade)
   checklists    Checklist[]
+  label         Label?
 
   @@map("assets")
 }
@@ -435,6 +477,36 @@ model GeneratedReport {
   @@map("generated_reports")
 }
 
+model Label {
+  id         String      @id @default(cuid())
+  projectId  String      @map("project_id")
+  code       String      @unique
+  type       LabelType   @default(ASSET)
+  status     LabelStatus @default(AVAILABLE)
+  assetId    String?     @unique @map("asset_id")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  printedAt  DateTime?   @map("printed_at")
+  assignedAt DateTime?   @map("assigned_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  asset   Asset?  @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  @@map("labels")
+}
+
+enum LabelType {
+  CABLE
+  RACK
+  ASSET
+  ROOM
+}
+
+enum LabelStatus {
+  AVAILABLE
+  PRINTED
+  ASSIGNED
+}
+
 enum UserRole {
   ADMIN
   PM
@@ -514,9 +586,111 @@ enum SignatureType {
   FINAL_ACCEPTANCE
 }
 
+enum FileCategory {
+  CONTRACTS
+  DRAWINGS
+  REPORTS
+  PHOTOS
+  OTHER
+}
+
 enum ReportType {
   SUMMARY
   CLIENT
   INTERNAL
   ASSETS
+}
+
+enum CalendarEventType {
+  APPOINTMENT
+  REMINDER
+  DEADLINE
+  MEETING
+  INSPECTION
+  DELIVERY
+}
+
+model CalendarEvent {
+  id          String            @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime          @map("start_date")
+  endDate     DateTime?         @map("end_date")
+  allDay      Boolean           @default(false) @map("all_day")
+  type        CalendarEventType @default(REMINDER)
+  color       String?
+  projectId   String?           @map("project_id")
+  createdById String            @map("created_by_id")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  project     Project?                @relation(fields: [projectId], references: [id])
+  createdBy   User                    @relation("CalendarEvents", fields: [createdById], references: [id])
+  attendees   CalendarEventAttendee[]
+
+  @@map("calendar_events")
+}
+
+enum AttendeeStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model CalendarEventAttendee {
+  id        String         @id @default(cuid())
+  eventId   String         @map("event_id")
+  userId    String         @map("user_id")
+  status    AttendeeStatus @default(PENDING)
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  event     CalendarEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User           @relation("CalendarAttendees", fields: [userId], references: [id])
+
+  @@unique([eventId, userId])
+  @@map("calendar_event_attendees")
+}
+
+// ─── Messenger ──────────────────────────────────────────────
+
+model Conversation {
+  id             String                    @id @default(cuid())
+  title          String?
+  isGroup        Boolean                   @default(false) @map("is_group")
+  lastMessageAt  DateTime?                 @map("last_message_at")
+  createdAt      DateTime                  @default(now()) @map("created_at")
+  updatedAt      DateTime                  @updatedAt @map("updated_at")
+
+  participants   ConversationParticipant[]
+  messages       Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String       @map("conversation_id")
+  userId         String       @map("user_id")
+  lastReadAt     DateTime?    @map("last_read_at")
+  joinedAt       DateTime     @default(now()) @map("joined_at")
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String       @map("conversation_id")
+  senderId       String       @map("sender_id")
+  content        String
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
 }

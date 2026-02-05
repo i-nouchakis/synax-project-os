@@ -28,6 +28,7 @@ export interface Project {
   name: string;
   description?: string;
   clientName: string;
+  clientId?: string | null;
   location?: string;
   status: ProjectStatus;
   startDate?: string;
@@ -49,6 +50,7 @@ export interface CreateProjectData {
   name: string;
   description?: string;
   clientName: string;
+  clientId?: string;
   location?: string;
   startDate?: string;
   endDate?: string;

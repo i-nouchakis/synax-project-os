@@ -20,6 +20,11 @@ import { settingsRoutes } from './controllers/settings.controller.js';
 import { dashboardRoutes } from './controllers/dashboard.controller.js';
 import { signatureRoutes } from './controllers/signature.controller.js';
 import { lookupRoutes } from './controllers/lookup.controller.js';
+import { labelRoutes } from './controllers/label.controller.js';
+import { clientRoutes } from './controllers/client.controller.js';
+import { projectFileRoutes } from './controllers/project-file.controller.js';
+import { calendarRoutes } from './controllers/calendar.controller.js';
+import { messengerRoutes } from './controllers/messenger.controller.js';
 
 const app = Fastify({
   logger: {
@@ -73,6 +78,11 @@ const start = async () => {
     await app.register(dashboardRoutes, { prefix: '/api/dashboard' });
     await app.register(signatureRoutes, { prefix: '/api/signatures' });
     await app.register(lookupRoutes, { prefix: '/api/lookups' });
+    await app.register(labelRoutes, { prefix: '/api/labels' });
+    await app.register(clientRoutes, { prefix: '/api/clients' });
+    await app.register(projectFileRoutes, { prefix: '/api/project-files' });
+    await app.register(calendarRoutes, { prefix: '/api/calendar' });
+    await app.register(messengerRoutes, { prefix: '/api/messenger' });
 
     // Start listening
     await app.listen({ port: config.port, host: config.host });

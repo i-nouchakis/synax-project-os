@@ -14,10 +14,12 @@ import {
   User,
   Calendar,
   QrCode,
+  MapPin,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Button, Modal, ModalActions } from '@/components/ui';
 import { ChecklistPanel } from '@/components/checklists';
 import { QRCode } from '@/components/qr';
+import { FloorPlanPreviewModal } from '@/components/floor-plan';
 import { assetService, type AssetStatus } from '@/services/asset.service';
 
 const statusBadgeVariants: Record<AssetStatus, 'default' | 'primary' | 'success' | 'error'> = {
@@ -42,6 +44,7 @@ export function AssetDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showFloorPlanModal, setShowFloorPlanModal] = useState(false);
 
   // Fetch asset
   const { data: asset, isLoading } = useQuery({
@@ -69,16 +72,45 @@ export function AssetDetailPage() {
     );
   }
 
+  // Determine back navigation and location info
+  const isFloorLevel = !!asset.floorId && !asset.roomId;
+  const backPath = isFloorLevel
+    ? `/floors/${asset.floorId}`
+    : asset.roomId
+      ? `/rooms/${asset.roomId}`
+      : '/assets';
+  const backLabel = isFloorLevel
+    ? asset.floor?.name || 'Floor'
+    : asset.room?.name || 'Room';
+
+  // Floor plan data
+  const hasPinOnPlan = asset.pinX != null && asset.pinY != null;
+  const planImageUrl = isFloorLevel
+    ? asset.floor?.floorplanUrl
+    : asset.room?.floorplanUrl;
+  const canShowFloorPlan = hasPinOnPlan && !!planImageUrl;
+
+  // Location display
+  const projectName = isFloorLevel
+    ? asset.floor?.building?.project?.name
+    : asset.room?.floor?.building?.project?.name;
+  const locationDetail = isFloorLevel
+    ? asset.floor?.name
+    : `${asset.room?.floor?.name || ''} / ${asset.room?.name || ''}`;
+  const floorPlanLocationLabel = isFloorLevel
+    ? `${asset.floor?.name || 'Floor'} - Floor Plan`
+    : `${asset.room?.name || 'Room'} - Plan`;
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <button
-          onClick={() => navigate(`/rooms/${asset.roomId}`)}
+          onClick={() => navigate(backPath)}
           className="flex items-center gap-2 text-text-secondary hover:text-text-primary mb-2"
         >
           <ArrowLeft size={18} />
-          <span className="text-body-sm">Back to {asset.room?.name || 'Room'}</span>
+          <span className="text-body-sm">Back to {backLabel}</span>
         </button>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
@@ -114,10 +146,10 @@ export function AssetDetailPage() {
                 <p className="text-caption text-text-tertiary mb-1">Location</p>
                 <div className="flex items-center gap-2 text-body-sm">
                   <Building2 size={14} className="text-text-secondary" />
-                  <span>{asset.room?.floor?.building?.project?.name}</span>
+                  <span>{projectName}</span>
                 </div>
                 <div className="flex items-center gap-2 text-body-sm text-text-secondary ml-5">
-                  <span>{asset.room?.floor?.name} / {asset.room?.name}</span>
+                  <span>{locationDetail}</span>
                 </div>
               </div>
 
@@ -171,6 +203,31 @@ export function AssetDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* View on Floor Plan */}
+          {canShowFloorPlan && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin size={18} />
+                  Floor Plan
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-body-sm text-text-secondary mb-4">
+                  View the location of this asset on the {isFloorLevel ? 'floor' : 'room'} plan.
+                </p>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowFloorPlanModal(true)}
+                  leftIcon={<MapPin size={16} />}
+                  className="w-full"
+                >
+                  View on Floor Plan
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* QR Code Card */}
           <Card>
@@ -238,6 +295,19 @@ export function AssetDetailPage() {
           </p>
         </div>
       </Modal>
+
+      {/* Floor Plan Preview Modal */}
+      {canShowFloorPlan && (
+        <FloorPlanPreviewModal
+          isOpen={showFloorPlanModal}
+          onClose={() => setShowFloorPlanModal(false)}
+          planImageUrl={planImageUrl!}
+          pinX={asset.pinX!}
+          pinY={asset.pinY!}
+          assetName={asset.name}
+          locationLabel={floorPlanLocationLabel}
+        />
+      )}
     </div>
   );
 }
