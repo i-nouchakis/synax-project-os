@@ -42,6 +42,7 @@ import {
   ModalActions,
   Select,
   Input,
+  DateInput,
 } from '@/components/ui';
 import { projectService, type ProjectStatus, type UpdateProjectData } from '@/services/project.service';
 import { userService } from '@/services/user.service';
@@ -1186,19 +1187,15 @@ function EditProjectModal({ isOpen, onClose, onSubmit, isLoading, project }: Edi
               options={statusOptions}
             />
             <div className="grid grid-cols-2 gap-4">
-              <Input
-                type="date"
+              <DateInput
                 label="Start Date"
                 value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                max={formData.endDate || undefined}
+                onChange={(value) => setFormData({ ...formData, startDate: value })}
               />
-              <Input
-                type="date"
+              <DateInput
                 label="End Date"
                 value={formData.endDate}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                min={formData.startDate || undefined}
+                onChange={(value) => setFormData({ ...formData, endDate: value })}
               />
             </div>
           </div>

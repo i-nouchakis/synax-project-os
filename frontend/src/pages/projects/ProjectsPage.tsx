@@ -12,7 +12,6 @@ import {
   AlertTriangle,
   Calendar,
   Building2,
-  Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -24,11 +23,13 @@ import {
   ModalSection,
   ModalActions,
   Input,
+  DateInput,
   Textarea,
   Select,
 } from '@/components/ui';
 import { projectService, type Project, type CreateProjectData, type UpdateProjectData, type ProjectStatus } from '@/services/project.service';
 import { useAuthStore } from '@/stores/auth.store';
+import { useSearchStore } from '@/stores/search.store';
 
 const statusOptions = [
   { value: 'PLANNING', label: 'Planning' },
@@ -55,7 +56,7 @@ export function ProjectsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteConfirmProject, setDeleteConfirmProject] = useState<Project | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const { query: searchQuery } = useSearchStore();
 
   // Fetch projects
   const { data: projects = [], isLoading, error } = useQuery({
@@ -141,17 +142,6 @@ export function ProjectsPage() {
           )}
         </div>
 
-        {/* Search Bar */}
-        <div className="relative max-w-md">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search projects..."
-            className="w-full pl-10 pr-4 py-2.5 bg-surface border border-surface-border rounded-lg text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-          />
-        </div>
       </div>
 
       {/* Projects Grid */}
@@ -444,19 +434,15 @@ function ProjectFormModal({
 
         <ModalSection title="Schedule" icon={<Calendar size={14} />}>
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              type="date"
+            <DateInput
               label="Start Date"
               value={formData.startDate || ''}
-              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-              max={formData.endDate || undefined}
+              onChange={(value) => setFormData({ ...formData, startDate: value })}
             />
-            <Input
-              type="date"
+            <DateInput
               label="End Date"
               value={formData.endDate || ''}
-              onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-              min={formData.startDate || undefined}
+              onChange={(value) => setFormData({ ...formData, endDate: value })}
             />
           </div>
         </ModalSection>

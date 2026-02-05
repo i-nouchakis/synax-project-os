@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Package,
-  Search,
   Plus,
   Building2,
   ArrowDownToLine,
@@ -35,6 +34,7 @@ import {
   Pagination,
   usePagination,
 } from '@/components/ui';
+import { useSearchStore } from '@/stores/search.store';
 import {
   inventoryService,
   type InventoryItem,
@@ -69,7 +69,7 @@ const actionOptions = [
 export function InventoryPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<InventoryTab>('materials');
-  const [search, setSearch] = useState('');
+  const { query: search } = useSearchStore();
   const [projectFilter, setProjectFilter] = useState('');
   const [lowStockFilter, setLowStockFilter] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -505,32 +505,22 @@ export function InventoryPage() {
           </div>
 
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 max-w-md">
-              <Input
-                placeholder="Search items..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                leftIcon={<Search size={18} />}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Select
-                value={projectFilter}
-                onChange={(e) => setProjectFilter(e.target.value)}
-                options={[
-                  { value: '', label: 'All Projects' },
-                  ...projects.map((p) => ({ value: p.id, label: p.name })),
-                ]}
-              />
-              <Button
-                variant={lowStockFilter ? 'primary' : 'secondary'}
-                onClick={() => setLowStockFilter(!lowStockFilter)}
-                leftIcon={<TrendingDown size={18} />}
-              >
-                Low Stock
-              </Button>
-            </div>
+          <div className="flex gap-2">
+            <Select
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+              options={[
+                { value: '', label: 'All Projects' },
+                ...projects.map((p) => ({ value: p.id, label: p.name })),
+              ]}
+            />
+            <Button
+              variant={lowStockFilter ? 'primary' : 'secondary'}
+              onClick={() => setLowStockFilter(!lowStockFilter)}
+              leftIcon={<TrendingDown size={18} />}
+            >
+              Low Stock
+            </Button>
           </div>
         </>
       )}
@@ -539,38 +529,28 @@ export function InventoryPage() {
       {activeTab === 'equipment' && (
         <>
           {/* Equipment Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 max-w-md">
-              <Input
-                placeholder="Search equipment..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                leftIcon={<Search size={18} />}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Select
-                value={projectFilter}
-                onChange={(e) => setProjectFilter(e.target.value)}
-                options={[
-                  { value: '', label: 'Select Project' },
-                  ...projects.map((p) => ({ value: p.id, label: p.name })),
-                ]}
-              />
-              <Select
-                value={equipmentStatusFilter}
-                onChange={(e) => setEquipmentStatusFilter(e.target.value)}
-                options={[
-                  { value: '', label: 'All Status' },
-                  { value: 'PLANNED', label: 'Planned' },
-                  { value: 'IN_STOCK', label: 'In Stock' },
-                  { value: 'INSTALLED', label: 'Installed' },
-                  { value: 'CONFIGURED', label: 'Configured' },
-                  { value: 'VERIFIED', label: 'Verified' },
-                  { value: 'FAULTY', label: 'Faulty' },
-                ]}
-              />
-            </div>
+          <div className="flex gap-2">
+            <Select
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+              options={[
+                { value: '', label: 'Select Project' },
+                ...projects.map((p) => ({ value: p.id, label: p.name })),
+              ]}
+            />
+            <Select
+              value={equipmentStatusFilter}
+              onChange={(e) => setEquipmentStatusFilter(e.target.value)}
+              options={[
+                { value: '', label: 'All Status' },
+                { value: 'PLANNED', label: 'Planned' },
+                { value: 'IN_STOCK', label: 'In Stock' },
+                { value: 'INSTALLED', label: 'Installed' },
+                { value: 'CONFIGURED', label: 'Configured' },
+                { value: 'VERIFIED', label: 'Verified' },
+                { value: 'FAULTY', label: 'Faulty' },
+              ]}
+            />
           </div>
 
           {/* Equipment List */}

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Box,
-  Search,
   Wifi,
   Camera,
   Server,
@@ -13,8 +12,9 @@ import {
   Building2,
   MapPin,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, Input, Select, Badge, Pagination, usePagination } from '@/components/ui';
+import { Card, CardContent, CardHeader, CardTitle, Select, Badge, Pagination, usePagination } from '@/components/ui';
 import { assetService, type AssetStatus } from '@/services/asset.service';
+import { useSearchStore } from '@/stores/search.store';
 
 const statusBadgeVariants: Record<AssetStatus, 'default' | 'primary' | 'success' | 'error' | 'warning'> = {
   PLANNED: 'default',
@@ -46,7 +46,7 @@ const statusOptions = [
 
 export function AssetsPage() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
+  const { query: search } = useSearchStore();
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
@@ -138,27 +138,17 @@ export function AssetsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1 max-w-md">
-          <Input
-            placeholder="Search by name, serial, MAC..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            leftIcon={<Search size={18} />}
-          />
-        </div>
-        <div className="flex gap-2">
-          <Select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            options={typeOptions}
-          />
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            options={statusOptions}
-          />
-        </div>
+      <div className="flex gap-2">
+        <Select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          options={typeOptions}
+        />
+        <Select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          options={statusOptions}
+        />
       </div>
 
       {/* Assets Table */}

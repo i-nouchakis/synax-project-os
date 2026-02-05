@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ListChecks,
-  Search,
   CheckCircle2,
   Clock,
   Circle,
@@ -21,7 +20,8 @@ import {
   FileText,
   Package,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, Input, Select, Badge, Pagination, usePagination } from '@/components/ui';
+import { Card, CardContent, CardHeader, CardTitle, Select, Badge, Pagination, usePagination } from '@/components/ui';
+import { useSearchStore } from '@/stores/search.store';
 import { api } from '@/lib/api';
 
 type ChecklistStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
@@ -118,7 +118,7 @@ const typeOptions = [
 
 export function ChecklistsPage() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
+  const { query: search } = useSearchStore();
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
@@ -235,27 +235,17 @@ export function ChecklistsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1 max-w-md">
-          <Input
-            placeholder="Search by asset, project, or room..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            leftIcon={<Search size={18} />}
-          />
-        </div>
-        <div className="flex gap-2">
-          <Select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            options={typeOptions}
-          />
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            options={statusOptions}
-          />
-        </div>
+      <div className="flex gap-2">
+        <Select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          options={typeOptions}
+        />
+        <Select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          options={statusOptions}
+        />
       </div>
 
       {/* Checklists Table */}

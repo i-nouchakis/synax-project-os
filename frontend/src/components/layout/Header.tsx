@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchStore } from '@/stores/search.store';
 import { Search, Bell, Wifi, WifiOff, RefreshCw, LogOut, User, Settings, CloudOff, QrCode, AlertTriangle, CheckCircle2, Box, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui';
@@ -22,8 +23,23 @@ interface ActivityItem {
   projectName?: string;
 }
 
+// Get search placeholder based on current route
+const getSearchPlaceholder = (pathname: string): string => {
+  if (pathname.startsWith('/projects')) return 'Search projects...';
+  if (pathname.startsWith('/buildings')) return 'Search buildings...';
+  if (pathname.startsWith('/floors')) return 'Search floors...';
+  if (pathname.startsWith('/assets')) return 'Search assets...';
+  if (pathname.startsWith('/inventory')) return 'Search inventory...';
+  if (pathname.startsWith('/issues')) return 'Search issues...';
+  if (pathname.startsWith('/checklists')) return 'Search checklists...';
+  if (pathname.startsWith('/checklist-templates')) return 'Search templates...';
+  return 'Search...';
+};
+
 export function Header({ sidebarCollapsed = false }: HeaderProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { query, setQuery } = useSearchStore();
   const { user, logout } = useAuthStore();
   const { isOnline, isSyncing, pendingMutations, syncNow } = useOfflineStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -31,6 +47,17 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+
+  // Clear search when navigating to different section
+  const prevPathRef = useRef(location.pathname);
+  useEffect(() => {
+    const prevSection = prevPathRef.current.split('/')[1];
+    const currentSection = location.pathname.split('/')[1];
+    if (prevSection !== currentSection) {
+      setQuery('');
+    }
+    prevPathRef.current = location.pathname;
+  }, [location.pathname, setQuery]);
 
   // Fetch recent activity
   const { data: activityData } = useQuery({
@@ -121,12 +148,19 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
           <input
             type="text"
-            placeholder="Search projects, assets, issues..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={getSearchPlaceholder(location.pathname)}
             className="w-full bg-surface border border-surface-border rounded-md pl-10 pr-4 py-2 text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
-          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-tiny text-text-tertiary bg-background px-1.5 py-0.5 rounded border border-surface-border">
-            Ctrl+K
-          </kbd>
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 

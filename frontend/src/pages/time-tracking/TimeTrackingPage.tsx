@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
   Input,
+  DateInput,
   Textarea,
   Select,
   Badge,
@@ -329,12 +330,11 @@ export function TimeTrackingPage() {
                   options={TIME_ENTRY_TYPE_OPTIONS}
                 />
 
-                <Input
-                  type="date"
+                <DateInput
                   label="Date *"
                   value={formData.date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
+                  onChange={(value) =>
+                    setFormData({ ...formData, date: value })
                   }
                   required
                 />
@@ -403,21 +403,18 @@ export function TimeTrackingPage() {
               className="w-48"
             />
             <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-text-secondary" />
-              <Input
-                type="date"
+              <DateInput
                 value={filterStartDate}
-                onChange={(e) => setFilterStartDate(e.target.value)}
+                onChange={(value) => setFilterStartDate(value)}
                 className="w-40"
-                max={filterEndDate || undefined}
+                placeholder="Start date"
               />
               <span className="text-text-secondary">to</span>
-              <Input
-                type="date"
+              <DateInput
                 value={filterEndDate}
-                onChange={(e) => setFilterEndDate(e.target.value)}
+                onChange={(value) => setFilterEndDate(value)}
                 className="w-40"
-                min={filterStartDate || undefined}
+                placeholder="End date"
               />
             </div>
             {(filterProjectId || filterStartDate || filterEndDate) && (

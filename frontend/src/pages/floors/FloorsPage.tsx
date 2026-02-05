@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Layers, Search, MapPin, ChevronDown, ChevronRight, FolderKanban } from 'lucide-react';
-import { Card, CardContent, Input, Badge } from '@/components/ui';
+import { Layers, MapPin, ChevronDown, ChevronRight, FolderKanban } from 'lucide-react';
+import { Card, CardContent, Badge } from '@/components/ui';
+import { useSearchStore } from '@/stores/search.store';
 import { floorService, type Floor } from '@/services/floor.service';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +24,7 @@ interface ProjectGroup {
 
 export function FloorsPage() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
+  const { query: search } = useSearchStore();
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
 
   // Fetch all floors directly
@@ -135,16 +136,6 @@ export function FloorsPage() {
             </button>
           </div>
         )}
-      </div>
-
-      {/* Search */}
-      <div className="max-w-md">
-        <Input
-          placeholder="Search floors, projects..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          leftIcon={<Search size={18} />}
-        />
       </div>
 
       {/* Floors by Project */}

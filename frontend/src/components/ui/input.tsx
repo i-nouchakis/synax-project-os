@@ -32,6 +32,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <input
             type={type}
             id={inputId}
+            lang={type === 'date' ? 'en' : undefined}
             className={cn(
               'flex w-full bg-background border rounded-md px-3 py-2',
               'text-body text-text-primary placeholder:text-text-tertiary',

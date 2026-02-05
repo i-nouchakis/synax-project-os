@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
-  Search,
   Plus,
   Building2,
   MapPin,
@@ -52,6 +51,7 @@ import {
 } from '@/services/issue.service';
 import { projectService } from '@/services/project.service';
 import { issueCauseService } from '@/services/lookup.service';
+import { useSearchStore } from '@/stores/search.store';
 
 const statusOptions = [
   { value: '', label: 'All Statuses' },
@@ -78,7 +78,7 @@ const priorityFormOptions = [
 
 export function IssuesPage() {
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState('');
+  const { query: search } = useSearchStore();
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -263,27 +263,17 @@ export function IssuesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1 max-w-md">
-          <Input
-            placeholder="Search issues..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            leftIcon={<Search size={18} />}
-          />
-        </div>
-        <div className="flex gap-2">
-          <Select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            options={priorityOptions}
-          />
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            options={statusOptions}
-          />
-        </div>
+      <div className="flex gap-2">
+        <Select
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value)}
+          options={priorityOptions}
+        />
+        <Select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          options={statusOptions}
+        />
       </div>
 
       {/* Issues List */}

@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Building2, Search, ChevronDown, ChevronRight, FolderKanban, Layers } from 'lucide-react';
-import { Card, CardContent, Input, Badge } from '@/components/ui';
+import { Building2, ChevronDown, ChevronRight, FolderKanban, Layers } from 'lucide-react';
+import { Card, CardContent, Badge } from '@/components/ui';
+import { useSearchStore } from '@/stores/search.store';
 import { buildingService, type Building } from '@/services/building.service';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +24,7 @@ interface ProjectGroup {
 
 export function BuildingsPage() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
+  const { query: search } = useSearchStore();
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
 
   // Fetch all buildings
@@ -135,16 +136,6 @@ export function BuildingsPage() {
             </button>
           </div>
         )}
-      </div>
-
-      {/* Search */}
-      <div className="max-w-md">
-        <Input
-          placeholder="Search buildings, projects..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          leftIcon={<Search size={18} />}
-        />
       </div>
 
       {/* Buildings by Project */}
