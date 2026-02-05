@@ -47,7 +47,6 @@ import { assetService, type Asset, type AssetType, type CreateAssetData, type Up
 import { roomService } from '@/services/room.service';
 import { uploadService } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth.store';
-import { useUIStore } from '@/stores/ui.store';
 import { assetModelService } from '@/services/lookup.service';
 
 const assetStatusOptions = [
@@ -82,7 +81,6 @@ export function RoomDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const { floorPlansHiddenByDefault } = useUIStore();
   const canManage = user?.role === 'ADMIN' || user?.role === 'PM' || user?.role === 'TECHNICIAN';
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -90,7 +88,7 @@ export function RoomDetailPage() {
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [deleteConfirmAsset, setDeleteConfirmAsset] = useState<Asset | null>(null);
   const [isUploadingFloorplan, setIsUploadingFloorplan] = useState(false);
-  const [showFloorPlan, setShowFloorPlan] = useState(!floorPlansHiddenByDefault);
+  const [showFloorPlan, setShowFloorPlan] = useState(true);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);

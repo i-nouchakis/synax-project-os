@@ -19,8 +19,6 @@ import {
   Sun,
   Moon,
   Monitor,
-  Layout,
-  Map,
 } from 'lucide-react';
 import {
   Card,
@@ -36,10 +34,9 @@ import {
 } from '@/components/ui';
 import { useAuthStore } from '@/stores/auth.store';
 import { useThemeStore } from '@/stores/theme.store';
-import { useUIStore } from '@/stores/ui.store';
 import { api } from '@/lib/api';
 
-type SettingsTab = 'profile' | 'password' | 'notifications' | 'interface' | 'theme' | 'company' | 'api-keys';
+type SettingsTab = 'profile' | 'password' | 'notifications' | 'theme' | 'company' | 'api-keys';
 
 interface NotificationSettings {
   emailOnIssue: boolean;
@@ -73,7 +70,6 @@ export function SettingsPage() {
     { id: 'profile' as const, label: 'Profile', icon: <User size={18} /> },
     { id: 'password' as const, label: 'Password', icon: <Lock size={18} /> },
     { id: 'notifications' as const, label: 'Notifications', icon: <Bell size={18} /> },
-    { id: 'interface' as const, label: 'Interface', icon: <Layout size={18} /> },
     { id: 'theme' as const, label: 'Theme', icon: <Palette size={18} /> },
     { id: 'company' as const, label: 'Company', icon: <Building2 size={18} /> },
     { id: 'api-keys' as const, label: 'API Keys', icon: <Key size={18} /> },
@@ -124,7 +120,6 @@ export function SettingsPage() {
           {activeTab === 'profile' && <ProfileSettings />}
           {activeTab === 'password' && <PasswordSettings />}
           {activeTab === 'notifications' && <NotificationSettings />}
-          {activeTab === 'interface' && <InterfaceSettings />}
           {activeTab === 'theme' && <ThemeSettings />}
           {activeTab === 'company' && <CompanySettings />}
           {activeTab === 'api-keys' && <ApiKeysSettings />}
@@ -456,66 +451,6 @@ function NotificationSettings() {
           >
             Save Preferences
           </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Interface Settings Component
-function InterfaceSettings() {
-  const { floorPlansHiddenByDefault, setFloorPlansHiddenByDefault } = useUIStore();
-
-  const interfaceOptions = [
-    {
-      key: 'floorPlansHidden' as const,
-      label: 'Hide Floor Plans by Default',
-      description: 'Floor plans and master plans will be collapsed when you open a page. You can still expand them manually.',
-      icon: <Map size={20} className="text-primary" />,
-      value: floorPlansHiddenByDefault,
-      onChange: () => setFloorPlansHiddenByDefault(!floorPlansHiddenByDefault),
-    },
-  ];
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Layout size={20} />
-          Interface Preferences
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-body-sm text-text-secondary mb-6">
-          Customize how the application displays information.
-        </p>
-        <div className="space-y-4">
-          {interfaceOptions.map((option) => (
-            <div
-              key={option.key}
-              className="flex items-center justify-between p-4 bg-surface-secondary rounded-lg"
-            >
-              <div className="flex items-start gap-4">
-                <div className="mt-0.5">{option.icon}</div>
-                <div>
-                  <p className="text-body font-medium text-text-primary">{option.label}</p>
-                  <p className="text-body-sm text-text-secondary">{option.description}</p>
-                </div>
-              </div>
-              <button
-                onClick={option.onChange}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  option.value ? 'bg-primary' : 'bg-surface-border'
-                }`}
-              >
-                <span
-                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                    option.value ? 'translate-x-7' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-          ))}
         </div>
       </CardContent>
     </Card>
