@@ -141,7 +141,6 @@ export function RoomPlanCanvas({
   const [showAssetList, setShowAssetList] = useState(false); // Existing room assets
   const [showInventoryList, setShowInventoryList] = useState(false); // Inventory assets
   const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0, canvasX: 0, canvasY: 0 });
-  const [assetSearchQuery, setAssetSearchQuery] = useState('');
   const [inventorySearchQuery, setInventorySearchQuery] = useState('');
 
   // Selected placed asset state (for showing actions popup)
@@ -347,7 +346,6 @@ export function RoomPlanCanvas({
     setShowActionMenu(false);
     setShowAssetList(false);
     setShowInventoryList(false);
-    setAssetSearchQuery('');
     setInventorySearchQuery('');
     setSelectedPlacedAsset(null);
     // Don't reset popup offset here - only reset on new canvas click
