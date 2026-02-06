@@ -24,6 +24,7 @@ import {
   Download,
   Wand2,
   Pencil as PencilIcon,
+  PenLine,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -57,6 +58,8 @@ import { uploadService } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { assetModelService } from '@/services/lookup.service';
 import { labelService, type Label } from '@/services/label.service';
+import { signatureService, type SignatureType, type CreateSignatureData } from '@/services/signature.service';
+import { SignatureModal, SignatureDisplay } from '@/components/signatures';
 
 const assetStatusOptions = [
   { value: 'PLANNED', label: 'Planned' },
@@ -104,6 +107,7 @@ export function RoomDetailPage() {
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [pendingAssetPinPosition, setPendingAssetPinPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
 
   const floorplanInputRef = useRef<HTMLInputElement>(null);
 
@@ -224,6 +228,38 @@ export function RoomDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['labels-available', projectId] });
       queryClient.invalidateQueries({ queryKey: ['labels-all', projectId] });
       queryClient.invalidateQueries({ queryKey: ['room', id] });
+    },
+  });
+
+  // Fetch room signatures
+  const { data: roomSignatures = [] } = useQuery({
+    queryKey: ['signatures', 'room', id],
+    queryFn: () => signatureService.getByRoom(id!),
+    enabled: !!id,
+  });
+
+  // Create signature mutation
+  const createSignatureMutation = useMutation({
+    mutationFn: (data: CreateSignatureData) => signatureService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['signatures', 'room', id] });
+      setIsSignatureModalOpen(false);
+      toast.success('Signature saved successfully');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to save signature');
+    },
+  });
+
+  // Delete signature mutation
+  const deleteSignatureMutation = useMutation({
+    mutationFn: (sigId: string) => signatureService.delete(sigId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['signatures', 'room', id] });
+      toast.success('Signature deleted');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to delete signature');
     },
   });
 
@@ -534,11 +570,22 @@ export function RoomDetailPage() {
             </div>
           </div>
         </div>
-        {canManage && (
-          <Button leftIcon={<Plus size={18} />} onClick={() => setIsImportModalOpen(true)}>
-            Add Asset
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {canManage && (
+            <Button
+              variant="secondary"
+              leftIcon={<PenLine size={18} />}
+              onClick={() => setIsSignatureModalOpen(true)}
+            >
+              Sign Off
+            </Button>
+          )}
+          {canManage && (
+            <Button leftIcon={<Plus size={18} />} onClick={() => setIsImportModalOpen(true)}>
+              Add Asset
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Floor Plan Section */}
@@ -711,6 +758,47 @@ export function RoomDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Signatures Section */}
+      {roomSignatures.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <PenLine size={20} />
+              Signatures ({roomSignatures.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {roomSignatures.map((sig) => (
+                <div
+                  key={sig.id}
+                  className="relative p-4 rounded-lg bg-surface-secondary border border-surface-border group"
+                >
+                  <Badge variant="primary" size="sm" className="mb-3">
+                    {sig.type === 'ROOM_HANDOVER' ? 'Room Handover' :
+                     sig.type === 'STAGE_COMPLETION' ? 'Stage Completion' : 'Final Acceptance'}
+                  </Badge>
+                  <SignatureDisplay
+                    signatureData={sig.signatureData}
+                    signerName={sig.signedByName}
+                    signedAt={sig.signedAt}
+                  />
+                  {(user?.role === 'ADMIN' || user?.role === 'PM') && (
+                    <button
+                      onClick={() => deleteSignatureMutation.mutate(sig.id)}
+                      className="absolute top-2 right-2 p-1.5 rounded hover:bg-surface-hover text-text-tertiary hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Delete signature"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Assets List */}
       <Card>
@@ -1084,6 +1172,24 @@ export function RoomDetailPage() {
           }))}
         />
       )}
+
+      {/* Signature Modal */}
+      <SignatureModal
+        isOpen={isSignatureModalOpen}
+        onClose={() => setIsSignatureModalOpen(false)}
+        onSign={({ signatureData, signerName }) => {
+          if (!projectId) return;
+          createSignatureMutation.mutate({
+            projectId,
+            roomId: id,
+            type: 'ROOM_HANDOVER' as SignatureType,
+            signatureData,
+            signedByName: signerName,
+          });
+        }}
+        title="Room Handover Signature"
+        description={`Sign off on ${room?.name || 'this room'} to confirm handover completion.`}
+      />
 
       {/* Import from Inventory Modal */}
       <ImportInventoryModal

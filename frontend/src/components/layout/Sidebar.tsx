@@ -30,6 +30,8 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { api } from '@/lib/api';
+import { messengerService } from '@/services/messenger.service';
+import { useMessengerSocket } from '@/hooks/useMessengerSocket';
 
 interface NavItem {
   label: string;
@@ -46,13 +48,13 @@ interface NavSection {
 }
 
 // Navigation will be built dynamically to include live badge counts
-const getNavigation = (openIssuesCount: number): NavSection[] => [
+const getNavigation = (openIssuesCount: number, messengerUnread: number): NavSection[] => [
   {
     title: 'Overview',
     items: [
       { label: 'Dashboard', icon: <LayoutDashboard size={20} />, href: '/dashboard' },
       { label: 'Calendar', icon: <Calendar size={20} />, href: '/calendar' },
-      { label: 'Messenger', icon: <MessageSquare size={20} />, href: '/messenger' },
+      { label: 'Messenger', icon: <MessageSquare size={20} />, href: '/messenger', badge: messengerUnread > 0 ? messengerUnread : undefined },
     ],
   },
   {
@@ -113,6 +115,9 @@ export function Sidebar({ collapsed = false, onCollapsedChange, isMobile = false
   const navigate = useNavigate();
   const isAdmin = user?.role === 'ADMIN';
 
+  // WebSocket connection for real-time messenger updates
+  useMessengerSocket();
+
   // Fetch open issues count
   const { data: openIssuesCount = 0 } = useQuery({
     queryKey: ['open-issues-count'],
@@ -122,6 +127,13 @@ export function Sidebar({ collapsed = false, onCollapsedChange, isMobile = false
     },
     enabled: isAuthenticated,
     refetchInterval: 60000, // Refresh every minute
+  });
+
+  // Fetch messenger unread count (invalidated by WS on new messages)
+  const { data: messengerUnread = 0 } = useQuery({
+    queryKey: ['messenger-unread'],
+    queryFn: messengerService.getUnreadCount,
+    enabled: isAuthenticated,
   });
 
   const handleToggle = () => {
@@ -143,7 +155,7 @@ export function Sidebar({ collapsed = false, onCollapsedChange, isMobile = false
   };
 
   // Get navigation with dynamic badge counts and filter based on user role
-  const navigation = getNavigation(openIssuesCount);
+  const navigation = getNavigation(openIssuesCount, messengerUnread);
   const filteredNavigation = navigation.filter(
     (section) => !section.adminOnly || isAdmin
   );

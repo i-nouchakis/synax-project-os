@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
+import websocket from '@fastify/websocket';
 import { config } from './config/index.js';
 import { authRoutes } from './controllers/auth.controller.js';
 import { userRoutes } from './controllers/user.controller.js';
@@ -53,6 +54,8 @@ const start = async () => {
         fileSize: 50 * 1024 * 1024, // 50MB
       },
     });
+
+    await app.register(websocket);
 
     // Health check (both /health and /api/health for flexibility)
     const healthResponse = async () => ({

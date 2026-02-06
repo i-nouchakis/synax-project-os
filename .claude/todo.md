@@ -28,14 +28,14 @@
 #### 4. Signatures UI Integration
 - **Τι:** Ενσωμάτωση signature capture στο UI
 - **Λεπτομέρειες:** Backend controller + frontend service υπάρχουν ήδη. Types: ROOM_HANDOVER, STAGE_COMPLETION, FINAL_ACCEPTANCE. Χρειάζεται integration σε workflows (room handover, checklist completion, κλπ.)
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed - Integrated in RoomDetailPage (Sign Off button + signatures section) and ProjectDetailPage (Stage Completion + Final Acceptance buttons + signatures section)
 
 ### Μεσαία Πολυπλοκότητα
 
 #### 5. WebSocket for Messenger
 - **Τι:** Αντικατάσταση polling με WebSocket για real-time messaging
 - **Λεπτομέρειες:** Τώρα: conversations every 5s, messages every 3s. Fastify supports WebSocket via @fastify/websocket. Connection management, room-based subscriptions, fallback to polling
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed - @fastify/websocket installed, WS route at /api/messenger/ws, singleton hook useMessengerSocket, typing indicators, read receipts broadcast, sidebar unread badge, auto-reconnect
 
 #### 6. Cable System Advanced Features
 - **Τι:** Προηγμένες λειτουργίες για cables

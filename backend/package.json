@@ -28,6 +28,7 @@
     "@fastify/cors": "^10.0.2",
     "@fastify/jwt": "^9.0.2",
     "@fastify/multipart": "^9.4.0",
+    "@fastify/websocket": "^11.2.0",
     "@prisma/client": "^6.3.1",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.7",
@@ -41,6 +42,7 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.12.0",
+    "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^4.0.18",
     "prisma": "^6.3.1",
     "typescript": "^5.7.3",

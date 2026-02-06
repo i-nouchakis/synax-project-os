@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../utils/prisma.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { sendValidationError } from '../utils/errors.js';
+import { wsManager } from '../utils/ws-manager.js';
 
 const participantInclude = {
   user: { select: { id: true, name: true, email: true, avatar: true, role: true } },
@@ -22,6 +23,79 @@ const conversationInclude = {
 };
 
 export async function messengerRoutes(app: FastifyInstance) {
+  // ─── WebSocket Route (auth via query param token) ────────
+  app.get('/ws', { websocket: true }, async (socket, request) => {
+    const { token } = request.query as { token?: string };
+    if (!token) {
+      socket.close(4001, 'Missing token');
+      return;
+    }
+
+    try {
+      const decoded = app.jwt.verify<{ id: string; email: string; role: string }>(token);
+      const userId = decoded.id;
+
+      // Register connection
+      wsManager.addConnection(userId, socket);
+
+      // Send initial connection success
+      socket.send(JSON.stringify({ event: 'connected', data: { userId } }));
+
+      // Handle incoming messages from client
+      socket.on('message', (raw: Buffer | string) => {
+        try {
+          const msg = JSON.parse(raw.toString());
+          handleClientMessage(userId, msg);
+        } catch {
+          // Ignore malformed messages
+        }
+      });
+
+      // Heartbeat - respond to ping
+      socket.on('pong', () => {
+        // Client is alive
+      });
+    } catch {
+      socket.close(4003, 'Invalid token');
+    }
+  });
+
+  // Handle messages from WebSocket clients
+  function handleClientMessage(userId: string, msg: { event: string; data?: Record<string, unknown> }) {
+    switch (msg.event) {
+      case 'typing:start':
+      case 'typing:stop': {
+        const conversationId = msg.data?.conversationId as string;
+        if (!conversationId) return;
+        // Broadcast typing status to other participants (async, fire-and-forget)
+        broadcastToConversation(conversationId, userId, msg.event, {
+          conversationId,
+          userId,
+        });
+        break;
+      }
+      case 'ping':
+        // Client heartbeat - just acknowledge
+        wsManager.sendToUser(userId, 'pong', {});
+        break;
+    }
+  }
+
+  // Broadcast to all participants of a conversation except the sender
+  async function broadcastToConversation(conversationId: string, excludeUserId: string, event: string, data: unknown) {
+    const participants = await prisma.conversationParticipant.findMany({
+      where: { conversationId },
+      select: { userId: true },
+    });
+
+    const otherUserIds = participants
+      .map(p => p.userId)
+      .filter(id => id !== excludeUserId);
+
+    wsManager.sendToUsers(otherUserIds, event, data);
+  }
+
+  // REST routes require authentication
   app.addHook('preHandler', authenticate);
 
   // GET /api/messenger/conversations - List my conversations
@@ -193,6 +267,12 @@ export async function messengerRoutes(app: FastifyInstance) {
         }),
       ]);
 
+      // 🔥 Broadcast new message to all participants via WebSocket
+      broadcastToConversation(id, user.id, 'message:new', {
+        conversationId: id,
+        message,
+      });
+
       return reply.status(201).send({ message });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -210,6 +290,13 @@ export async function messengerRoutes(app: FastifyInstance) {
     await prisma.conversationParticipant.updateMany({
       where: { conversationId: id, userId: user.id },
       data: { lastReadAt: new Date() },
+    });
+
+    // 🔥 Broadcast read receipt to other participants
+    broadcastToConversation(id, user.id, 'message:read', {
+      conversationId: id,
+      userId: user.id,
+      readAt: new Date().toISOString(),
     });
 
     return reply.send({ success: true });

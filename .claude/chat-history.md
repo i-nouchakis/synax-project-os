@@ -10,8 +10,30 @@
 **Local Development:** Working (port 5173) - screenshot feedback confirmed working
 **Database (Local):** Rich seed (5 projects, 369 rooms, 702 assets, 500 labels)
 **Database (Cloud):** Needs `prisma db push --force-reset` then seed after deploy
-**Latest Feature:** Help Bot + Manual updated with Help Bot & Feedback sections
-**Latest Commit:** `d1a3fb8` - pushed to main
+**Latest Feature:** Signatures UI Integration (RoomDetailPage + ProjectDetailPage)
+**Latest Commit:** `1a5fa64` - pushed to main
+
+### Session (2026-02-06) - Help Bot & Signatures Integration
+- **Help Bot:** Built non-AI decision tree help widget with 9 categories, 25+ articles, keyword search, context-sensitive help
+- **Manual Update:** Added Help Bot & Feedback sections to ManualPage
+- **Commit:** `00c7cad` - Help Bot + Manual updates
+- **Fix:** Unused `ChevronLeft` import caught by `tsc -b` - commit `1a5fa64`
+- **Signatures UI Integration:** Integrated signature capture into:
+  - **RoomDetailPage:** "Sign Off" button in header, signatures section showing existing signatures with delete capability, SignatureModal for ROOM_HANDOVER type
+  - **ProjectDetailPage:** Signatures card with Stage Completion & Final Acceptance buttons, signature grid showing all project signatures, delete capability for ADMIN/PM
+  - Components used: SignatureModal (multi-step), SignaturePad (canvas), SignatureDisplay (read-only)
+  - Service: signatureService (getByRoom, getByProject, create, delete)
+- **TypeScript:** Zero errors on both frontend and backend
+- **WebSocket for Messenger:** Replaced polling with real-time WebSocket
+  - Backend: `@fastify/websocket`, `ws-manager.ts` (connection map, multi-tab), WS route at `/api/messenger/ws` with JWT auth via query param
+  - Backend broadcasts: `message:new`, `message:read`, `typing:start/stop`
+  - Frontend: `useMessengerSocket` hook (singleton, auto-reconnect, heartbeat)
+  - MessengerPage: removed refetchInterval (5s/3s), uses WS query invalidation
+  - Typing indicators: emit on keypress, 2s debounce, UI shows "X is typing..."
+  - Sidebar: unread badge for Messenger (WS-invalidated query)
+  - Vite proxy: added `ws: true` for WebSocket passthrough
+  - Files created: `backend/src/utils/ws-manager.ts`, `frontend/src/hooks/useMessengerSocket.ts`
+  - Files modified: `server.ts`, `messenger.controller.ts`, `MessengerPage.tsx`, `Sidebar.tsx`, `vite.config.ts`
 
 ### Session (2026-02-06) - Production Fixes & Screenshot Library
 - **Audit:** Full project audit - 30 completed features, 12 pending items

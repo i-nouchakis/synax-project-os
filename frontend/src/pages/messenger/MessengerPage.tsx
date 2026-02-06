@@ -25,6 +25,7 @@ import { messengerService, type Conversation, type Message, type ReadParticipant
 import { userService } from '@/services/user.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSearchStore } from '@/stores/search.store';
+import { useMessengerSocket } from '@/hooks/useMessengerSocket';
 
 // ─── Helpers ────────────────────────────────────────────────
 function getConversationName(conv: Conversation, currentUserId: string): string {
@@ -98,13 +99,18 @@ export function MessengerPage() {
   const [groupTitle, setGroupTitle] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({});
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef = useRef(false);
 
-  // Fetch conversations
+  // WebSocket connection for real-time updates
+  const { emit } = useMessengerSocket();
+
+  // Fetch conversations (no polling - WS invalidates on new messages)
   const { data: conversations = [] } = useQuery({
     queryKey: ['messenger-conversations'],
     queryFn: messengerService.getConversations,
-    refetchInterval: 5000, // Poll every 5 seconds
   });
 
   // Filter conversations by search
@@ -121,12 +127,11 @@ export function MessengerPage() {
   // Active conversation
   const activeConversation = conversations.find(c => c.id === activeConversationId);
 
-  // Fetch messages for active conversation
+  // Fetch messages for active conversation (no polling - WS pushes updates)
   const { data: messagesData } = useQuery({
     queryKey: ['messenger-messages', activeConversationId],
     queryFn: () => messengerService.getMessages(activeConversationId!),
     enabled: !!activeConversationId,
-    refetchInterval: 3000, // Poll messages every 3 seconds
   });
   const messages = messagesData?.messages || [];
   const readParticipants: ReadParticipant[] = messagesData?.participants || [];
@@ -192,6 +197,12 @@ export function MessengerPage() {
 
   const handleSend = () => {
     if (!messageText.trim() || !activeConversationId) return;
+    // Stop typing indicator
+    if (isTypingRef.current) {
+      isTypingRef.current = false;
+      emit('typing:stop', { conversationId: activeConversationId });
+    }
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
     sendMessageMutation.mutate({ conversationId: activeConversationId, content: messageText.trim() });
     setShowEmojiPicker(false);
   };
@@ -237,6 +248,82 @@ export function MessengerPage() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showEmojiPicker]);
+
+  // Handle typing indicator - emit typing:start / typing:stop
+  const handleTypingChange = useCallback((text: string) => {
+    setMessageText(text);
+    if (!activeConversationId) return;
+
+    if (text.trim() && !isTypingRef.current) {
+      isTypingRef.current = true;
+      emit('typing:start', { conversationId: activeConversationId });
+    }
+
+    // Clear previous timer and set new one to stop typing after 2s of inactivity
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => {
+      if (isTypingRef.current && activeConversationId) {
+        isTypingRef.current = false;
+        emit('typing:stop', { conversationId: activeConversationId });
+      }
+    }, 2000);
+
+    // If text is empty, stop immediately
+    if (!text.trim() && isTypingRef.current) {
+      isTypingRef.current = false;
+      emit('typing:stop', { conversationId: activeConversationId });
+    }
+  }, [activeConversationId, emit]);
+
+  // Listen for typing events from other users
+  const { on } = useMessengerSocket();
+  useEffect(() => {
+    const unsub1 = on('typing:start', (data) => {
+      const convId = data.conversationId as string;
+      const userId = data.userId as string;
+      if (userId === currentUser?.id) return;
+
+      setTypingUsers((prev) => {
+        const current = prev[convId] || [];
+        if (current.includes(userId)) return prev;
+        return { ...prev, [convId]: [...current, userId] };
+      });
+    });
+
+    const unsub2 = on('typing:stop', (data) => {
+      const convId = data.conversationId as string;
+      const userId = data.userId as string;
+
+      setTypingUsers((prev) => {
+        const current = prev[convId] || [];
+        if (!current.includes(userId)) return prev;
+        const updated = current.filter((id) => id !== userId);
+        if (updated.length === 0) {
+          const next = { ...prev };
+          delete next[convId];
+          return next;
+        }
+        return { ...prev, [convId]: updated };
+      });
+    });
+
+    return () => {
+      unsub1();
+      unsub2();
+    };
+  }, [on, currentUser?.id]);
+
+  // Stop typing when changing conversations
+  useEffect(() => {
+    isTypingRef.current = false;
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+  }, [activeConversationId]);
+
+  // Get typing indicator names for active conversation
+  const activeTypingUsers = activeConversationId ? (typingUsers[activeConversationId] || []) : [];
+  const typingNames = activeTypingUsers
+    .map((uid) => activeConversation?.participants.find((p) => p.userId === uid)?.user.name?.split(' ')[0])
+    .filter(Boolean);
 
   const toggleUserSelection = (userId: string) => {
     setSelectedUserIds(prev =>
@@ -457,6 +544,15 @@ export function MessengerPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
+                {/* Typing Indicator */}
+                {typingNames.length > 0 && (
+                  <div className="px-4 py-1.5 text-caption text-text-tertiary animate-pulse">
+                    {typingNames.length === 1
+                      ? `${typingNames[0]} is typing...`
+                      : `${typingNames.join(', ')} are typing...`}
+                  </div>
+                )}
+
                 {/* Message Input */}
                 <div className="px-4 py-3 border-t border-surface-border">
                   <div className="flex items-center gap-2 relative">
@@ -503,7 +599,7 @@ export function MessengerPage() {
                       ref={inputRef}
                       type="text"
                       value={messageText}
-                      onChange={(e) => setMessageText(e.target.value)}
+                      onChange={(e) => handleTypingChange(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Type a message..."
                       className="flex-1 px-4 py-2.5 rounded-full bg-surface-secondary border border-surface-border text-body-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"

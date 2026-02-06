@@ -32,6 +32,7 @@ import {
   File,
   Eye,
   ChevronDown,
+  PenLine,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -56,6 +57,8 @@ import { uploadService } from '@/services/upload.service';
 import { projectFileService, FILE_CATEGORIES, formatFileSize, getFileIcon, type ProjectFile, type FileCategory } from '@/services/project-file.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { FloorPlanCanvas, DownloadFloorplanModal } from '@/components/floor-plan';
+import { signatureService, type SignatureType, type CreateSignatureData } from '@/services/signature.service';
+import { SignatureModal, SignatureDisplay } from '@/components/signatures';
 
 const statusBadgeVariants: Record<ProjectStatus, 'info' | 'primary' | 'warning' | 'success' | 'default'> = {
   PLANNING: 'info',
@@ -77,6 +80,10 @@ export function ProjectDetailPage() {
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
   const [deletingBuilding, setDeletingBuilding] = useState<Building | null>(null);
+
+  // Signature state
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+  const [signatureType, setSignatureType] = useState<SignatureType>('STAGE_COMPLETION');
 
   // Masterplan state
   const [showMasterplan, setShowMasterplan] = useState(true);
@@ -113,6 +120,38 @@ export function ProjectDetailPage() {
     queryKey: ['project-files', id],
     queryFn: () => projectFileService.getByProject(id!),
     enabled: !!id,
+  });
+
+  // Fetch project signatures
+  const { data: projectSignatures = [] } = useQuery({
+    queryKey: ['signatures', 'project', id],
+    queryFn: () => signatureService.getByProject(id!),
+    enabled: !!id,
+  });
+
+  // Create signature mutation
+  const createSignatureMutation = useMutation({
+    mutationFn: (data: CreateSignatureData) => signatureService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['signatures', 'project', id] });
+      setIsSignatureModalOpen(false);
+      toast.success('Signature saved successfully');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to save signature');
+    },
+  });
+
+  // Delete signature mutation
+  const deleteSignatureMutation = useMutation({
+    mutationFn: (sigId: string) => signatureService.delete(sigId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['signatures', 'project', id] });
+      toast.success('Signature deleted');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to delete signature');
+    },
   });
 
   // Upload file mutation
@@ -928,6 +967,110 @@ export function ProjectDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Signatures Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <PenLine size={20} />
+            Signatures ({projectSignatures.length})
+          </CardTitle>
+          {canManage && (
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                leftIcon={<PenLine size={16} />}
+                onClick={() => {
+                  setSignatureType('STAGE_COMPLETION');
+                  setIsSignatureModalOpen(true);
+                }}
+              >
+                Stage Completion
+              </Button>
+              <Button
+                size="sm"
+                leftIcon={<PenLine size={16} />}
+                onClick={() => {
+                  setSignatureType('FINAL_ACCEPTANCE');
+                  setIsSignatureModalOpen(true);
+                }}
+              >
+                Final Acceptance
+              </Button>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          {projectSignatures.length === 0 ? (
+            <div className="text-center py-8 text-text-secondary">
+              <PenLine size={32} className="mx-auto mb-2 opacity-50" />
+              <p>No signatures yet</p>
+              {canManage && (
+                <p className="text-caption mt-1">Sign off on project stages or final acceptance</p>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {projectSignatures.map((sig) => (
+                <div
+                  key={sig.id}
+                  className="relative p-4 rounded-lg bg-surface-secondary border border-surface-border group"
+                >
+                  <Badge
+                    variant={sig.type === 'FINAL_ACCEPTANCE' ? 'success' : sig.type === 'STAGE_COMPLETION' ? 'primary' : 'info'}
+                    size="sm"
+                    className="mb-3"
+                  >
+                    {sig.type === 'ROOM_HANDOVER' ? 'Room Handover' :
+                     sig.type === 'STAGE_COMPLETION' ? 'Stage Completion' : 'Final Acceptance'}
+                  </Badge>
+                  {sig.room && (
+                    <p className="text-caption text-text-tertiary mb-2">
+                      {sig.room.floor?.name} / {sig.room.name}
+                    </p>
+                  )}
+                  <SignatureDisplay
+                    signatureData={sig.signatureData}
+                    signerName={sig.signedByName}
+                    signedAt={sig.signedAt}
+                  />
+                  {canManage && (
+                    <button
+                      onClick={() => deleteSignatureMutation.mutate(sig.id)}
+                      className="absolute top-2 right-2 p-1.5 rounded hover:bg-surface-hover text-text-tertiary hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Delete signature"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Signature Modal */}
+      <SignatureModal
+        isOpen={isSignatureModalOpen}
+        onClose={() => setIsSignatureModalOpen(false)}
+        onSign={({ signatureData, signerName }) => {
+          if (!id) return;
+          createSignatureMutation.mutate({
+            projectId: id,
+            type: signatureType,
+            signatureData,
+            signedByName: signerName,
+          });
+        }}
+        title={signatureType === 'FINAL_ACCEPTANCE' ? 'Final Acceptance Signature' : 'Stage Completion Signature'}
+        description={
+          signatureType === 'FINAL_ACCEPTANCE'
+            ? `Sign off on project "${project.name}" for final acceptance.`
+            : `Sign off on a stage completion for project "${project.name}".`
+        }
+      />
 
       {/* Delete File Confirmation Modal */}
       {deletingFile && (
