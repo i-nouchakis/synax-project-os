@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { MessageSquarePlus, Bug, Lightbulb, Send, X, Camera } from 'lucide-react';
 import { toast } from 'sonner';
-import { toBlob } from 'html-to-image';
+import html2canvas from 'html2canvas-pro';
 import { feedbackService, type FeedbackType } from '@/services/feedback.service';
 
 type Step = 'closed' | 'capturing' | 'select_type' | 'description';
@@ -28,21 +28,20 @@ export function FeedbackButton() {
     setStep('capturing');
     try {
       await new Promise((r) => setTimeout(r, 100));
-      const blob = await toBlob(document.body, {
-        cacheBust: true,
-        pixelRatio: 1,
-        filter: (node) => {
-          if (node instanceof HTMLElement && node.id === 'feedback-widget') return false;
-          return true;
-        },
+      const canvas = await html2canvas(document.body, {
+        scale: 1,
+        useCORS: true,
+        ignoreElements: (el) => el.id === 'feedback-widget',
       });
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob((b) => resolve(b), 'image/png')
+      );
       if (blob && blob.size > 0) {
         setScreenshotBlob(blob);
         setScreenshotUrl(URL.createObjectURL(blob));
       }
-    } catch {
-      // Screenshot capture may fail in production due to CSS parsing (oklab/oklch).
-      // Feedback still works without screenshot - silently continue.
+    } catch (err) {
+      console.error('Screenshot capture failed:', err);
     }
     setStep('select_type');
   };
