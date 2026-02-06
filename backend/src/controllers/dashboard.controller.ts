@@ -219,6 +219,186 @@ export async function dashboardRoutes(app: FastifyInstance) {
     return reply.send({ activities });
   });
 
+  // GET /api/dashboard/charts - Get chart data for dashboard
+  app.get('/charts', async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as { id: string; role: string };
+
+    const projectWhere = ['ADMIN', 'PM'].includes(user.role)
+      ? {}
+      : { members: { some: { userId: user.id } } };
+
+    // Fetch all data in parallel
+    const [projects, allFloors, allRooms, allAssets, allIssues, allChecklistItems] = await Promise.all([
+      // Active projects (not archived)
+      prisma.project.findMany({
+        where: { ...projectWhere, status: { not: 'ARCHIVED' } },
+        select: { id: true, name: true, status: true },
+        orderBy: { updatedAt: 'desc' },
+        take: 8,
+      }),
+      // All floors with room counts
+      prisma.floor.findMany({
+        where: { building: { project: projectWhere } },
+        select: {
+          id: true,
+          rooms: { select: { status: true } },
+        },
+      }),
+      // All rooms
+      prisma.room.findMany({
+        where: { floor: { building: { project: projectWhere } } },
+        select: {
+          id: true,
+          status: true,
+          floor: { select: { building: { select: { projectId: true } } } },
+        },
+      }),
+      // All assets (room-level + floor-level + project-level)
+      prisma.asset.findMany({
+        where: {
+          OR: [
+            { room: { floor: { building: { project: projectWhere } } } },
+            { floor: { building: { project: projectWhere } } },
+            { project: projectWhere },
+          ],
+        },
+        select: {
+          id: true,
+          status: true,
+          projectId: true,
+          room: { select: { floor: { select: { building: { select: { projectId: true } } } } } },
+          floor: { select: { building: { select: { projectId: true } } } },
+        },
+      }),
+      // All issues
+      prisma.issue.findMany({
+        where: { project: projectWhere },
+        select: { id: true, status: true, priority: true, projectId: true },
+      }),
+      // All checklist items
+      prisma.checklistItem.findMany({
+        where: {
+          checklist: {
+            asset: {
+              OR: [
+                { room: { floor: { building: { project: projectWhere } } } },
+                { floor: { building: { project: projectWhere } } },
+                { project: projectWhere },
+              ],
+            },
+          },
+        },
+        select: {
+          id: true,
+          completed: true,
+          checklist: { select: { type: true } },
+        },
+      }),
+    ]);
+
+    // Build project status breakdown
+    const projectStatusBreakdown = projects.map((project) => {
+      const pRooms = allRooms.filter(r => r.floor.building.projectId === project.id);
+      const pAssets = allAssets.filter(a => {
+        const pid = a.projectId || a.room?.floor?.building?.projectId || a.floor?.building?.projectId;
+        return pid === project.id;
+      });
+      const pIssues = allIssues.filter(i => i.projectId === project.id);
+
+      const roomsCompleted = pRooms.filter(r => r.status === 'COMPLETED').length;
+      const roomsInProgress = pRooms.filter(r => r.status === 'IN_PROGRESS').length;
+      const roomsBlocked = pRooms.filter(r => r.status === 'BLOCKED').length;
+
+      return {
+        id: project.id,
+        name: project.name,
+        status: project.status,
+        roomsTotal: pRooms.length,
+        roomsCompleted,
+        roomsInProgress,
+        roomsBlocked,
+        assetsTotal: pAssets.length,
+        assetsVerified: pAssets.filter(a => a.status === 'VERIFIED').length,
+        issuesOpen: pIssues.filter(i => ['OPEN', 'IN_PROGRESS'].includes(i.status)).length,
+        issuesTotal: pIssues.length,
+        overallProgress: pRooms.length > 0 ? Math.round((roomsCompleted / pRooms.length) * 100) : 0,
+      };
+    });
+
+    // Aggregated counts
+    const issuesByPriority = {
+      critical: allIssues.filter(i => i.priority === 'CRITICAL').length,
+      high: allIssues.filter(i => i.priority === 'HIGH').length,
+      medium: allIssues.filter(i => i.priority === 'MEDIUM').length,
+      low: allIssues.filter(i => i.priority === 'LOW').length,
+    };
+
+    const issuesByStatus = {
+      open: allIssues.filter(i => i.status === 'OPEN').length,
+      inProgress: allIssues.filter(i => i.status === 'IN_PROGRESS').length,
+      resolved: allIssues.filter(i => i.status === 'RESOLVED').length,
+      closed: allIssues.filter(i => i.status === 'CLOSED').length,
+    };
+
+    const assetsByStatus = {
+      planned: allAssets.filter(a => a.status === 'PLANNED').length,
+      inStock: allAssets.filter(a => a.status === 'IN_STOCK').length,
+      installed: allAssets.filter(a => a.status === 'INSTALLED').length,
+      configured: allAssets.filter(a => a.status === 'CONFIGURED').length,
+      verified: allAssets.filter(a => a.status === 'VERIFIED').length,
+      faulty: allAssets.filter(a => a.status === 'FAULTY').length,
+    };
+
+    const roomsByStatus = {
+      notStarted: allRooms.filter(r => r.status === 'NOT_STARTED').length,
+      inProgress: allRooms.filter(r => r.status === 'IN_PROGRESS').length,
+      completed: allRooms.filter(r => r.status === 'COMPLETED').length,
+      blocked: allRooms.filter(r => r.status === 'BLOCKED').length,
+    };
+
+    // Floor progress - derive status from room statuses
+    const floorsByProgress = {
+      total: allFloors.length,
+      completed: allFloors.filter(f => f.rooms.length > 0 && f.rooms.every(r => r.status === 'COMPLETED')).length,
+      inProgress: allFloors.filter(f => {
+        const hasStarted = f.rooms.some(r => ['IN_PROGRESS', 'COMPLETED'].includes(r.status));
+        const allDone = f.rooms.length > 0 && f.rooms.every(r => r.status === 'COMPLETED');
+        return hasStarted && !allDone;
+      }).length,
+      notStarted: allFloors.filter(f => f.rooms.length === 0 || f.rooms.every(r => r.status === 'NOT_STARTED')).length,
+      hasBlocked: allFloors.filter(f => f.rooms.some(r => r.status === 'BLOCKED')).length,
+    };
+
+    const checklistByType = (type: string) => {
+      const items = allChecklistItems.filter(i => i.checklist.type === type);
+      return { total: items.length, completed: items.filter(i => i.completed).length };
+    };
+
+    const completedItems = allChecklistItems.filter(i => i.completed).length;
+    const checklistProgress = {
+      totalItems: allChecklistItems.length,
+      completedItems,
+      completionRate: allChecklistItems.length > 0
+        ? Math.round((completedItems / allChecklistItems.length) * 100) : 0,
+      byType: {
+        cabling: checklistByType('CABLING'),
+        equipment: checklistByType('EQUIPMENT'),
+        config: checklistByType('CONFIG'),
+        documentation: checklistByType('DOCUMENTATION'),
+      },
+    };
+
+    return reply.send({
+      projectStatusBreakdown,
+      issuesByPriority,
+      issuesByStatus,
+      assetsByStatus,
+      roomsByStatus,
+      floorsByProgress,
+      checklistProgress,
+    });
+  });
+
   // GET /api/dashboard/projects-summary - Get projects summary
   app.get('/projects-summary', async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as { id: string; role: string };

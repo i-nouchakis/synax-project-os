@@ -5,41 +5,25 @@ import {
   Box,
   AlertTriangle,
   CheckCircle2,
-  Clock,
   TrendingUp,
   Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
-import { Link } from 'react-router-dom';
-import { api } from '@/lib/api';
-import { projectService } from '@/services/project.service';
-import type { Project, ProjectStatus } from '@/services/project.service';
-
-interface DashboardStats {
-  totalProjects: number;
-  activeProjects: number;
-  totalFloors: number;
-  totalRooms: number;
-  totalAssets: number;
-  openIssues: number;
-  resolvedIssues: number;
-  totalIssues: number;
-  completedChecklists: number;
-  totalChecklists: number;
-  checklistCompletionRate: number;
-}
-
-interface ActivityItem {
-  id: string;
-  type: 'checklist' | 'issue' | 'asset' | 'project';
-  title: string;
-  description: string;
-  timestamp: string;
-  user: string;
-  priority?: string;
-}
+import {
+  dashboardService,
+  type DashboardStats,
+  type ActivityItem,
+  type DashboardCharts,
+} from '@/services/dashboard.service';
+import { IssuesPriorityChart } from '@/components/dashboard/IssuesPriorityChart';
+import { AssetPipelineChart } from '@/components/dashboard/AssetPipelineChart';
+import { RoomProgressChart } from '@/components/dashboard/RoomProgressChart';
+import { FloorProgressChart } from '@/components/dashboard/FloorProgressChart';
+import { ChecklistProgressChart } from '@/components/dashboard/ChecklistProgressChart';
+import { ProjectProgressChart } from '@/components/dashboard/ProjectProgressChart';
+import { ProjectsTable } from '@/components/dashboard/ProjectsTable';
 
 interface StatCardProps {
   title: string;
@@ -118,20 +102,20 @@ export function DashboardPage() {
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [charts, setCharts] = useState<DashboardCharts | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        const [statsRes, activityRes, projectsData] = await Promise.all([
-          api.get<{ stats: DashboardStats }>('/dashboard/stats'),
-          api.get<{ activities: ActivityItem[] }>('/dashboard/activity'),
-          projectService.getAll(),
+        const [statsData, activityData, chartsData] = await Promise.all([
+          dashboardService.getStats(),
+          dashboardService.getActivity(),
+          dashboardService.getCharts(),
         ]);
-        setStats(statsRes.stats);
-        setActivities(activityRes.activities);
-        setProjects(projectsData);
+        setStats(statsData);
+        setActivities(activityData);
+        setCharts(chartsData);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -141,40 +125,6 @@ export function DashboardPage() {
 
     fetchDashboardData();
   }, []);
-
-  const getStatusColor = (status: ProjectStatus) => {
-    switch (status) {
-      case 'PLANNING':
-        return 'bg-info/20 text-info';
-      case 'IN_PROGRESS':
-        return 'bg-primary/20 text-primary';
-      case 'ON_HOLD':
-        return 'bg-warning/20 text-warning';
-      case 'COMPLETED':
-        return 'bg-success/20 text-success';
-      case 'ARCHIVED':
-        return 'bg-surface-hover text-text-tertiary';
-      default:
-        return 'bg-surface-hover text-text-secondary';
-    }
-  };
-
-  const getStatusLabel = (status: ProjectStatus) => {
-    switch (status) {
-      case 'PLANNING':
-        return 'Planning';
-      case 'IN_PROGRESS':
-        return 'In Progress';
-      case 'ON_HOLD':
-        return 'On Hold';
-      case 'COMPLETED':
-        return 'Completed';
-      case 'ARCHIVED':
-        return 'Archived';
-      default:
-        return status;
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -186,7 +136,7 @@ export function DashboardPage() {
         </p>
       </div>
 
-      {/* Stats Grid */}
+      {/* ROW 1: Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Active Projects"
@@ -209,7 +159,7 @@ export function DashboardPage() {
         <StatCard
           title="Assets Installed"
           value={stats?.totalAssets ?? '-'}
-          change={stats ? `${stats.checklistCompletionRate}% complete` : undefined}
+          change={stats ? `${stats.checklistCompletionRate}% checked` : undefined}
           changeType="neutral"
           icon={<Box size={24} className="text-success" />}
           iconColor="bg-success/10"
@@ -226,10 +176,102 @@ export function DashboardPage() {
         />
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Activity */}
+      {/* ROW 2: Project Progress + Issue Priority */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Project Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center h-[260px]">
+                <Loader2 size={24} className="animate-spin text-text-tertiary" />
+              </div>
+            ) : (
+              <ProjectProgressChart data={charts?.projectStatusBreakdown} />
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Issues by Priority</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center h-[220px]">
+                <Loader2 size={24} className="animate-spin text-text-tertiary" />
+              </div>
+            ) : (
+              <IssuesPriorityChart data={charts?.issuesByPriority} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ROW 3: Four Metric Charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Asset Pipeline</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center h-[220px]">
+                <Loader2 size={24} className="animate-spin text-text-tertiary" />
+              </div>
+            ) : (
+              <AssetPipelineChart data={charts?.assetsByStatus} />
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Floor Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center h-[220px]">
+                <Loader2 size={24} className="animate-spin text-text-tertiary" />
+              </div>
+            ) : (
+              <FloorProgressChart data={charts?.floorsByProgress} />
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Room Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center h-[220px]">
+                <Loader2 size={24} className="animate-spin text-text-tertiary" />
+              </div>
+            ) : (
+              <RoomProgressChart data={charts?.roomsByStatus} />
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Checklist Completion</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center h-[220px]">
+                <Loader2 size={24} className="animate-spin text-text-tertiary" />
+              </div>
+            ) : (
+              <ChecklistProgressChart data={charts?.checklistProgress} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ROW 4: Activity Feed + Projects Table */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Recent Activity */}
+        <Card className="self-start">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
@@ -245,27 +287,27 @@ export function DashboardPage() {
             ) : (
               <div className="divide-y divide-surface-border max-h-[400px] overflow-y-auto">
                 {activities.map((activity) => (
-                  <div key={`${activity.type}-${activity.id}`} className="flex items-start gap-4 p-4 hover:bg-surface-hover transition-colors">
+                  <div key={`${activity.type}-${activity.id}`} className="flex items-start gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors">
                     <div
                       className={cn(
-                        'p-2 rounded-lg',
+                        'p-1.5 rounded-md mt-0.5',
                         activity.type === 'checklist' && 'bg-success/10',
                         activity.type === 'issue' && 'bg-error/10',
                         activity.type === 'asset' && 'bg-info/10',
                         activity.type === 'project' && 'bg-primary/10'
                       )}
                     >
-                      {activity.type === 'checklist' && <CheckCircle2 size={18} className="text-success" />}
-                      {activity.type === 'issue' && <AlertTriangle size={18} className="text-error" />}
-                      {activity.type === 'asset' && <Box size={18} className="text-info" />}
-                      {activity.type === 'project' && <FolderKanban size={18} className="text-primary" />}
+                      {activity.type === 'checklist' && <CheckCircle2 size={16} className="text-success" />}
+                      {activity.type === 'issue' && <AlertTriangle size={16} className="text-error" />}
+                      {activity.type === 'asset' && <Box size={16} className="text-info" />}
+                      {activity.type === 'project' && <FolderKanban size={16} className="text-primary" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-body font-medium text-text-primary">{activity.title}</p>
-                      <p className="text-body-sm text-text-secondary truncate">{activity.description}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <p className="text-body-sm font-medium text-text-primary">{activity.title}</p>
+                      <p className="text-caption text-text-secondary truncate">{activity.description}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-caption text-text-tertiary">{activity.user}</span>
-                        <span className="text-caption text-text-tertiary">-</span>
+                        <span className="text-caption text-text-tertiary">&middot;</span>
                         <span className="text-caption text-text-tertiary">{formatTimeAgo(activity.timestamp)}</span>
                       </div>
                     </div>
@@ -276,117 +318,18 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Quick Stats */}
-        <Card>
+        {/* Projects Overview Table */}
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Progress Overview</CardTitle>
+            <CardTitle>Projects Overview</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="p-0">
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 size={24} className="animate-spin text-text-tertiary" />
               </div>
             ) : (
-              <>
-                <div>
-                  <div className="flex justify-between text-body-sm mb-2">
-                    <span className="text-text-secondary">Checklists Completed</span>
-                    <span className="text-text-primary font-medium">
-                      {stats?.completedChecklists ?? 0} / {stats?.totalChecklists ?? 0}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-surface-hover rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-success rounded-full transition-all duration-500"
-                      style={{ width: `${stats?.checklistCompletionRate ?? 0}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-body-sm mb-2">
-                    <span className="text-text-secondary">Issues Resolved</span>
-                    <span className="text-text-primary font-medium">
-                      {stats?.resolvedIssues ?? 0} / {stats?.totalIssues ?? 0}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-surface-hover rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-warning rounded-full transition-all duration-500"
-                      style={{
-                        width: `${stats?.totalIssues ? Math.round((stats.resolvedIssues / stats.totalIssues) * 100) : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-surface-border">
-                  <h4 className="text-body font-medium mb-3">Summary</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-body-sm">
-                      <span className="text-text-secondary flex items-center gap-2">
-                        <FolderKanban size={14} className="text-primary" />
-                        Projects
-                      </span>
-                      <span className="text-text-primary">{stats?.totalProjects ?? 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-body-sm">
-                      <span className="text-text-secondary flex items-center gap-2">
-                        <Layers size={14} className="text-info" />
-                        Floors
-                      </span>
-                      <span className="text-text-primary">{stats?.totalFloors ?? 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-body-sm">
-                      <span className="text-text-secondary flex items-center gap-2">
-                        <Box size={14} className="text-success" />
-                        Assets
-                      </span>
-                      <span className="text-text-primary">{stats?.totalAssets ?? 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-body-sm">
-                      <span className="text-text-secondary flex items-center gap-2">
-                        <Clock size={14} className="text-warning" />
-                        Open Issues
-                      </span>
-                      <span className="text-text-primary">{stats?.openIssues ?? 0}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Projects List */}
-                <div className="pt-4 border-t border-surface-border">
-                  <h4 className="text-body font-medium mb-3">Projects</h4>
-                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                    {projects.length === 0 ? (
-                      <p className="text-body-sm text-text-tertiary">No projects yet</p>
-                    ) : (
-                      projects.map((project) => (
-                        <Link
-                          key={project.id}
-                          to={`/projects/${project.id}`}
-                          className="flex items-center justify-between p-2 rounded-lg hover:bg-surface-hover transition-colors group"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <FolderKanban size={14} className="text-primary flex-shrink-0" />
-                            <span className="text-body-sm text-text-primary truncate group-hover:text-primary">
-                              {project.name}
-                            </span>
-                          </div>
-                          <span
-                            className={cn(
-                              'text-caption px-2 py-0.5 rounded-full flex-shrink-0',
-                              getStatusColor(project.status)
-                            )}
-                          >
-                            {getStatusLabel(project.status)}
-                          </span>
-                        </Link>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </>
+              <ProjectsTable data={charts?.projectStatusBreakdown} />
             )}
           </CardContent>
         </Card>
