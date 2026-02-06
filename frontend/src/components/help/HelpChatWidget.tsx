@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
-  HelpCircle, X, Search, ChevronLeft, ChevronRight, ArrowLeft,
+  HelpCircle, X, Search, ChevronRight, ArrowLeft,
   FolderKanban, Building2, DoorOpen, Box, Pencil, ClipboardCheck,
   Warehouse, FileText, CalendarDays, Bot, Sparkles,
 } from 'lucide-react';
