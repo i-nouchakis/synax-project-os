@@ -34,6 +34,8 @@ import {
   FileCheck,
   MousePointer,
   Square,
+  Bot,
+  MessageSquarePlus,
 } from 'lucide-react';
 import {
   Card,
@@ -65,6 +67,8 @@ type ManualSection =
   | 'settings'
   | 'users'
   | 'roles'
+  | 'help-bot'
+  | 'feedback'
   | 'faq';
 
 interface Section {
@@ -96,6 +100,8 @@ const sections: Section[] = [
   { id: 'settings', label: 'Settings', icon: <Settings size={18} />, category: 'Administration' },
   { id: 'users', label: 'User Management', icon: <Users size={18} />, category: 'Administration' },
   { id: 'roles', label: 'Roles & Permissions', icon: <Shield size={18} />, category: 'Administration' },
+  { id: 'help-bot', label: 'Help Bot', icon: <Bot size={18} />, category: 'Help' },
+  { id: 'feedback', label: 'Feedback', icon: <MessageSquarePlus size={18} />, category: 'Help' },
   { id: 'faq', label: 'FAQ', icon: <HelpCircle size={18} />, category: 'Help' },
 ];
 
@@ -228,6 +234,8 @@ export function ManualPage() {
           {activeSection === 'settings' && <SettingsSection />}
           {activeSection === 'users' && <UsersSection />}
           {activeSection === 'roles' && <RolesSection />}
+          {activeSection === 'help-bot' && <HelpBotSection />}
+          {activeSection === 'feedback' && <FeedbackSection />}
           {activeSection === 'faq' && <FAQSection />}
         </div>
       </div>
@@ -401,6 +409,16 @@ function OverviewSection() {
               icon: <Smartphone size={20} />,
               title: 'PWA & Offline',
               description: 'Install as app and work offline with automatic sync.',
+            },
+            {
+              icon: <Bot size={20} />,
+              title: 'Help Bot',
+              description: 'Interactive help assistant with search and context-aware tips.',
+            },
+            {
+              icon: <MessageSquarePlus size={20} />,
+              title: 'Feedback System',
+              description: 'Report bugs and suggest improvements with automatic screenshots.',
             },
           ]}
         />
@@ -1924,6 +1942,170 @@ function LabelsSection() {
   );
 }
 
+function HelpBotSection() {
+  return (
+    <ManualSection
+      icon={<Bot size={24} />}
+      title="Help Bot"
+      description="Get instant help with using the application"
+    >
+      <div className="space-y-6">
+        <p className="text-body text-text-primary">
+          The Help Bot is an interactive assistant that helps you find answers about how to use Synax.
+          It's available on every page via the floating button at the bottom right of the screen.
+        </p>
+
+        <h3 className="text-h3 text-text-primary">Opening the Help Bot</h3>
+        <p className="text-body text-text-secondary">
+          There are two ways to access the Help Bot:
+        </p>
+        <FeatureList
+          features={[
+            {
+              icon: <Bot size={20} />,
+              title: 'Bot Button',
+              description: 'Click the blue bot icon at the bottom right corner of any page.',
+            },
+            {
+              icon: <HelpCircle size={20} />,
+              title: 'Context Help',
+              description: 'Click the "Βοήθεια" button (appears on pages with related help topics).',
+            },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">Using the Help Bot</h3>
+        <Steps
+          steps={[
+            { title: 'Click the Bot icon', description: 'The help panel opens with a list of categories.' },
+            { title: 'Choose a category', description: 'Select the topic you need help with (Projects, Assets, Drawing, etc.).' },
+            { title: 'Select a question', description: 'Click on the specific question you have.' },
+            { title: 'Read the answer', description: 'Follow the step-by-step instructions provided.' },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">Search</h3>
+        <p className="text-body text-text-secondary">
+          Use the search bar at the top of the Help Bot to find answers quickly:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li>Type keywords like "asset", "κάτοψη", "checklist"</li>
+          <li>Results update as you type</li>
+          <li>Click any result to see the full answer</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Context-Sensitive Help</h3>
+        <p className="text-body text-text-secondary">
+          On certain pages, a "Βοήθεια" button appears next to the bot icon. This shows
+          help topics specific to the current page:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li><strong>Floors page</strong> - Floor plan upload, room placement, asset placement, drawing</li>
+          <li><strong>Assets page</strong> - Adding assets, QR scanning, installation</li>
+          <li><strong>Rooms page</strong> - Creating rooms, pin placement</li>
+          <li><strong>Projects page</strong> - Creating/editing projects, client assignment</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Help Categories</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 my-4">
+          {[
+            'Projects & Clients',
+            'Buildings & Floors',
+            'Rooms',
+            'Assets & Equipment',
+            'Drawing & Σχεδίαση',
+            'Checklists & Issues',
+            'Inventory & Αποθήκη',
+            'Reports & Labels',
+            'Calendar & Messenger',
+          ].map((cat) => (
+            <div key={cat} className="p-3 bg-surface-secondary rounded-lg">
+              <p className="text-body-sm text-text-primary">{cat}</p>
+            </div>
+          ))}
+        </div>
+
+        <Tip>
+          If you can't find what you're looking for in the Help Bot, click "Στείλε feedback"
+          at the bottom of the panel to report the missing topic.
+        </Tip>
+      </div>
+    </ManualSection>
+  );
+}
+
+function FeedbackSection() {
+  return (
+    <ManualSection
+      icon={<MessageSquarePlus size={24} />}
+      title="Feedback"
+      description="Report bugs and suggest improvements"
+    >
+      <div className="space-y-6">
+        <p className="text-body text-text-primary">
+          The Feedback system allows you to report bugs or suggest improvements directly from
+          the application. Each report includes an automatic screenshot of the current page.
+        </p>
+
+        <h3 className="text-h3 text-text-primary">Sending Feedback</h3>
+        <Steps
+          steps={[
+            { title: 'Click the Feedback button', description: 'Press the purple chat icon at the bottom right corner (next to the Help Bot).' },
+            { title: 'Screenshot captured', description: 'An automatic screenshot of the current page is taken.' },
+            { title: 'Choose type', description: 'Select "Bug" (something is broken) or "Change" (suggest improvement).' },
+            { title: 'Describe the issue', description: 'Write a description of the problem or suggestion.' },
+            { title: 'Send', description: 'Click "Send" to submit. The screenshot is attached automatically.' },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">Feedback Types</h3>
+        <FeatureList
+          features={[
+            {
+              icon: <AlertTriangle size={20} />,
+              title: 'Bug Report',
+              description: 'Something is broken, not working correctly, or showing an error.',
+            },
+            {
+              icon: <HelpCircle size={20} />,
+              title: 'Change Suggestion',
+              description: 'Suggest an improvement, new feature, or design change.',
+            },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">What's Included</h3>
+        <p className="text-body text-text-secondary">
+          Each feedback report automatically includes:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li><strong>Screenshot</strong> - Automatic capture of the current page</li>
+          <li><strong>Page URL</strong> - Which page you were on</li>
+          <li><strong>Your description</strong> - What you typed</li>
+          <li><strong>Type</strong> - Bug or Change</li>
+          <li><strong>User info</strong> - Who submitted it</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Viewing Feedback (Admin)</h3>
+        <p className="text-body text-text-secondary">
+          Administrators can view all submitted feedback from the Admin section:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li>Navigate to <strong>Feedback</strong> in the Admin sidebar section</li>
+          <li>View all reports with screenshots, descriptions, and status</li>
+          <li>Filter by type (Bug/Change) and status</li>
+          <li>Mark feedback as reviewed or resolved</li>
+        </ul>
+
+        <Tip>
+          Include as much detail as possible in your description - what you were trying to do,
+          what happened, and what you expected to happen. The screenshot helps the team understand the context.
+        </Tip>
+      </div>
+    </ManualSection>
+  );
+}
+
 function FAQSection() {
   return (
     <ManualSection
@@ -2016,6 +2198,14 @@ function FAQSection() {
           {
             q: 'How do I manage lookup tables like Room Types and Asset Models?',
             a: 'Go to Lookups in the Admin section of the sidebar. Select the tab for the lookup you want to manage, then add, edit, or delete entries as needed.',
+          },
+          {
+            q: 'How do I use the Help Bot?',
+            a: 'Click the blue bot icon at the bottom right corner of any page. Browse categories, search for topics, or use the "Βοήθεια" button for page-specific help. If you can\'t find an answer, click "Στείλε feedback" to ask the team.',
+          },
+          {
+            q: 'How do I report a bug or suggest a change?',
+            a: 'Click the purple chat icon at the bottom right corner (next to the Help Bot). A screenshot is captured automatically. Choose "Bug" or "Change", write a description, and click Send. Admins can view all feedback from the Feedback page.',
           },
         ].map((faq, index) => (
           <div key={index} className="p-4 bg-surface-secondary rounded-lg">

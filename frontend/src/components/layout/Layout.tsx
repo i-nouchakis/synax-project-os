@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { FeedbackButton } from '@/components/feedback/FeedbackButton';
+import { HelpChatWidget } from '@/components/help/HelpChatWidget';
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -68,6 +69,7 @@ export function Layout() {
           <Outlet />
         </div>
       </main>
+      <HelpChatWidget />
       <FeedbackButton />
     </div>
   );

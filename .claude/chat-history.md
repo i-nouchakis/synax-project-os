@@ -6,13 +6,26 @@
 
 ## Τρέχουσα Κατάσταση
 
-**Production Server:** Running (Contabo) - needs db push + seed
-**Local Development:** Working (port 5174)
-**Database (Local):** Fresh seed with demo data + room type icons + Label model
-**Database (Cloud):** Needs `prisma db push --force-reset` then seed
-**Latest Feature:** Canvas Drawing V1 - Complete with always-visible shapes, cable tool, download integration
+**Production Server:** Running (Contabo) - deploy triggered after push
+**Local Development:** Working (port 5173) - screenshot feedback confirmed working
+**Database (Local):** Rich seed (5 projects, 369 rooms, 702 assets, 500 labels)
+**Database (Cloud):** Needs `prisma db push --force-reset` then seed after deploy
+**Latest Feature:** Help Bot + Manual updated with Help Bot & Feedback sections
+**Latest Commit:** `d1a3fb8` - pushed to main
 
-### Recent Session (2026-02-06) - V1 Drawing Features Complete
+### Session (2026-02-06) - Production Fixes & Screenshot Library
+- **Audit:** Full project audit - 30 completed features, 12 pending items
+- **Commit:** `b879e70` - Feedback system, Cable models, admin page
+- **Fix:** 21 TypeScript errors in production build (`tsc -b` stricter than `tsc --noEmit`) - commit `44b09db`
+- **Fix:** CORS blocking production (hardcoded localhost) - commit `185f4b8`
+- **Fix:** Screenshot capture failing with Tailwind v4's oklab/oklch CSS
+  - Researched 4 alternatives: html2canvas-pro, @zumer/snapdom, modern-screenshot, dom-to-image-more
+  - Chose html2canvas-pro (explicit oklab/oklch support, 308K downloads/week)
+  - Replaced html-to-image → html2canvas-pro in FeedbackButton - commit `d1a3fb8`
+- **TODO:** Created comprehensive todo list with 12 pending items saved to `.claude/todo.md`
+- **Deploy:** Needs `prisma db push --force-reset` + seed on Contabo after deploy completes
+
+### Previous Session (2026-02-06) - V1 Drawing Features Complete
 - **Fix:** Drawing save was broken - Prisma client in Docker didn't know Cable/DrawingShape models. Fixed with `prisma generate` + permanent CMD fix in Dockerfile.dev
 - **Fix:** Duplicate toolbars appeared - hid normal view toolbar when fullscreen open
 - **Fix:** Shapes only visible in draw mode - now always visible (like pins), loaded on floor mount

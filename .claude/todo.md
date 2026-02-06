@@ -1,611 +1,119 @@
-# Synax - Τρέχουσες Εργασίες
+# Synax - Εργασίες
 
-**Τελευταία Ενημέρωση:** 2026-02-05
-
----
-
-## 🎨 Canvas Drawing & Cables System (FUTURE - Major Feature)
-
-**📋 Documentation:**
-- **V1 Plan:** `.claude/features/canvas-drawing-cables.md` (Core features + fixes + mockups)
-- **V2 Plan:** `.claude/features/canvas-drawing-cables-v2.md` (40+ advanced features + mockups)
-
-**⏱️ Time Estimates:**
-- **V1 (Core):** 28-32 hours pure coding, 4-6 weeks calendar time
-- **V2 (Advanced):** 20-30 days additional (depends on priorities)
-
-**🎯 User Preferences from Chat:**
-- Routing: User decides mode (Straight, Orthogonal, Auto, Custom)
-- Scope: Both floor-level AND room-level
-- Export: Multi-format with removal options
-- Layers: Full layer management
-- Priority: Correctness over speed
-- Auto-routing: User-configurable
+**Τελευταία Ενημέρωση:** 2026-02-06
 
 ---
 
-### V1 - Core Implementation (In Progress)
+## Pending Tasks (12 items)
 
-#### Phase 1: Backend Data Models ✅
-- [x] `DrawingShape` model + `ShapeType` enum in Prisma
-- [x] `npx prisma generate` + `npx prisma db push`
-- [x] Frontend types in `drawing.service.ts`
-- [ ] `Cable` model (NOT YET - future)
-- [ ] `CableBundle` model (NOT YET - future)
+### Μικρή Πολυπλοκότητα
 
-#### Phase 2: Canvas State Management ✅
-- [x] Zustand Store: `drawing.store.ts`
-- [x] State: activeTool, shapes, selectedIds, history (undo/redo)
-- [x] Actions: setTool, addShape, updateShape, deleteShape, undo, redo
-- [x] Server sync: loadFromServer, deletedServerIds, isDirty, resetStore
+#### 1. Mobile Fine-tuning
+- **Τι:** Audit όλων των pages για responsive issues σε mobile
+- **Λεπτομέρειες:** Fix margins, padding, layout σε μικρές οθόνες. Το βασικό responsive nav (hamburger, overlay sidebar) είναι OK αλλά τα individual pages χρειάζονται fine-tuning
+- **Status:** ⏳ Pending
 
-#### Phase 3: UI Components ✅
-- [x] **Drawing Toolbar** - 9 tools (Select, Rectangle, Circle, Line, Arrow, Text, Freehand, Polygon, Cable)
-- [x] **Properties Panel** - Stroke, Fill, Width, Opacity, Font Size (text)
-- [x] **Keyboard Shortcuts** - Delete, Escape, Ctrl+Z, Ctrl+Shift+Z, tool keys (V/R/C/L/A/T/P)
-- [ ] **Layers Panel** (NOT YET - future)
+#### 2. Cloud Deploy (Contabo)
+- **Τι:** Sync DB schema + seed στον Contabo server
+- **Λεπτομέρειες:** `prisma db push --force-reset` για νέα models (Cable, CableBundle, Feedback, DrawingShape, κλπ.), μετά `prisma db seed`
+- **Status:** ⏳ Pending
 
-#### Phase 4: Drawing Tools ✅
-- [x] Rectangle Tool (click-drag, Konva.Rect)
-- [x] Circle Tool (click-drag, Konva.Circle)
-- [x] Line Tool (click-drag, Konva.Line)
-- [x] Arrow Tool (click-drag, Konva.Arrow)
-- [x] Text Tool (click to place, Konva.Text)
-- [x] Freehand Tool (mouse-down draw, Konva.Line)
-- [x] Polygon Tool (click points, double-click close)
+### Μικρή-Μεσαία Πολυπλοκότητα
 
-#### Phase 5: Save/Load & Persistence ✅
-- [x] Load shapes from server when entering drawing mode
-- [x] Save handler: creates new, updates existing, deletes removed
-- [x] Server ID tracking for sync (serverId on LocalShape)
-- [x] Reset store when leaving drawing mode
-- [x] isDirty indicator on save button
+#### 3. File Sharing in Messenger
+- **Τι:** Upload αρχείων/εικόνων μέσα στο chat
+- **Λεπτομέρειες:** Τώρα μόνο text + emoji. Χρειάζεται: file upload, image preview, file download, validation τύπων αρχείων
+- **Status:** ⏳ Pending
 
-#### Phase 6: Backend API ✅
-- [x] DrawingShape Controller (`drawing-shape.controller.ts`)
-- [x] POST `/api/shapes` - Create shape
-- [x] GET `/api/shapes` (floorId/roomId query) - List shapes
-- [x] PUT `/api/shapes/:id` - Update shape
-- [x] DELETE `/api/shapes/batch` - Batch delete
-- [x] Registered routes in `server.ts`
-- [x] Frontend service: `drawing.service.ts`
-- [x] API Tests: Create(201), List(200), Update(200), BatchDelete(200) ✅
+#### 4. Signatures UI Integration
+- **Τι:** Ενσωμάτωση signature capture στο UI
+- **Λεπτομέρειες:** Backend controller + frontend service υπάρχουν ήδη. Types: ROOM_HANDOVER, STAGE_COMPLETION, FINAL_ACCEPTANCE. Χρειάζεται integration σε workflows (room handover, checklist completion, κλπ.)
+- **Status:** ⏳ Pending
 
-#### Phase 7: Undo/Redo & Selection ✅
-- [x] Undo/Redo with history stack (max 50)
-- [x] Keyboard shortcuts (Ctrl+Z, Ctrl+Shift+Z/Ctrl+Y)
-- [x] Delete selected (Delete/Backspace key)
-- [x] Selection visual feedback (cyan stroke)
-- [x] Shape count + dirty indicator in toolbar
+### Μεσαία Πολυπλοκότητα
 
-#### Remaining V1 Items
-- [x] **Cable Drawing Workflow** (Source → Target asset connections) ✅
-- [x] **Room-level Drawing** (RoomDetailPage integration) ✅
-- [x] **Layers Panel** (add/delete/rename/reorder layers, visibility, lock, active layer) ✅
-- [x] **Multi-Select rectangle** (click-drag selection box, Shift additive) ✅
-- [x] **Measurement Tool** (calibration workflow, click-to-remove, units: m/cm/ft/in) ✅
-- [x] **Export** (JSON data export + existing PNG/PDF/JPEG/WebP via Download modal) ✅
-- [ ] **Visual testing by user** (hard refresh browser, test draw mode)
+#### 5. WebSocket for Messenger
+- **Τι:** Αντικατάσταση polling με WebSocket για real-time messaging
+- **Λεπτομέρειες:** Τώρα: conversations every 5s, messages every 3s. Fastify supports WebSocket via @fastify/websocket. Connection management, room-based subscriptions, fallback to polling
+- **Status:** ⏳ Pending
 
-#### Phase 5 (Original): Cable System (Future)
-- [ ] Cable Drawing Workflow (source → type → target → routing → save)
-- [ ] Routing Algorithms (Straight, Orthogonal, Auto, Custom)
-- [ ] Cable Rendering (color by type, dashed if disconnected, labels)
-- [ ] Cable Bundling (detect overlapping, visual bundle, expand/collapse)
+#### 6. Cable System Advanced Features
+- **Τι:** Προηγμένες λειτουργίες για cables
+- **Λεπτομέρειες:** Βασικό cable drawing δουλεύει (source→type→target, bend points, tension). Λείπει: Orthogonal routing auto-generation, Cable properties modal, Cable legend στο export
+- **Status:** ⏳ Pending
 
----
+#### 7. Recurring Calendar Events
+- **Τι:** Επαναλαμβανόμενα events στο ημερολόγιο
+- **Λεπτομέρειες:** Τώρα μόνο one-time events. Χρειάζεται: daily, weekly, monthly, yearly patterns, recurrence rules, exceptions, display recurring instances
+- **Status:** ⏳ Pending
 
-### Floor Plan Layers (Future - Needs Redesign)
-- [ ] **Floor Plan Layers** - Σχεδιασμός από την αρχή με καθαρή αρχιτεκτονική
-  - Κάθε layer τελείως ανεξάρτητο (δικά του shapes, δικά του cables)
-  - Καθαρή δημιουργία νέου layer (κενό canvas)
-  - Download/export ανά layer ή combined
-  - Layer visibility/lock/reorder
-  - Πρέπει πρώτα να σχεδιαστεί σωστά πριν υλοποιηθεί
+#### 8. PWA Configuration
+- **Τι:** Proper PWA setup
+- **Λεπτομέρειες:** `vite-plugin-pwa` + `workbox-window` installed αλλά δεν είναι configured. Χρειάζεται: service worker, manifest.json, offline caching, install prompt, app icons
+- **Status:** ⏳ Pending
+
+### Μεγάλη Πολυπλοκότητα
+
+#### 9. Floor Plan Layers Redesign
+- **Τι:** Σχεδιασμός layers από την αρχή
+- **Λεπτομέρειες:** Η προηγούμενη υλοποίηση αφαιρέθηκε (μη καθαρή αρχιτεκτονική). Νέος σχεδιασμός: κάθε layer τελείως ανεξάρτητο (δικά του shapes/cables), clean new layer creation (κενό canvas), download/export per layer ή combined, visibility/lock/reorder
+- **Status:** ⏳ Pending
+
+#### 10. Notification System
+- **Τι:** In-app notifications
+- **Λεπτομέρειες:** Bell icon με badge, notification types (issue assigned, checklist completed, calendar reminder, new message), mark as read, preferences στο settings. Future: push notifications via PWA
+- **Status:** ⏳ Pending
+
+#### 11. Offline Mode (Dexie/IndexedDB)
+- **Τι:** Offline λειτουργία για critical features
+- **Λεπτομέρειες:** `offline.store.ts` υπάρχει με Dexie αλλά δεν λειτουργεί. Χρειάζεται: offline caching (checklists, issues), sync queue, conflict resolution, online/offline indicator, background sync
+- **Status:** ⏳ Pending
+
+### Πολύ Μεγάλη Πολυπλοκότητα
+
+#### 12. V2 Drawing Features
+- **Τι:** Advanced drawing tools για canvas
+- **Λεπτομέρειες:** Grid & Snap, Context menu (right-click), Symbol Library (electrical/network/safety icons), Path/Pen tool (bezier), Dimension Lines, Mini-map, Eyedropper, History panel, DXF/SVG export, Smart features (auto-distribute, mirror, snap to angles)
+- **Documentation:** `.claude/features/canvas-drawing-cables-v2.md`
+- **Status:** ⏳ Pending
 
 ---
 
-### V2 - Advanced Features (Future)
+## Ολοκληρωμένα Features (30 items) ✅
 
-#### Phase 8: Essential V2 (5-7 days)
-- [ ] **Grid & Snap Settings**
-  - [ ] Toggle grid overlay
-  - [ ] Configurable grid size (10px, 20px, 50px)
-  - [ ] Snap to grid option
-  - [ ] Snap to objects (edges, centers)
-
-- [ ] **Context Menu (Right-Click)**
-  - [ ] Copy, Paste, Duplicate
-  - [ ] Bring to Front, Send to Back
-  - [ ] Lock/Unlock, Show/Hide
-  - [ ] Group/Ungroup
-
-- [ ] **Rounded Shapes**
-  - [ ] Rounded Rectangle (border-radius slider)
-  - [ ] Ellipse/Oval (separate X/Y radius)
-
-- [ ] **Calibration Tool UI**
-  - [ ] Modal with instructions
-  - [ ] Line drawing on canvas
-  - [ ] Input field for actual length
-  - [ ] Unit selector (meters, feet)
-
-- [ ] **SVG Export**
-  - [ ] Konva → SVG conversion
-  - [ ] Preserve layers, styles
-  - [ ] Scalable vector output
-
-#### Phase 9: Professional Tools (7-10 days)
-- [ ] **Symbol Library**
-  - [ ] Categories: Electrical, Network, Safety, Furniture
-  - [ ] 50+ pre-made symbols (SVG paths)
-  - [ ] Drag-and-drop from sidebar
-  - [ ] Custom symbol upload
-
-- [ ] **Callouts/Annotations**
-  - [ ] Speech bubble shapes
-  - [ ] Arrow pointing to location
-  - [ ] Text inside bubble
-  - [ ] Style presets (Info, Warning, Note)
-
-- [ ] **Dimension Lines**
-  - [ ] Draw line with measurement arrows
-  - [ ] Auto-calculate length (using scale)
-  - [ ] Label with units
-
-- [ ] **Port Diagrams**
-  - [ ] Visual representation of device ports
-  - [ ] Click port → highlight connected cables
-  - [ ] Port status colors (active, inactive, error)
-
-- [ ] **Mini-map Navigator**
-  - [ ] Small overview of entire canvas
-  - [ ] Viewport rectangle (draggable)
-  - [ ] Useful for large floor plans
-
-#### Phase 10: Advanced Features (8-13 days)
-- [ ] **Path Tool (Pen Tool)**
-  - [ ] Bezier curve drawing (Illustrator-style)
-  - [ ] Click to add anchor points
-  - [ ] Drag handles for curves
-  - [ ] Edit mode: move/delete anchors
-
-- [ ] **Eyedropper (Style Picker)**
-  - [ ] Click shape → copy its style
-  - [ ] Apply to selected shapes
-
-- [ ] **Performance Optimizations**
-  - [ ] Spatial Indexing (R-tree via rbush library)
-  - [ ] Canvas Virtualization (only render visible viewport)
-  - [ ] Shape Simplification (LOD - Level of Detail)
-
-- [ ] **History Panel**
-  - [ ] Visual undo/redo list
-  - [ ] Jump to specific action
-  - [ ] Action thumbnails
-
-- [ ] **Cable Schedule/Report**
-  - [ ] Auto-generated table of all cables
-  - [ ] Columns: ID, Type, Source, Target, Length, Notes
-  - [ ] Export as CSV/PDF
-
-- [ ] **DXF Export**
-  - [ ] AutoCAD-compatible format
-  - [ ] Layer preservation
-  - [ ] Use dxf-writer library
-
-- [ ] **Smart Features**
-  - [ ] Auto-Distribute (equal spacing between shapes)
-  - [ ] Mirror/Flip (horizontal/vertical)
-  - [ ] Rotate by exact degrees (input field)
-  - [ ] Snap to Angles (0°, 45°, 90°, etc.)
-  - [ ] Constraints (maintain relationships between shapes)
-  - [ ] Smart Guides (alignment helpers, like Figma)
+| # | Feature | Commit |
+|---|---------|--------|
+| 1 | Auth (Login, Roles, JWT, Forgot/Reset Password) | Multiple |
+| 2 | Dashboard | Multiple |
+| 3 | Users Management (ADMIN only) | Multiple |
+| 4 | Clients (CRUD + linked projects) | `0fbfde9` |
+| 5 | Projects (CRUD + client dropdown) | Multiple |
+| 6 | Buildings (CRUD + fullscreen floor plan) | `2b29b5c` |
+| 7 | Floors (CRUD + floor plan canvas + pins) | Multiple |
+| 8 | Rooms (CRUD + room plan canvas + pins) | `38064b1` |
+| 9 | Assets (CRUD + grouped by project) | `2b29b5c` |
+| 10 | Checklists (CRUD + project filter) | `cafa629` |
+| 11 | Checklist Templates (drag & drop) | `170a04a` |
+| 12 | Issues (CRUD + project filter + comments + photos) | `cafa629` |
+| 13 | Inventory (Equipment + Materials) | Multiple |
+| 14 | Reports (Summary, Client, Assets, PDF) | `cafa629` |
+| 15 | Labels (Batch create, assign, QR print) | `0fbfde9` |
+| 16 | Calendar (Monthly/Weekly, attendees, overlap) | `0fbfde9` |
+| 17 | Messenger (Conversations, read receipts, emoji) | `0fbfde9`, `e966983` |
+| 18 | Project Files (Upload, categories) | `0fbfde9` |
+| 19 | Settings (Profile, Password, Interface) | `8b9a893` |
+| 20 | Manual (In-app user guide) | Multiple |
+| 21 | Lookups (Room Types, Manufacturers, Models) | Multiple |
+| 22 | Drawing V1 (7 tools, shapes, cables, measurement, export) | `e966983`, `4acd950` |
+| 23 | Global Search (context-aware) | `95fc493` |
+| 24 | Sortable Tables (10 tables, 7 pages) | `f591b15` |
+| 25 | Responsive Mobile Nav (hamburger, overlay) | Multiple |
+| 26 | Draggable Popups (floor & room canvas) | Multiple |
+| 27 | Import from Inventory (floor & room bulk) | Multiple |
+| 28 | Descriptive Error Messages (13 controllers) | Multiple |
+| 29 | Fullscreen Modals (floor plans, z-index fix) | `9cb7ae8` |
+| 30 | Feedback System (widget + admin + screenshot) | `b879e70` |
 
 ---
 
-### Implementation Notes
-
-**Key Technologies:**
-- Konva.js (canvas rendering) - already integrated
-- React Konva - React wrapper
-- Zustand - state management for drawing tools
-- Prisma - database models
-- jsPDF - PDF export
-- rbush (future) - spatial indexing for performance
-
-**Architecture Decisions:**
-- Cable connections support Asset→Asset, Room→Room, Floor→Floor, and mixed
-- Cable bundling reduces visual clutter for parallel cables
-- Layers enable complex drawings with selective visibility
-- JSON data field in models allows flexible shape properties without schema changes
-- Routing algorithms user-selectable, not auto-decided
-
-**User Preferences:**
-- User decides routing mode (no auto-assumptions)
-- Both floor and room level support
-- Export with layer/cable removal options
-- Full layer management (add, delete, rename, reorder, lock, hide, opacity)
-- Correctness prioritized over implementation speed
-
-**Testing Checklist (Before "Done"):**
-- [ ] TypeScript strict check (frontend + backend)
-- [ ] Draw each shape type
-- [ ] Create cable with all 4 routing modes
-- [ ] Test undo/redo (10+ actions)
-- [ ] Multi-select (5+ shapes)
-- [ ] Export to all formats (PDF, SVG, PNG, JSON)
-- [ ] Layer visibility/lock/opacity
-- [ ] Cable bundling (create 5+ parallel cables)
-- [ ] Measurement tool with calibration
-- [ ] Properties panel updates on selection
-
-**Timeline (Realistic with Claude):**
-- Intensive (2-3 hours/day): 4 weeks for V1
-- Normal (1-2 hours/day): 6 weeks for V1
-- Casual (few sessions/week): 8-10 weeks for V1
-
----
-
-## Νέα Features (v2.0)
-
-### Phase A - Quick Wins
-
-#### 1. Descriptive Error Messages (COMPLETE)
-- [x] Audit all API error responses (backend) - 18 controllers audited
-- [x] Created `backend/src/utils/errors.ts` - formatZodError utility
-- [x] Updated 13 controllers with sendValidationError (44 replacements)
-- [x] Fixed frontend `api.ts` - reads `error.error` field correctly
-- [x] Test: Login wrong creds ✅, Invalid email ✅, Short password ✅, Existing email ✅
-- [x] TypeScript check: Backend OK, Frontend OK
-- **Status:** ✅ Complete
-
-#### 2. Responsive UI & Mobile Nav
-- [x] Fix sidebar: default closed on mobile
-- [x] Add hamburger menu toggle
-- [x] Overlay sidebar with backdrop on mobile
-- [x] Auto-close sidebar on nav click (mobile)
-- [x] TypeScript check: OK
-- [ ] Fine-tune mobile margins/padding (αριστερά-δεξιά)
-- [ ] Audit all pages for responsive issues on mobile
-- **Status:** 🔶 Partial - βασικό responsive OK, χρειάζεται mobile fine-tuning
-
-#### 3. Asset Floor Plan Button
-- [x] Created `FloorPlanPreviewModal` component (HTML/CSS approach, no Konva)
-- [x] Added "View on Floor Plan" button to AssetDetailPage (only when pin exists)
-- [x] Pulsing marker at asset location with name label
-- [x] Auto-scroll/center on the pin marker
-- [x] Fixed back navigation for floor-level assets (was always `/rooms/...`)
-- [x] Fixed location display for floor-level assets
-- [x] Updated Asset interface with `floorplanUrl` fields
-- [x] TypeScript check: OK
-- **Status:** ✅ Complete
-
-### Phase B - Medium Features
-
-#### 4. Clients Management
-- [x] Created Client model in Prisma schema (name, email, phone, address, contactPerson, notes)
-- [x] Added `clientId` to Project model (optional FK → Client)
-- [x] Created `client.controller.ts` (CRUD: list, get, create, update, delete)
-- [x] Registered routes in `server.ts` → `/api/clients`
-- [x] Created `client.service.ts` (frontend)
-- [x] Created `ClientsPage` with card grid, search, create/edit/delete
-- [x] Created `ClientDetailPage` with contact info + linked projects
-- [x] Added routes in `App.tsx` (`/clients`, `/clients/:id`)
-- [x] Added "Clients" menu item in Sidebar (Briefcase icon)
-- [x] Updated `ProjectsPage` form: Client dropdown instead of text input
-- [x] Updated `project.service.ts` & `project.controller.ts` with `clientId`
-- [x] Added search placeholder for clients in Header
-- [x] Fixed missing `Search` icon import in ProjectsPage (pre-existing bug)
-- [x] Prisma generate + db push: OK
-- [x] TypeScript check: Frontend OK, Backend OK
-- **Status:** ✅ Complete
-
-#### 5. Project Files
-- [x] Created `ProjectFile` model + `FileCategory` enum in Prisma schema
-- [x] Created `project-file.controller.ts` (GET list, POST upload, PUT category, DELETE)
-- [x] Registered routes in `server.ts` → `/api/project-files`
-- [x] Created `project-file.service.ts` (frontend) with upload via FormData
-- [x] Added Files section to `ProjectDetailPage.tsx` with:
-  - File list with category badges, sizes, dates
-  - Upload button with category selector (PM/ADMIN only)
-  - Category filter dropdown
-  - Inline category change (hover)
-  - View/Download/Delete buttons
-  - Delete confirmation modal
-- [x] Categories: Contracts, Drawings, Reports, Photos, Other
-- [x] PM/ADMIN-only upload/delete permissions
-- [x] Prisma generate + db push: OK
-- [x] TypeScript check: Frontend OK, Backend OK
-- [x] API Test: Upload (201), List (200), Delete (200) - all OK
-- [x] Fixed dropdown styling (appearance-none, ChevronDown icon, design system colors)
-- [x] TypeScript check: Frontend OK, Backend OK
-- [ ] Visual testing by user
-- **Status:** 🔶 Λειτουργεί - χρειάζεται visual check από χρήστη
-
-### Phase C - Complex Features
-
-#### 6. Calendar
-- [x] Created `CalendarEvent` model + `CalendarEventType` enum in Prisma
-- [x] Event types: Appointment, Reminder, Deadline, Meeting, Inspection, Delivery
-- [x] Created `calendar.controller.ts` (CRUD + date range filter)
-- [x] Registered routes in `server.ts` → `/api/calendar`
-- [x] Created `calendar.service.ts` (frontend)
-- [x] Created `CalendarPage` with:
-  - Monthly view (custom grid, no external lib)
-  - Weekly view toggle
-  - Color-coded events by type
-  - Day click → event list popup
-  - Create/Edit/Delete event modals
-  - Project association (optional)
-  - All-day vs timed events
-  - Event type legend
-  - Search integration
-- [x] Added `/calendar` route in App.tsx
-- [x] Added Calendar menu item in Sidebar (Overview section)
-- [x] Search placeholder for calendar in Header
-- [x] Prisma generate + db push: OK
-- [x] TypeScript check: Frontend OK, Backend OK
-- [x] API Test: Create (201), List (200) - all OK
-- [ ] Recurring events (future)
-- [ ] Notifications/reminders (future)
-- [x] Invite/Attendees system:
-  - [x] CalendarEventAttendee model + AttendeeStatus enum
-  - [x] Backend: attendeeIds in create/update, respond endpoint, overlap check
-  - [x] Frontend: invite user picker, accept/decline buttons, overlap warning toast
-  - [x] Prisma generate + db push: OK
-  - [x] TypeScript check: Frontend OK, Backend OK
-  - [x] API Test: Create with invites (201), Respond (200), Overlap detection working
-- **Status:** ✅ Complete (recurring/notifications pending)
-
-#### 7. Messenger
-- [x] Created Conversation, ConversationParticipant, Message models in Prisma
-- [x] Created `messenger.controller.ts` (conversations CRUD, messages, unread count, mark read)
-- [x] Created `messenger.service.ts` (frontend API client)
-- [x] Created `MessengerPage` with split layout:
-  - Left: Conversation list with search, unread badges, last message preview
-  - Right: Chat bubbles (mine=blue/right, others=gray/left), date separators
-  - Message input with Enter to send
-  - Auto-scroll to latest message
-- [x] New Chat modal with user picker, group toggle, search
-- [x] Polling: conversations every 5s, messages every 3s
-- [x] Mark as read on conversation open
-- [x] 1:1 chat dedup (reuses existing conversation)
-- [x] Route `/messenger` in App.tsx
-- [x] Sidebar menu item (MessageSquare icon)
-- [x] Header search placeholder
-- [x] Prisma generate + db push: OK
-- [x] TypeScript: Frontend OK, Backend OK
-- [x] API Tests: Create conv (201), Send msg (201), List msgs (200), Unread (200), Group chat (201)
-- [ ] WebSocket upgrade (future)
-- [ ] File sharing in messages (future)
-- **Status:** ✅ Complete (polling-based, WebSocket upgrade pending)
-
----
-
-## Ολοκληρωμένα Σήμερα
-
-### Business Flows Documentation (Complete)
-- [x] Created `docs/BUSINESS-FLOWS.md`
-- [x] Bilingual document (English + Greek)
-- [x] Comprehensive sections:
-  - Executive Summary
-  - System Overview with architecture diagram
-  - User Roles & Permissions matrix
-  - Entity Hierarchy with Mermaid diagrams
-  - Business Flows (7 flows with diagrams):
-    - Project Setup Flow
-    - Equipment Lifecycle
-    - Issue Management Flow
-    - Checklist Workflow
-    - Label Management Flow
-    - Inventory Management Flow
-    - Reporting Flow
-  - Status Transitions (state machines)
-  - Integration Points
-  - Glossary (EN/EL)
-
-### Time Tracking Module Removed (Complete)
-- [x] Documented specs in `.claude/todo-future-features.md`
-- [x] Deleted `frontend/src/pages/time-tracking/` folder
-- [x] Deleted `frontend/src/services/timeentry.service.ts`
-- [x] Deleted `backend/src/controllers/timeentry.controller.ts`
-- [x] Removed route from `App.tsx`
-- [x] Removed menu item from `Sidebar.tsx`
-- [x] Removed routes from `server.ts`
-- [x] Removed `TimeEntry` model from schema.prisma
-- [x] Removed `TimeEntryType` enum from schema.prisma
-- [x] TypeScript check: OK
-
-### Fullscreen Popup Z-Index Fix (Complete)
-- [x] Fixed popups appearing behind fullscreen modals
-- [x] Added `nested` prop to Modal component (z-[80])
-- [x] Updated FloorPlanCanvas popups: z-40→z-[60], z-50→z-[70]
-- [x] Updated RoomPlanCanvas popups: z-40→z-[60], z-50→z-[70]
-- [x] Updated BuildingDetailPage nested modals (Add/Edit/Delete Floor)
-- [x] Updated FloorDetailPage nested modals (Room/Asset modals, Import)
-- [x] Updated RoomDetailPage nested modals (Asset modals, Import)
-- [x] Updated ProjectDetailPage nested modals (Add/Delete Building)
-- [x] Updated ImportInventoryModal with nested prop
-- [x] TypeScript check: OK
-
-### Project Filters (Complete)
-- [x] Added project filter dropdown to ChecklistsPage
-- [x] Added project filter dropdown to IssuesPage
-- [x] Fixed ChecklistsPage data path (added missing `building` layer)
-- [x] TypeScript check: OK
-
-### Report Metrics Fix (Complete)
-- [x] Investigated Project Metrics calculation
-- [x] Found issue: floor-level assets not counted
-- [x] Fixed `/summary`, `/client`, `/assets` endpoints
-- [x] Fixed PDF export queries
-- [x] Added OR condition for floor-level assets
-- [x] TypeScript check: OK
-- [x] Tested API response matches database
-
-### Sortable Table Columns (Complete)
-- [x] Created `useSortable` hook for reusable sorting
-- [x] Created `SortableHeader` component with chevron icons
-- [x] Updated 10 tables across 7 pages:
-  - UsersPage, ChecklistsPage, InventoryPage (2), FloorDetailPage (2)
-  - RoomDetailPage, ReportsPage (3)
-- [x] Support for nested object sorting
-- [x] Sort direction cycles: asc → desc → none
-- [x] TypeScript check: OK
-- [x] Commit: `f591b15`
-- [x] Pushed to main
-
-### AssetsPage Restructure (Complete)
-- [x] Group assets by project (accordion style)
-- [x] Per-project search field (visible when expanded)
-- [x] Only show assets assigned to floor/room
-- [x] Asset cards with icon, name, type, location, status
-- [x] Expand All / Collapse All buttons
-- [x] Updated Manual with new features
-- [x] Commits: `2b29b5c`, `6b1612d`
-- [x] Pushed to main
-
-### BuildingDetailPage Fullscreen (Complete)
-- [x] Added fullscreen modal for floor plan
-- [x] Edit mode toggle in fullscreen
-- [x] Commit: `2b29b5c`
-- [x] Pushed to main
-
----
-
-### RoomsPage & Room Type Icons (Complete)
-- [x] Added /rooms route with rooms grouped by project
-- [x] Added "Rooms" menu item in Sidebar (below Floors)
-- [x] Installed react-icons library
-- [x] Created IconPicker component with 60+ room icons
-- [x] Updated LookupsPage for room type icon selection
-- [x] Updated room.controller.ts to include roomTypeIcon
-- [x] Updated seed.ts with icons for all 20 room types
-- [x] Updated existing room types in database with icons
-- [x] Commit: `38064b1`
-- [x] Pushed to main
-
-### FloorsPage Restructure (Complete)
-- [x] Group floors by project (accordion style)
-- [x] Show building name in each floor card
-- [x] Sort: project → building → floor level
-- [x] Commit: `b1eb778`
-- [x] Pushed to main
-
-### Custom Date Picker (Complete)
-- [x] Installed react-datepicker + date-fns
-- [x] Created DateInput component with English locale
-- [x] Added dark theme CSS styling
-- [x] Replaced all native date inputs (Projects, Time Tracking)
-- [x] Commit: `95fc493`
-- [x] Pushed to main
-
-### Global Search (Complete)
-- [x] Created search.store.ts (Zustand)
-- [x] Header search context-aware (placeholder per page)
-- [x] Removed local search from 7 list pages
-- [x] Auto-clear on section navigation
-- [x] Commit: `95fc493`
-- [x] Pushed to main
-
-### Checklist Templates Drag & Drop (Complete)
-- [x] Installed @dnd-kit libraries
-- [x] Created SortableItem component
-- [x] Accordion behavior (one open at a time)
-- [x] Commit: `170a04a`
-- [x] Pushed to main
-
-### TypeScript Production Build Fix (Complete)
-- [x] Fixed 25+ TypeScript strict mode errors
-- [x] Removed unused imports/variables (not underscore prefix)
-- [x] Fixed asset path (floor.building.project)
-- [x] Fixed type mismatches (pinX/pinY accepts null)
-- [x] Commits: `0f0a698`, `da78485`, `7ebb96f`
-- [x] Pushed to main
-- [x] Production frontend/backend running
-
-### Pending on Cloud
-- [ ] Run `prisma db push --force-reset` on cloud
-- [ ] Run `prisma db seed` on cloud
-
-### Floor Plan Visibility Toggle (Settings)
-- [x] Created `ui.store.ts` (Zustand + persist middleware)
-- [x] Added "Interface" tab in SettingsPage
-- [x] Toggle: "Hide Floor Plans by Default"
-- [x] Applied to FloorDetailPage, RoomDetailPage, ProjectDetailPage, BuildingDetailPage
-- [x] Setting persisted in localStorage
-- [x] TypeScript check: OK
-- [x] Git commits: `8b9a893`, `aa5b380`
-- [x] Pushed to main
-
-### Import from Inventory Modal
-- [x] Created `ImportInventoryModal` component with multi-select
-- [x] Integrated in FloorDetailPage (Add Asset button)
-- [x] Integrated in RoomDetailPage (Add Asset button)
-- [x] Bulk import handler with parallel API calls
-- [x] TypeScript check: OK
-
-### Manual Update (Comprehensive)
-- [x] Added BuildingsSection (Project hierarchy)
-- [x] Added LookupsSection (Room Types, Manufacturers, Asset Models, etc.)
-- [x] Added ChecklistTemplatesSection
-- [x] Updated FloorsSection (floor-level assets, draggable popups, type choice)
-- [x] Updated RoomsSection (Import from Inventory, View/Edit, Remove from Plan)
-- [x] Updated InventorySection (Equipment/Materials tabs, status lifecycle)
-- [x] Added 7 new FAQ questions
-- [x] TypeScript check: OK
-
-### Codebase Review
-- [x] Έλεγχος για bugs σε όλο το codebase
-- [x] Εντοπισμός dead/unused code
-- [x] Cleanup: Removed `updateOrderSchema` from lookup.controller.ts
-
-### Frontend Unused Code (Low Priority - Keep for Future)
-- PhotoGalleryCompact, PhotoUploaderCompact, OfflineIndicatorCompact, QRCodeCompact
-- PhotoAnnotator, InstallButton, SignatureDisplay, DownloadFloorplanDropdown
-- signature.service.ts (unused but may be needed later)
-
----
-
-## Ολοκληρωμένα (2026-02-05)
-
-### Git Commit & Push
-- [x] TypeScript check (Frontend OK, Backend OK)
-- [x] Git commit: `d418dca`
-- [x] Git push to main
-
-### CLAUDE.md Update
-- [x] Νέο section: "ΥΠΟΧΡΕΩΤΙΚΟ Workflow"
-- [x] Κανόνες: Κατανόηση → Σχέδιο → Todo → Test
-- [x] Ενημέρωση ΠΟΤΕ/ΠΑΝΤΑ rules
-
-### MD Files Update
-- [x] Compressed history.md (27k → ~2k tokens)
-- [x] Updated todo.md
-- [x] Updated chat-history.md
-
----
-
-## Ολοκληρωμένα (2026-02-04)
-
-### Draggable Popups
-- [x] FloorPlanCanvas: draggable from header
-- [x] RoomPlanCanvas: draggable from header
-- [x] Popup position persistence across steps
-- [x] Reset position only on new canvas click
-
-### Room Plan Features
-- [x] View/Edit popup for placed asset pins
-- [x] Remove from Plan option
-- [x] Import from Inventory (replaced Create New)
-- [x] Connected to project inventory
-
-### UI Improvements
-- [x] Unified popup sizes (min-w-[280px])
-- [x] Larger icons (w-12 h-12)
-- [x] Better visual consistency
-
----
-
-*Cleaned: 2026-02-05*
+*Updated: 2026-02-06*
