@@ -44,8 +44,14 @@ interface ConversationResponse {
   existing?: boolean;
 }
 
+export interface ReadParticipant {
+  userId: string;
+  lastReadAt: string | null;
+}
+
 interface MessagesResponse {
   messages: Message[];
+  participants: ReadParticipant[];
 }
 
 interface MessageResponse {
@@ -71,14 +77,14 @@ export const messengerService = {
     return response;
   },
 
-  async getMessages(conversationId: string, before?: string): Promise<Message[]> {
+  async getMessages(conversationId: string, before?: string): Promise<{ messages: Message[]; participants: ReadParticipant[] }> {
     const params = new URLSearchParams();
     if (before) params.set('before', before);
     const query = params.toString();
     const response = await api.get<MessagesResponse>(
       `/messenger/conversations/${conversationId}/messages${query ? `?${query}` : ''}`
     );
-    return response.messages;
+    return { messages: response.messages, participants: response.participants };
   },
 
   async sendMessage(conversationId: string, content: string): Promise<Message> {

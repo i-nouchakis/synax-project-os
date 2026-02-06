@@ -1,6 +1,6 @@
 # Synax Project - Chat History
 
-**Τελευταία Ενημέρωση:** 2026-02-05
+**Τελευταία Ενημέρωση:** 2026-02-06
 
 ---
 
@@ -10,7 +10,20 @@
 **Local Development:** Working (port 5174)
 **Database (Local):** Fresh seed with demo data + room type icons + Label model
 **Database (Cloud):** Needs `prisma db push --force-reset` then seed
-**Latest Feature:** Messenger (1:1 + group chat, polling-based, unread badges)
+**Latest Feature:** Canvas Drawing V1 - Complete with always-visible shapes, cable tool, download integration
+
+### Recent Session (2026-02-06)
+- **Fix:** Drawing save was broken - Prisma client in Docker didn't know Cable/DrawingShape models. Fixed with `prisma generate` + permanent CMD fix in Dockerfile.dev
+- **Fix:** Duplicate toolbars appeared - hid normal view toolbar when fullscreen open
+- **Fix:** Shapes only visible in draw mode - now always visible (like pins), loaded on floor mount
+- **Fix:** Shapes included in floor plan download (preview + full resolution + PDF)
+- **DrawingLayer readOnly mode:** Non-interactive shape rendering when not in draw mode
+- **Fix:** Cable endpoints follow asset pins when dragged (real-time update via `updateCableEndpointsForAsset`)
+- **Fix:** Cable type popup appeared twice (disabled normal view canvas drawingMode when fullscreen open)
+- **Fix:** Right-click cancels pending cable, click outside popup dismisses it (backdrop)
+- **Feature:** Drawing module added to Rooms (exact same as Floors) - shapes, cables, drawing toolbar, properties panel, fullscreen support, download integration
+- **Feature:** Messenger read receipts - ✓ (sent) / ✓✓ blue (read) on own messages, based on participant lastReadAt
+- **Feature:** Messenger emoji picker - 😊 button with categorized emoji panel (Smileys, Gestures, Hearts, Objects), click outside to close
 
 ### Seed Data Summary
 
@@ -596,6 +609,60 @@
 - `frontend/src/components/room-plan/RoomPlanCanvas.tsx`
 - `frontend/src/pages/rooms/RoomDetailPage.tsx`
 - `frontend/src/services/room.service.ts`
+
+---
+
+## Session (2026-02-05) - Canvas Drawing V1 Implementation
+
+### Canvas Drawing V1 - Save/Load, Shortcuts, Properties Panel (Complete)
+**User Request:** Continue Canvas Drawing V1 implementation (said "synexise" then "nai")
+
+**Three tasks implemented:**
+
+**1. Save/Load Persistence ✅**
+- Load shapes from server when entering drawing mode
+- Save handler: creates new shapes, updates existing, deletes removed
+- Server ID tracking (`serverId` on `LocalShape`)
+- `isDirty` indicator on Save button
+- Reset store when leaving drawing mode
+
+**2. Delete + Keyboard Shortcuts ✅**
+- Delete/Backspace: delete selected shapes
+- Escape: deselect or switch to select tool
+- Ctrl+Z: undo, Ctrl+Shift+Z/Ctrl+Y: redo
+- Tool shortcuts: V(select), R(rect), C(circle), L(line), A(arrow), T(text), P(freehand)
+- Selection visual feedback (cyan stroke #0ea5e9)
+- Fixed Konva z-ordering: invisible Rect moved from LAST to FIRST
+
+**3. Properties Panel ✅**
+- Stroke color presets (7 colors)
+- Fill color presets (7 semi-transparent) - hidden for lines
+- Stroke width selector (1-8px)
+- Opacity slider (10-100%)
+- Font size for text shapes
+- Applies to all selected shapes with history push
+
+**Files Modified:**
+- `frontend/src/stores/drawing.store.ts` - Server sync (deletedServerIds, isDirty, loadFromServer, resetStore)
+- `frontend/src/pages/floors/FloorDetailPage.tsx` - Drawing mode handlers (load, save, delete)
+- `frontend/src/components/canvas/DrawingLayer.tsx` - Keyboard shortcuts, z-order fix, selection feedback
+- `frontend/src/components/canvas/DrawingToolbar.tsx` - Shortcut tooltips, reactive undo/redo, dirty indicator
+
+**Files Created:**
+- `frontend/src/components/canvas/PropertiesPanel.tsx` - Shape style editing panel
+
+**Test Results:**
+- TypeScript: Frontend 0 errors, Backend 0 errors ✅
+- API Tests (port 3002): Create(201), List(200), Update(200), BatchDelete(200) ✅
+
+**Remaining V1:**
+- Cable drawing workflow
+- Room-level drawing (RoomDetailPage)
+- Layers panel
+- Multi-select rectangle
+- Measurement tool
+- Export (PDF, SVG, PNG, JSON)
+- Visual testing by user (hard refresh needed)
 
 ---
 

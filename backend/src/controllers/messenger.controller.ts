@@ -141,14 +141,20 @@ export async function messengerRoutes(app: FastifyInstance) {
       where.createdAt = { lt: new Date(before) };
     }
 
-    const messages = await prisma.message.findMany({
-      where,
-      include: messageInclude,
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
+    const [messages, participants] = await Promise.all([
+      prisma.message.findMany({
+        where,
+        include: messageInclude,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      }),
+      prisma.conversationParticipant.findMany({
+        where: { conversationId: id },
+        select: { userId: true, lastReadAt: true },
+      }),
+    ]);
 
-    return reply.send({ messages: messages.reverse() });
+    return reply.send({ messages: messages.reverse(), participants });
   });
 
   // POST /api/messenger/conversations/:id/messages - Send message

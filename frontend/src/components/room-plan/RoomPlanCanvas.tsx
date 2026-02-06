@@ -3,6 +3,9 @@ import { Stage, Layer, Image as KonvaImage, Circle, Text, Group, Rect, Path } fr
 import Konva from 'konva';
 import { ZoomIn, ZoomOut, Maximize2, Lock, Unlock, RotateCcw, Wifi, Monitor, Phone, Camera, Router, CreditCard, Tv, X, MapPin, ChevronRight, Package, Search, Eye, Trash2 } from 'lucide-react';
 import { Button, Card, CardContent } from '@/components/ui';
+import { DrawingLayer } from '@/components/canvas/DrawingLayer';
+import { CableOverlays } from '@/components/canvas/CableOverlays';
+import { useDrawingStore } from '@/stores/drawing.store';
 
 interface Asset {
   id: string;
@@ -33,6 +36,7 @@ interface RoomPlanCanvasProps {
   showMaximize?: boolean;
   showLegend?: boolean;
   className?: string;
+  drawingMode?: boolean;
 }
 
 const STATUS_COLORS: Record<Asset['status'], string> = {
@@ -125,10 +129,12 @@ export function RoomPlanCanvas({
   showMaximize = true,
   showLegend = true,
   className,
+  drawingMode = false,
 }: RoomPlanCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -209,19 +215,22 @@ export function RoomPlanCanvas({
     img.crossOrigin = 'anonymous';
     img.src = imageUrl;
     img.onload = () => {
+      const imgWidth = img.naturalWidth || img.width;
+      const imgHeight = img.naturalHeight || img.height;
       setImage(img);
+      setImageDimensions({ width: imgWidth, height: imgHeight });
       // Fit image to container
       if (containerRef.current) {
         const containerWidth = containerRef.current.offsetWidth;
         const containerHeight = containerRef.current.offsetHeight || 600;
-        const scaleX = containerWidth / img.width;
-        const scaleY = containerHeight / img.height;
+        const scaleX = containerWidth / imgWidth;
+        const scaleY = containerHeight / imgHeight;
         const newScale = Math.min(scaleX, scaleY, 1);
         setScale(newScale);
         // Center the image
         setPosition({
-          x: (containerWidth - img.width * newScale) / 2,
-          y: (containerHeight - img.height * newScale) / 2,
+          x: (containerWidth - imgWidth * newScale) / 2,
+          y: (containerHeight - imgHeight * newScale) / 2,
         });
       }
     };
@@ -362,18 +371,50 @@ export function RoomPlanCanvas({
     e.cancelBubble = true;
   }, []);
 
+  // Handle asset pin drag move - also update cable endpoints in real-time
+  const handleAssetDragMove = useCallback((assetId: string, e: Konva.KonvaEventObject<DragEvent>) => {
+    e.cancelBubble = true;
+    if (!image) return;
+
+    const node = e.target;
+    const margin = 12;
+    const maxX = (image.naturalWidth || image.width) - margin;
+    const maxY = (image.naturalHeight || image.height) - margin;
+
+    const x = Math.max(margin, Math.min(maxX, node.x()));
+    const y = Math.max(margin, Math.min(maxY, node.y()));
+
+    if (node.x() !== x || node.y() !== y) {
+      node.x(x);
+      node.y(y);
+    }
+
+    // Update cable endpoints so cable lines follow the pin
+    useDrawingStore.getState().updateCableEndpointsForAsset(assetId, x, y);
+  }, [image]);
+
   // Handle pin drag end
   const handlePinDragEnd = useCallback((assetId: string, e: Konva.KonvaEventObject<DragEvent>) => {
     e.cancelBubble = true;
     setIsDraggingPin(false);
-    if (!onAssetMove) return;
+    if (!onAssetMove || !image) return;
 
     const node = e.target;
-    const x = node.x();
-    const y = node.y();
+    const margin = 12;
+    const maxX = (image.naturalWidth || image.width) - margin;
+    const maxY = (image.naturalHeight || image.height) - margin;
+
+    const x = Math.max(margin, Math.min(maxX, node.x()));
+    const y = Math.max(margin, Math.min(maxY, node.y()));
+
+    node.x(x);
+    node.y(y);
+
+    // Update cable endpoints to final position
+    useDrawingStore.getState().updateCableEndpointsForAsset(assetId, x, y);
 
     onAssetMove(assetId, x, y);
-  }, [onAssetMove]);
+  }, [onAssetMove, image]);
 
   // Zoom controls - only when unlocked
   const zoomIn = () => {
@@ -512,7 +553,7 @@ export function RoomPlanCanvas({
             />
           )}
 
-          {/* Asset Pins */}
+          {/* Asset Pins - render above drawing shapes so they're clickable */}
           {placedAssets.map((asset) => {
             return (
               <Group
@@ -521,7 +562,7 @@ export function RoomPlanCanvas({
                 y={asset.pinY!}
                 draggable={isEditable}
                 onDragStart={handlePinDragStart}
-                onDragMove={handlePinDragMove}
+                onDragMove={(e) => handleAssetDragMove(asset.id, e)}
                 onDragEnd={(e) => handlePinDragEnd(asset.id, e)}
                 onClick={(e) => {
                   e.cancelBubble = true;
@@ -611,7 +652,29 @@ export function RoomPlanCanvas({
             );
           })}
         </Layer>
+
+        {/* Drawing Layer - shapes overlay (always visible; interactive only in drawingMode) */}
+        {imageDimensions.width > 0 && (
+          <DrawingLayer
+            stageRef={stageRef}
+            imageWidth={imageDimensions.width}
+            imageHeight={imageDimensions.height}
+            scale={scale}
+            readOnly={!drawingMode}
+            assetPins={assets
+              .filter((a) => a.pinX != null && a.pinY != null)
+              .map((a) => ({ id: a.id, name: a.name, pinX: a.pinX!, pinY: a.pinY! }))}
+          />
+        )}
       </Stage>
+
+      {/* Cable overlays (HTML popups/status) - MUST be outside Stage */}
+      {drawingMode && (
+        <CableOverlays
+          stageRef={stageRef}
+          assetPinCount={assets.filter((a) => a.pinX != null && a.pinY != null).length}
+        />
+      )}
 
       {/* Action Menu - Choose between existing, import, or create new */}
       {showActionMenu && (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   MessageSquare,
@@ -7,7 +7,9 @@ import {
   Search,
   Users,
   Check,
+  CheckCheck,
   X,
+  Smile,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -19,7 +21,7 @@ import {
   ModalActions,
   Input,
 } from '@/components/ui';
-import { messengerService, type Conversation, type Message } from '@/services/messenger.service';
+import { messengerService, type Conversation, type Message, type ReadParticipant } from '@/services/messenger.service';
 import { userService } from '@/services/user.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSearchStore } from '@/stores/search.store';
@@ -60,6 +62,26 @@ function formatFullTime(dateStr: string): string {
   return `${date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
+// ─── Emoji Data ─────────────────────────────────────────────
+const EMOJI_CATEGORIES: { label: string; emojis: string[] }[] = [
+  {
+    label: 'Smileys',
+    emojis: ['😀', '😃', '😄', '😁', '😂', '🤣', '😊', '😇', '🙂', '😉', '😍', '🥰', '😘', '😜', '🤔', '😎', '🤩', '😏', '😢', '😭', '😤', '😱', '🤯', '🥳', '😴', '🤗', '🫡', '🫠'],
+  },
+  {
+    label: 'Gestures',
+    emojis: ['👍', '👎', '👋', '🤝', '👏', '🙌', '💪', '🤞', '✌️', '🤟', '👌', '🫶', '☝️', '👈', '👉', '🙏'],
+  },
+  {
+    label: 'Hearts',
+    emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🤎', '🖤', '🤍', '💔', '❤️‍🔥', '💕', '💖', '💗', '💘', '💝'],
+  },
+  {
+    label: 'Objects',
+    emojis: ['🔥', '⭐', '✨', '💡', '🎯', '🚀', '💻', '📱', '📧', '📎', '🔧', '🏗️', '🏠', '📋', '✅', '❌', '⚠️', '🔔', '🎉', '🎊'],
+  },
+];
+
 // ─── Main Component ─────────────────────────────────────────
 export function MessengerPage() {
   const queryClient = useQueryClient();
@@ -75,6 +97,8 @@ export function MessengerPage() {
   const [isGroupChat, setIsGroupChat] = useState(false);
   const [groupTitle, setGroupTitle] = useState('');
   const [userSearch, setUserSearch] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   // Fetch conversations
   const { data: conversations = [] } = useQuery({
@@ -98,12 +122,14 @@ export function MessengerPage() {
   const activeConversation = conversations.find(c => c.id === activeConversationId);
 
   // Fetch messages for active conversation
-  const { data: messages = [] } = useQuery({
+  const { data: messagesData } = useQuery({
     queryKey: ['messenger-messages', activeConversationId],
     queryFn: () => messengerService.getMessages(activeConversationId!),
     enabled: !!activeConversationId,
     refetchInterval: 3000, // Poll messages every 3 seconds
   });
+  const messages = messagesData?.messages || [];
+  const readParticipants: ReadParticipant[] = messagesData?.participants || [];
 
   // Fetch users for new chat
   const { data: allUsers = [] } = useQuery({
@@ -167,6 +193,7 @@ export function MessengerPage() {
   const handleSend = () => {
     if (!messageText.trim() || !activeConversationId) return;
     sendMessageMutation.mutate({ conversationId: activeConversationId, content: messageText.trim() });
+    setShowEmojiPicker(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -184,6 +211,32 @@ export function MessengerPage() {
       title: groupTitle || undefined,
     });
   };
+
+  // Check if a message has been read by any other participant
+  const isMessageRead = useCallback((msg: Message): boolean => {
+    if (msg.senderId !== currentUser?.id) return false; // Only show for own messages
+    return readParticipants.some(
+      (p) => p.userId !== currentUser?.id && p.lastReadAt && new Date(p.lastReadAt) >= new Date(msg.createdAt)
+    );
+  }, [readParticipants, currentUser?.id]);
+
+  // Handle emoji selection
+  const handleEmojiSelect = (emoji: string) => {
+    setMessageText((prev) => prev + emoji);
+    inputRef.current?.focus();
+  };
+
+  // Close emoji picker on click outside
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showEmojiPicker]);
 
   const toggleUserSelection = (userId: string) => {
     setSelectedUserIds(prev =>
@@ -380,9 +433,18 @@ export function MessengerPage() {
                                     >
                                       {msg.content}
                                     </div>
-                                    <p className={`text-[10px] text-text-tertiary mt-0.5 ${isMine ? 'text-right mr-1' : 'ml-1'}`}>
-                                      {formatFullTime(msg.createdAt)}
-                                    </p>
+                                    <div className={`flex items-center gap-1 mt-0.5 ${isMine ? 'justify-end mr-1' : 'ml-1'}`}>
+                                      <span className="text-[10px] text-text-tertiary">
+                                        {formatFullTime(msg.createdAt)}
+                                      </span>
+                                      {isMine && (
+                                        isMessageRead(msg) ? (
+                                          <CheckCheck size={12} className="text-primary" />
+                                        ) : (
+                                          <Check size={12} className="text-text-tertiary" />
+                                        )
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -397,7 +459,46 @@ export function MessengerPage() {
 
                 {/* Message Input */}
                 <div className="px-4 py-3 border-t border-surface-border">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 relative">
+                    {/* Emoji Picker */}
+                    {showEmojiPicker && (
+                      <div
+                        ref={emojiPickerRef}
+                        className="absolute bottom-full left-0 mb-2 bg-surface border border-surface-border rounded-xl shadow-xl z-50 w-[320px]"
+                      >
+                        <div className="p-2 max-h-[280px] overflow-y-auto">
+                          {EMOJI_CATEGORIES.map((cat) => (
+                            <div key={cat.label} className="mb-2">
+                              <p className="text-caption text-text-tertiary font-medium px-1 mb-1">{cat.label}</p>
+                              <div className="flex flex-wrap gap-0.5">
+                                {cat.emojis.map((emoji) => (
+                                  <button
+                                    key={emoji}
+                                    type="button"
+                                    onClick={() => handleEmojiSelect(emoji)}
+                                    className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-surface-hover text-lg transition-colors"
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className={`p-2.5 rounded-full transition-colors ${
+                        showEmojiPicker
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-text-tertiary hover:text-text-secondary hover:bg-surface-hover'
+                      }`}
+                      title="Emoji"
+                    >
+                      <Smile size={20} />
+                    </button>
                     <input
                       ref={inputRef}
                       type="text"

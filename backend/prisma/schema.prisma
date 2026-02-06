@@ -220,7 +220,9 @@ model Floor {
   updatedAt     DateTime @updatedAt @map("updated_at")
   building      Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
   rooms         Room[]
-  assets        Asset[]  @relation("FloorAssets")
+  assets         Asset[]          @relation("FloorAssets")
+  drawingShapes  DrawingShape[]   @relation("FloorShapes")
+  cables         Cable[]          @relation("FloorCables")
 
   @@map("floors")
 }
@@ -240,8 +242,10 @@ model Room {
   floorplanUrl  String?     @map("floorplan_url")
   assets        Asset[]
   issues        Issue[]
-  floor         Floor       @relation(fields: [floorId], references: [id], onDelete: Cascade)
-  signatures    Signature[]
+  floor          Floor            @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  signatures     Signature[]
+  drawingShapes  DrawingShape[]   @relation("RoomShapes")
+  cables         Cable[]          @relation("RoomCables")
 
   @@map("rooms")
 }
@@ -285,6 +289,8 @@ model Asset {
   floor         Floor?      @relation("FloorAssets", fields: [floorId], references: [id], onDelete: Cascade)
   checklists    Checklist[]
   label         Label?
+  cablesFrom    Cable[]     @relation("CableSource")
+  cablesTo      Cable[]     @relation("CableTarget")
 
   @@map("assets")
 }
@@ -693,4 +699,95 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@map("messages")
+}
+
+// ─── Canvas Drawing ─────────────────────────────────────────
+
+enum ShapeType {
+  RECTANGLE
+  CIRCLE
+  LINE
+  ARROW
+  TEXT
+  FREEHAND
+  POLYGON
+}
+
+model DrawingShape {
+  id        String    @id @default(cuid())
+  floorId   String?   @map("floor_id")
+  roomId    String?   @map("room_id")
+  type      ShapeType
+  layer     String    @default("default")
+  zIndex    Int       @default(0) @map("z_index")
+  locked    Boolean   @default(false)
+  visible   Boolean   @default(true)
+  data      Json      // x, y, width, height, points, text, rotation, etc.
+  style     Json      // fill, stroke, strokeWidth, opacity, fontSize, etc.
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  floor     Floor?    @relation("FloorShapes", fields: [floorId], references: [id], onDelete: Cascade)
+  room      Room?     @relation("RoomShapes", fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([floorId])
+  @@index([roomId])
+  @@map("drawing_shapes")
+}
+
+enum CableType {
+  ETHERNET
+  FIBER
+  POWER
+  COAXIAL
+  HDMI
+  USB
+  PHONE
+  OTHER
+}
+
+enum RoutingMode {
+  STRAIGHT
+  ORTHOGONAL
+  AUTO
+  CUSTOM
+}
+
+model Cable {
+  id             String      @id @default(cuid())
+  floorId        String?     @map("floor_id")
+  roomId         String?     @map("room_id")
+  sourceAssetId  String?     @map("source_asset_id")
+  targetAssetId  String?     @map("target_asset_id")
+  cableType      CableType   @default(ETHERNET) @map("cable_type")
+  routingMode    RoutingMode @default(STRAIGHT) @map("routing_mode")
+  routingPoints  Json?       @map("routing_points") // Array of {x,y} waypoints
+  label          String?
+  color          String?
+  bundleId       String?     @map("bundle_id")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  floor          Floor?       @relation("FloorCables", fields: [floorId], references: [id], onDelete: Cascade)
+  room           Room?        @relation("RoomCables", fields: [roomId], references: [id], onDelete: Cascade)
+  sourceAsset    Asset?       @relation("CableSource", fields: [sourceAssetId], references: [id], onDelete: SetNull)
+  targetAsset    Asset?       @relation("CableTarget", fields: [targetAssetId], references: [id], onDelete: SetNull)
+  bundle         CableBundle? @relation(fields: [bundleId], references: [id], onDelete: SetNull)
+
+  @@index([floorId])
+  @@index([roomId])
+  @@map("cables")
+}
+
+model CableBundle {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  color         String?
+  renderAsSingle Boolean @default(true) @map("render_as_single")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  cables        Cable[]
+
+  @@map("cable_bundles")
 }

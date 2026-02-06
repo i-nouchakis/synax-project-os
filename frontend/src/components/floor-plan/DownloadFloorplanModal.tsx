@@ -13,6 +13,21 @@ interface Pin {
   status?: string;
 }
 
+interface DownloadShape {
+  type: string;
+  data: { x?: number; y?: number; width?: number; height?: number; radius?: number; points?: number[]; text?: string; rotation?: number };
+  style: { fill?: string; stroke?: string; strokeWidth?: number; opacity?: number; fontSize?: number; fontFamily?: string; dash?: number[] };
+}
+
+interface DownloadCable {
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  color: string;
+  label?: string;
+}
+
 interface DownloadFloorplanModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,6 +38,8 @@ interface DownloadFloorplanModalProps {
   roomName?: string;
   pins: Pin[];
   pinType?: 'room' | 'asset' | 'floor' | 'building';
+  shapes?: DownloadShape[];
+  cables?: DownloadCable[];
 }
 
 const formatOptions = [
@@ -44,6 +61,156 @@ const statusColors: Record<string, string> = {
   FAILED: '#ef4444',
 };
 
+function drawShapesOnCanvas(
+  ctx: CanvasRenderingContext2D,
+  shapesToDraw: DownloadShape[],
+  cablesToDraw: DownloadCable[],
+  scale: number
+) {
+  // Draw cables first (below shapes)
+  cablesToDraw.forEach((cable) => {
+    ctx.beginPath();
+    ctx.moveTo(cable.sourceX * scale, cable.sourceY * scale);
+    ctx.lineTo(cable.targetX * scale, cable.targetY * scale);
+    ctx.strokeStyle = cable.color || '#6b7280';
+    ctx.lineWidth = 2 * scale;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Cable endpoint dots
+    [{ x: cable.sourceX, y: cable.sourceY }, { x: cable.targetX, y: cable.targetY }].forEach((pt) => {
+      ctx.beginPath();
+      ctx.arc(pt.x * scale, pt.y * scale, 4 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = cable.color || '#6b7280';
+      ctx.fill();
+    });
+
+    // Cable label
+    if (cable.label) {
+      const midX = ((cable.sourceX + cable.targetX) / 2) * scale;
+      const midY = ((cable.sourceY + cable.targetY) / 2) * scale - 10 * scale;
+      ctx.font = `${10 * scale}px Inter, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillStyle = cable.color || '#6b7280';
+      ctx.fillText(cable.label, midX, midY);
+    }
+  });
+
+  // Draw shapes
+  shapesToDraw.forEach((shape) => {
+    const { data, style } = shape;
+    const opacity = style.opacity ?? 1;
+    ctx.globalAlpha = opacity;
+
+    switch (shape.type) {
+      case 'RECTANGLE': {
+        const x = (data.x || 0) * scale;
+        const y = (data.y || 0) * scale;
+        const w = (data.width || 0) * scale;
+        const h = (data.height || 0) * scale;
+        if (data.rotation) {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate((data.rotation * Math.PI) / 180);
+          if (style.fill && style.fill !== 'transparent') {
+            ctx.fillStyle = style.fill;
+            ctx.fillRect(0, 0, w, h);
+          }
+          if (style.stroke && style.stroke !== 'transparent') {
+            ctx.strokeStyle = style.stroke;
+            ctx.lineWidth = (style.strokeWidth || 2) * scale;
+            ctx.strokeRect(0, 0, w, h);
+          }
+          ctx.restore();
+        } else {
+          if (style.fill && style.fill !== 'transparent') {
+            ctx.fillStyle = style.fill;
+            ctx.fillRect(x, y, w, h);
+          }
+          if (style.stroke && style.stroke !== 'transparent') {
+            ctx.strokeStyle = style.stroke;
+            ctx.lineWidth = (style.strokeWidth || 2) * scale;
+            ctx.strokeRect(x, y, w, h);
+          }
+        }
+        break;
+      }
+      case 'CIRCLE': {
+        const cx = (data.x || 0) * scale;
+        const cy = (data.y || 0) * scale;
+        const r = (data.radius || 0) * scale;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        if (style.fill && style.fill !== 'transparent') {
+          ctx.fillStyle = style.fill;
+          ctx.fill();
+        }
+        if (style.stroke && style.stroke !== 'transparent') {
+          ctx.strokeStyle = style.stroke;
+          ctx.lineWidth = (style.strokeWidth || 2) * scale;
+          ctx.stroke();
+        }
+        break;
+      }
+      case 'LINE':
+      case 'FREEHAND': {
+        const pts = data.points || [];
+        if (pts.length < 4) break;
+        ctx.beginPath();
+        ctx.moveTo(pts[0] * scale, pts[1] * scale);
+        for (let i = 2; i < pts.length; i += 2) {
+          ctx.lineTo(pts[i] * scale, pts[i + 1] * scale);
+        }
+        ctx.strokeStyle = style.stroke || '#6b7280';
+        ctx.lineWidth = (style.strokeWidth || 2) * scale;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        break;
+      }
+      case 'ARROW': {
+        const pts = data.points || [];
+        if (pts.length < 4) break;
+        const x1 = pts[0] * scale;
+        const y1 = pts[1] * scale;
+        const x2 = pts[pts.length - 2] * scale;
+        const y2 = pts[pts.length - 1] * scale;
+        // Line
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = style.stroke || '#ef4444';
+        ctx.lineWidth = (style.strokeWidth || 2) * scale;
+        ctx.stroke();
+        // Arrowhead
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        const headLen = 10 * scale;
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+        ctx.closePath();
+        ctx.fillStyle = style.stroke || '#ef4444';
+        ctx.fill();
+        break;
+      }
+      case 'TEXT': {
+        const tx = (data.x || 0) * scale;
+        const ty = (data.y || 0) * scale;
+        const fontSize = (style.fontSize || 16) * scale;
+        ctx.font = `${fontSize}px ${style.fontFamily || 'sans-serif'}`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = style.fill || '#1f2937';
+        ctx.fillText(data.text || 'Text', tx, ty);
+        break;
+      }
+    }
+    ctx.globalAlpha = 1;
+  });
+}
+
 export function DownloadFloorplanModal({
   isOpen,
   onClose,
@@ -54,6 +221,8 @@ export function DownloadFloorplanModal({
   roomName,
   pins,
   pinType = 'room',
+  shapes = [],
+  cables = [],
 }: DownloadFloorplanModalProps) {
   const [format, setFormat] = useState<DownloadFormat>('png');
   const [selectedPins, setSelectedPins] = useState<Set<string>>(new Set(pins.map(p => p.id)));
@@ -104,6 +273,9 @@ export function DownloadFloorplanModal({
     // Draw image
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
+    // Draw shapes and cables (below pins)
+    drawShapesOnCanvas(ctx, shapes, cables, scale);
+
     // Draw pins - pin.x and pin.y are pixel coordinates relative to original image
     const pinRadius = 12 * scale;
     pins.forEach(pin => {
@@ -145,7 +317,7 @@ export function DownloadFloorplanModal({
       ctx.fillStyle = '#ffffff';
       ctx.fillText(labelText, x, labelY);
     });
-  }, [imageLoaded, pins, selectedPins, isFullScreen]);
+  }, [imageLoaded, pins, selectedPins, isFullScreen, shapes, cables]);
 
   useEffect(() => {
     drawPreview();
@@ -210,6 +382,9 @@ export function DownloadFloorplanModal({
 
     // Draw image at full resolution
     ctx.drawImage(img, 0, 0);
+
+    // Draw shapes and cables at full resolution (scale=1)
+    drawShapesOnCanvas(ctx, shapes, cables, 1);
 
     // Draw pins at full resolution - pin.x and pin.y are already in pixel coordinates
     const pinRadius = 12;

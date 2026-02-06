@@ -3,6 +3,9 @@ import { Stage, Layer, Image as KonvaImage, Circle, Text, Group, Rect, Path } fr
 import Konva from 'konva';
 import { ZoomIn, ZoomOut, Maximize2, Lock, Unlock, RotateCcw, Layers, X, Plus, MapPin, ChevronRight, Search, Eye, Trash2, Wifi, Monitor, Phone, Camera, Router, CreditCard, Tv, DoorOpen, Package } from 'lucide-react';
 import { Button, Card, CardContent } from '@/components/ui';
+import { DrawingLayer } from '@/components/canvas/DrawingLayer';
+import { CableOverlays } from '@/components/canvas/CableOverlays';
+import { useDrawingStore } from '@/stores/drawing.store';
 
 // Room Pin interface
 interface Pin {
@@ -93,6 +96,7 @@ interface FloorPlanCanvasProps {
   showMaximize?: boolean;
   showLegend?: boolean;
   className?: string;
+  drawingMode?: boolean;
 }
 
 const ROOM_STATUS_COLORS: Record<Pin['status'], string> = {
@@ -127,6 +131,7 @@ export function FloorPlanCanvas({
   onMaximize,
   showMaximize = true,
   showLegend = true,
+  drawingMode = false,
   className,
 }: FloorPlanCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -539,6 +544,28 @@ export function FloorPlanCanvas({
     onPinMove(pinId, x, y);
   }, [onPinMove, image]);
 
+  // Handle asset pin drag move - also update cable endpoints in real-time
+  const handleAssetDragMove = useCallback((assetId: string, e: Konva.KonvaEventObject<DragEvent>) => {
+    e.cancelBubble = true;
+    if (!image) return;
+
+    const node = e.target;
+    const margin = 12;
+    const maxX = (image.naturalWidth || image.width) - margin;
+    const maxY = (image.naturalHeight || image.height) - margin;
+
+    const x = Math.max(margin, Math.min(maxX, node.x()));
+    const y = Math.max(margin, Math.min(maxY, node.y()));
+
+    if (node.x() !== x || node.y() !== y) {
+      node.x(x);
+      node.y(y);
+    }
+
+    // Update cable endpoints so cable lines follow the pin
+    useDrawingStore.getState().updateCableEndpointsForAsset(assetId, x, y);
+  }, [image]);
+
   // Handle asset pin drag end
   const handleAssetDragEnd = useCallback((assetId: string, e: Konva.KonvaEventObject<DragEvent>) => {
     e.cancelBubble = true;
@@ -556,6 +583,9 @@ export function FloorPlanCanvas({
 
     node.x(x);
     node.y(y);
+
+    // Update cable endpoints to final position
+    useDrawingStore.getState().updateCableEndpointsForAsset(assetId, x, y);
 
     onAssetMove(assetId, x, y);
   }, [onAssetMove, image]);
@@ -775,7 +805,7 @@ export function FloorPlanCanvas({
               y={asset.pinY!}
               draggable={isEditable}
               onDragStart={handlePinDragStart}
-              onDragMove={handlePinDragMove}
+              onDragMove={(e) => handleAssetDragMove(asset.id, e)}
               onDragEnd={(e) => handleAssetDragEnd(asset.id, e)}
               onClick={(e) => {
                 e.cancelBubble = true;
@@ -862,7 +892,29 @@ export function FloorPlanCanvas({
             </Group>
           ))}
         </Layer>
+
+        {/* Drawing Layer - shapes overlay (always visible; interactive only in drawingMode) */}
+        {imageDimensions.width > 0 && (
+          <DrawingLayer
+            stageRef={stageRef}
+            imageWidth={imageDimensions.width}
+            imageHeight={imageDimensions.height}
+            scale={scale}
+            readOnly={!drawingMode}
+            assetPins={assets
+              .filter((a) => a.pinX != null && a.pinY != null)
+              .map((a) => ({ id: a.id, name: a.name, pinX: a.pinX!, pinY: a.pinY! }))}
+          />
+        )}
       </Stage>
+
+      {/* Cable overlays (HTML popups/status) - MUST be outside Stage */}
+      {drawingMode && (
+        <CableOverlays
+          stageRef={stageRef}
+          assetPinCount={assets.filter((a) => a.pinX != null && a.pinY != null).length}
+        />
+      )}
 
       {/* Type Choice Menu - Room or Asset */}
       {showTypeChoice && (

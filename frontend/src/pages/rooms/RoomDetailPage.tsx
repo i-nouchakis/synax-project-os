@@ -23,6 +23,7 @@ import {
   Globe,
   Download,
   Wand2,
+  Pencil as PencilIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -44,7 +45,11 @@ import {
 import { useSortable } from '@/hooks/useSortable';
 import { RoomPlanCanvas } from '@/components/room-plan';
 import { DownloadFloorplanModal } from '@/components/floor-plan';
+import { DrawingToolbar } from '@/components/canvas/DrawingToolbar';
+import { PropertiesPanel } from '@/components/canvas/PropertiesPanel';
 import { ImportInventoryModal } from '@/components/inventory';
+import { drawingService } from '@/services/drawing.service';
+import { useDrawingStore } from '@/stores/drawing.store';
 import { assetService, type Asset, type AssetType, type CreateAssetData, type UpdateAssetData, type AssetStatus } from '@/services/asset.service';
 import { roomService } from '@/services/room.service';
 import { uploadService } from '@/services/upload.service';
@@ -94,6 +99,7 @@ export function RoomDetailPage() {
   const [showFloorPlan, setShowFloorPlan] = useState(true);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [pendingAssetPinPosition, setPendingAssetPinPosition] = useState<{ x: number; y: number } | null>(null);
@@ -310,6 +316,170 @@ export function RoomDetailPage() {
     navigate(`/assets/${asset.id}`);
   };
 
+  // Drawing mode - load/save/delete
+  const drawingStore = useDrawingStore();
+  const [isSavingDrawing, setIsSavingDrawing] = useState(false);
+
+  // Load shapes and cables when room loads (always visible, like pins)
+  useEffect(() => {
+    if (id) {
+      Promise.all([
+        drawingService.getShapes({ roomId: id }),
+        drawingService.getCables({ roomId: id }),
+      ]).then(([shapes, cables]) => {
+        drawingStore.loadFromServer(shapes, cables);
+      }).catch(() => {
+        toast.error('Failed to load drawings');
+      });
+    }
+    return () => {
+      drawingStore.resetStore();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // When leaving drawing mode, clear selection but keep shapes
+  useEffect(() => {
+    if (!isDrawingMode) {
+      drawingStore.clearSelection();
+      drawingStore.setActiveTool('select');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDrawingMode]);
+
+  // Save drawings and cables to backend
+  const handleSaveDrawings = async () => {
+    if (!id) return;
+    setIsSavingDrawing(true);
+    try {
+      const { shapes, cables, deletedServerIds, deletedCableServerIds } = useDrawingStore.getState();
+
+      // Delete removed shapes
+      if (deletedServerIds.length > 0) {
+        await drawingService.deleteShapes(deletedServerIds);
+      }
+
+      // Delete removed cables
+      if (deletedCableServerIds.length > 0) {
+        await Promise.all(deletedCableServerIds.map((cId) => drawingService.deleteCable(cId)));
+      }
+
+      // Separate new vs existing shapes
+      const newShapes = shapes.filter((s) => !s.serverId);
+      const existingShapes = shapes.filter((s) => s.serverId);
+
+      // Update existing shapes
+      await Promise.all(
+        existingShapes.map((s) =>
+          drawingService.updateShape(s.serverId!, {
+            type: s.type,
+            layer: s.layer,
+            zIndex: s.zIndex,
+            locked: s.locked,
+            visible: s.visible,
+            data: s.data,
+            style: s.style,
+          })
+        )
+      );
+
+      // Create new shapes
+      if (newShapes.length > 0) {
+        const created = await Promise.all(
+          newShapes.map((s) =>
+            drawingService.createShape({
+              roomId: id,
+              type: s.type,
+              layer: s.layer,
+              zIndex: s.zIndex,
+              data: s.data,
+              style: s.style,
+            })
+          )
+        );
+        // Update local shapes with server IDs
+        const storeState = useDrawingStore.getState();
+        const updatedShapes = storeState.shapes.map((s) => {
+          const idx = newShapes.findIndex((n) => n.id === s.id);
+          if (idx !== -1 && created[idx]) {
+            return { ...s, serverId: created[idx].id };
+          }
+          return s;
+        });
+        useDrawingStore.setState({ shapes: updatedShapes });
+      }
+
+      // Save cables - new vs existing
+      const newCables = cables.filter((c) => !c.serverId);
+      const existingCables = cables.filter((c) => c.serverId);
+
+      // Update existing cables
+      await Promise.all(
+        existingCables.map((c) =>
+          drawingService.updateCable(c.serverId!, {
+            cableType: c.cableType,
+            routingMode: c.routingMode,
+            routingPoints: c.routingPoints,
+            label: c.label,
+            color: c.color,
+            sourceAssetId: c.sourceAssetId,
+            targetAssetId: c.targetAssetId,
+          })
+        )
+      );
+
+      // Create new cables
+      if (newCables.length > 0) {
+        const createdCables = await Promise.all(
+          newCables.map((c) =>
+            drawingService.createCable({
+              roomId: id,
+              sourceAssetId: c.sourceAssetId,
+              targetAssetId: c.targetAssetId,
+              cableType: c.cableType,
+              routingMode: c.routingMode,
+              routingPoints: c.routingPoints,
+              label: c.label,
+              color: c.color,
+            })
+          )
+        );
+        // Update local cables with server IDs
+        const storeState = useDrawingStore.getState();
+        const updatedCables = storeState.cables.map((c) => {
+          const idx = newCables.findIndex((n) => n.id === c.id);
+          if (idx !== -1 && createdCables[idx]) {
+            return { ...c, serverId: createdCables[idx].id };
+          }
+          return c;
+        });
+        useDrawingStore.setState({ cables: updatedCables });
+      }
+
+      useDrawingStore.setState({ deletedServerIds: [], deletedCableServerIds: [], isDirty: false });
+      toast.success('Drawings saved');
+    } catch {
+      toast.error('Failed to save drawings');
+    } finally {
+      setIsSavingDrawing(false);
+    }
+  };
+
+  // Delete selected shapes and/or cables
+  const handleDeleteSelected = () => {
+    const store = useDrawingStore.getState();
+    if (store.selectedIds.length === 0 && store.selectedCableIds.length === 0) return;
+    store.pushHistory();
+    if (store.selectedIds.length > 0) {
+      store.removeShapes(store.selectedIds);
+      store.setSelectedIds([]);
+    }
+    if (store.selectedCableIds.length > 0) {
+      store.removeCables(store.selectedCableIds);
+      store.setSelectedCableIds([]);
+    }
+  };
+
   const isLoading = roomLoading;
 
   if (isLoading) {
@@ -416,14 +586,24 @@ export function RoomDetailPage() {
                 Download
               </Button>
               {canManage && (
-                <Button
-                  size="sm"
-                  variant={isEditMode ? 'primary' : 'secondary'}
-                  leftIcon={isEditMode ? <Unlock size={16} /> : <Lock size={16} />}
-                  onClick={() => setIsEditMode(!isEditMode)}
-                >
-                  {isEditMode ? 'Editing' : 'Edit'}
-                </Button>
+                <>
+                  <Button
+                    size="sm"
+                    variant={isEditMode ? 'primary' : 'secondary'}
+                    leftIcon={isEditMode ? <Unlock size={16} /> : <Lock size={16} />}
+                    onClick={() => { setIsEditMode(!isEditMode); if (isDrawingMode) setIsDrawingMode(false); }}
+                  >
+                    {isEditMode ? 'Editing' : 'Edit Pins'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={isDrawingMode ? 'primary' : 'secondary'}
+                    leftIcon={<PencilIcon size={16} />}
+                    onClick={() => { setIsDrawingMode(!isDrawingMode); if (isEditMode) setIsEditMode(false); }}
+                  >
+                    {isDrawingMode ? 'Drawing' : 'Draw'}
+                  </Button>
+                </>
               )}
               <Button
                 variant="ghost"
@@ -435,28 +615,41 @@ export function RoomDetailPage() {
             </div>
           </CardHeader>
           {showFloorPlan && (
-            <CardContent className="p-0">
-              <div className="h-[500px]">
-                <RoomPlanCanvas
-                  imageUrl={room.floorplanUrl}
-                  assets={assets as any}
-                  availableAssets={isEditMode ? availableAssets as any : []}
-                  inventoryAssets={isEditMode ? projectInventory as any : []}
-                  onAssetClick={handleAssetClick as any}
-                  onAssetMove={handleMoveAsset}
-                  onPlaceAsset={handlePlaceAsset}
-                  onImportAsset={(assetId, x, y) => {
-                    assignAssetToRoomMutation.mutate({
-                      assetId,
-                      pinX: Math.round(x),
-                      pinY: Math.round(y),
-                    });
-                  }}
-                  onRemoveAssetPin={handleRemoveAssetPin}
-                  isEditable={isEditMode}
-                  selectedAssetId={selectedAssetId}
-                  onMaximize={() => setIsFullScreenOpen(true)}
-                />
+            <CardContent>
+              <div>
+                {isDrawingMode && !isFullScreenOpen && (
+                  <div className="mb-2 space-y-2">
+                    <DrawingToolbar
+                      onSave={handleSaveDrawings}
+                      onDelete={handleDeleteSelected}
+                      isSaving={isSavingDrawing}
+                    />
+                    <PropertiesPanel />
+                  </div>
+                )}
+                <div className="h-[500px]">
+                  <RoomPlanCanvas
+                    imageUrl={room.floorplanUrl}
+                    assets={assets as any}
+                    availableAssets={isEditMode ? availableAssets as any : []}
+                    inventoryAssets={isEditMode ? projectInventory as any : []}
+                    onAssetClick={handleAssetClick as any}
+                    onAssetMove={handleMoveAsset}
+                    onPlaceAsset={handlePlaceAsset}
+                    onImportAsset={(assetId, x, y) => {
+                      assignAssetToRoomMutation.mutate({
+                        assetId,
+                        pinX: Math.round(x),
+                        pinY: Math.round(y),
+                      });
+                    }}
+                    onRemoveAssetPin={handleRemoveAssetPin}
+                    isEditable={isEditMode}
+                    selectedAssetId={selectedAssetId}
+                    onMaximize={() => setIsFullScreenOpen(true)}
+                    drawingMode={isDrawingMode && !isFullScreenOpen}
+                  />
+                </div>
               </div>
             </CardContent>
           )}
@@ -764,10 +957,10 @@ export function RoomDetailPage() {
           icon={<Map size={18} />}
           size="full"
         >
-          {/* Edit mode toggle in fullscreen */}
+          {/* Edit mode + Drawing mode toggle in fullscreen */}
           {canManage && (
             <div className="flex items-center justify-end gap-2 mb-2 -mt-2">
-              {isEditMode && (
+              {isEditMode && !isDrawingMode && (
                 <>
                   {availableAssets.length > 0 && (
                     <span className="text-caption text-text-secondary">
@@ -779,14 +972,40 @@ export function RoomDetailPage() {
                   </Badge>
                 </>
               )}
-              <Button
-                size="sm"
-                variant={isEditMode ? 'primary' : 'secondary'}
-                leftIcon={isEditMode ? <Unlock size={16} /> : <Lock size={16} />}
-                onClick={() => setIsEditMode(!isEditMode)}
-              >
-                {isEditMode ? 'Editing' : 'Edit'}
-              </Button>
+              {!isDrawingMode && (
+                <Button
+                  size="sm"
+                  variant={isEditMode ? 'primary' : 'secondary'}
+                  leftIcon={isEditMode ? <Unlock size={16} /> : <Lock size={16} />}
+                  onClick={() => setIsEditMode(!isEditMode)}
+                >
+                  {isEditMode ? 'Editing' : 'Edit Pins'}
+                </Button>
+              )}
+              {!isEditMode && (
+                <Button
+                  size="sm"
+                  variant={isDrawingMode ? 'primary' : 'secondary'}
+                  leftIcon={<Wand2 size={16} />}
+                  onClick={() => {
+                    setIsDrawingMode(!isDrawingMode);
+                    if (isDrawingMode) setIsEditMode(false);
+                  }}
+                >
+                  {isDrawingMode ? 'Exit Draw' : 'Draw'}
+                </Button>
+              )}
+            </div>
+          )}
+          {/* Drawing toolbar in fullscreen */}
+          {isDrawingMode && (
+            <div className="mb-2 flex flex-col gap-2">
+              <DrawingToolbar
+                onSave={handleSaveDrawings}
+                onDelete={handleDeleteSelected}
+                isSaving={isSavingDrawing}
+              />
+              <PropertiesPanel />
             </div>
           )}
           <div className="h-[calc(95vh-120px)] -mx-6 -mb-6">
@@ -814,6 +1033,7 @@ export function RoomDetailPage() {
               selectedAssetId={selectedAssetId}
               showMaximize={false}
               showLegend={false}
+              drawingMode={isDrawingMode}
             />
           </div>
         </Modal>
@@ -839,6 +1059,19 @@ export function RoomDetailPage() {
               status: asset.status,
             }))}
           pinType="asset"
+          shapes={drawingStore.shapes.filter((s) => s.visible).map((s) => ({
+            type: s.type,
+            data: s.data,
+            style: s.style,
+          }))}
+          cables={drawingStore.cables.map((c) => ({
+            sourceX: c.sourceX,
+            sourceY: c.sourceY,
+            targetX: c.targetX,
+            targetY: c.targetY,
+            color: c.color,
+            label: c.label,
+          }))}
         />
       )}
 

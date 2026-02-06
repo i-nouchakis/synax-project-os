@@ -22,5 +22,5 @@ COPY . .
 # Expose backend port
 EXPOSE 3002
 
-# Start development server
-CMD ["npm", "run", "dev"]
+# Start development server (prisma generate ensures client matches schema after volume mounts)
+CMD ["sh", "-c", "npx prisma generate && npm run dev"]

@@ -24,168 +24,74 @@
 
 ---
 
-### V1 - Core Implementation (Ready to Start)
+### V1 - Core Implementation (In Progress)
 
-#### Phase 1: Backend Data Models (6-8 hours)
-- [ ] **Prisma Schema Updates**
-  - [ ] Create `Cable` model with flexible connections
-    - `ConnectionType` enum (ASSET, ROOM, FLOOR)
-    - `CableType` enum (Network, Power, Coaxial, Fiber, Phone, Other)
-    - `RoutingMode` enum (STRAIGHT, ORTHOGONAL, AUTO, CUSTOM)
-    - Fields: sourceType, sourceId, targetType, targetId, routingMode, routingPoints (Json)
-  - [ ] Create `CableBundle` model
-    - Fields: name, description, color, renderAsSingle, displayCount
-    - Relation: Cable[] (one-to-many)
-  - [ ] Create `DrawingShape` model
-    - `ShapeType` enum (RECTANGLE, CIRCLE, LINE, ARROW, TEXT, FREEHAND, POLYGON)
-    - Fields: floorId?, roomId?, type, layer, zIndex, locked, visible, data (Json), style (Json)
-  - [ ] Run `npx prisma generate`
-  - [ ] Run `npx prisma db push`
+#### Phase 1: Backend Data Models ✅
+- [x] `DrawingShape` model + `ShapeType` enum in Prisma
+- [x] `npx prisma generate` + `npx prisma db push`
+- [x] Frontend types in `drawing.service.ts`
+- [ ] `Cable` model (NOT YET - future)
+- [ ] `CableBundle` model (NOT YET - future)
 
-- [ ] **TypeScript Types (frontend/src/types/)**
-  - [ ] `canvas.types.ts` - DrawingTool, ShapeType, DrawingShape interface
-  - [ ] `cable.types.ts` - Cable, CableBundle, ConnectionType, RoutingMode
-  - [ ] `layer.types.ts` - Layer, LayerConfig
+#### Phase 2: Canvas State Management ✅
+- [x] Zustand Store: `drawing.store.ts`
+- [x] State: activeTool, shapes, selectedIds, history (undo/redo)
+- [x] Actions: setTool, addShape, updateShape, deleteShape, undo, redo
+- [x] Server sync: loadFromServer, deletedServerIds, isDirty, resetStore
 
-#### Phase 2: Canvas State Management (4-5 hours)
-- [ ] **Create Zustand Store: `drawing.store.ts`**
-  - [ ] State: activeTool, shapes, cables, layers, selectedIds, history (undo/redo)
-  - [ ] Actions: setTool, addShape, updateShape, deleteShape, undo, redo
-  - [ ] Layer actions: addLayer, toggleLayer, setLayerLock, setLayerOpacity
-  - [ ] Cable actions: addCable, updateCableRoute, deleteCable
+#### Phase 3: UI Components ✅
+- [x] **Drawing Toolbar** - 9 tools (Select, Rectangle, Circle, Line, Arrow, Text, Freehand, Polygon, Cable)
+- [x] **Properties Panel** - Stroke, Fill, Width, Opacity, Font Size (text)
+- [x] **Keyboard Shortcuts** - Delete, Escape, Ctrl+Z, Ctrl+Shift+Z, tool keys (V/R/C/L/A/T/P)
+- [ ] **Layers Panel** (NOT YET - future)
 
-#### Phase 3: UI Components (6-8 hours)
-- [ ] **Drawing Toolbar Component**
-  - [ ] Tool buttons: Select, Rectangle, Circle, Line, Arrow, Text, Freehand, Polygon, Cable
-  - [ ] Active tool highlight
-  - [ ] Tooltips for each tool
-  - [ ] See mockup in `.claude/features/canvas-drawing-cables.md`
+#### Phase 4: Drawing Tools ✅
+- [x] Rectangle Tool (click-drag, Konva.Rect)
+- [x] Circle Tool (click-drag, Konva.Circle)
+- [x] Line Tool (click-drag, Konva.Line)
+- [x] Arrow Tool (click-drag, Konva.Arrow)
+- [x] Text Tool (click to place, Konva.Text)
+- [x] Freehand Tool (mouse-down draw, Konva.Line)
+- [x] Polygon Tool (click points, double-click close)
 
-- [ ] **Layers Panel Component**
-  - [ ] Layer list with eye (visibility), lock icons
-  - [ ] Add/Delete/Rename layer
-  - [ ] Drag-to-reorder layers (z-index)
-  - [ ] Opacity slider per layer
-  - [ ] See mockup in `.claude/features/canvas-drawing-cables.md`
+#### Phase 5: Save/Load & Persistence ✅
+- [x] Load shapes from server when entering drawing mode
+- [x] Save handler: creates new, updates existing, deletes removed
+- [x] Server ID tracking for sync (serverId on LocalShape)
+- [x] Reset store when leaving drawing mode
+- [x] isDirty indicator on save button
 
-- [ ] **Properties Panel Component**
-  - [ ] Shape properties: fill, stroke, strokeWidth, opacity
-  - [ ] Cable properties: type, routing mode, label
-  - [ ] Text properties: fontSize, fontFamily, bold, italic
-  - [ ] Multi-select: common properties only
+#### Phase 6: Backend API ✅
+- [x] DrawingShape Controller (`drawing-shape.controller.ts`)
+- [x] POST `/api/shapes` - Create shape
+- [x] GET `/api/shapes` (floorId/roomId query) - List shapes
+- [x] PUT `/api/shapes/:id` - Update shape
+- [x] DELETE `/api/shapes/batch` - Batch delete
+- [x] Registered routes in `server.ts`
+- [x] Frontend service: `drawing.service.ts`
+- [x] API Tests: Create(201), List(200), Update(200), BatchDelete(200) ✅
 
-#### Phase 4: Drawing Tools Implementation (8-10 hours)
-- [ ] **Rectangle Tool**
-  - [ ] Click-drag to draw
-  - [ ] Konva.Rect component
-  - [ ] Resizable handles when selected
+#### Phase 7: Undo/Redo & Selection ✅
+- [x] Undo/Redo with history stack (max 50)
+- [x] Keyboard shortcuts (Ctrl+Z, Ctrl+Shift+Z/Ctrl+Y)
+- [x] Delete selected (Delete/Backspace key)
+- [x] Selection visual feedback (cyan stroke)
+- [x] Shape count + dirty indicator in toolbar
 
-- [ ] **Circle Tool**
-  - [ ] Click-drag from center
-  - [ ] Konva.Circle component
-  - [ ] Radius handles when selected
+#### Remaining V1 Items
+- [ ] **Cable Drawing Workflow** (Source → Target asset connections)
+- [ ] **Room-level Drawing** (RoomDetailPage integration)
+- [ ] **Layers Panel** (add/delete/rename/reorder layers)
+- [ ] **Multi-Select rectangle** (click-drag selection box)
+- [ ] **Measurement Tool** (calibration workflow)
+- [ ] **Export** (PDF, SVG, PNG, JSON)
+- [ ] **Visual testing by user** (hard refresh browser, test draw mode)
 
-- [ ] **Line Tool**
-  - [ ] Click start, click end
-  - [ ] Konva.Line component
-  - [ ] Moveable endpoints
-
-- [ ] **Arrow Tool**
-  - [ ] Same as Line but with arrowhead
-  - [ ] Konva.Arrow component
-
-- [ ] **Text Tool**
-  - [ ] Click to place, type text
-  - [ ] Konva.Text component
-  - [ ] Editable on double-click
-  - [ ] Font size/family picker
-
-- [ ] **Freehand Tool**
-  - [ ] Mouse-down → draw path → mouse-up
-  - [ ] Konva.Line with smooth curves
-  - [ ] Simplify points on finish
-
-- [ ] **Polygon Tool**
-  - [ ] Click points, double-click to close
-  - [ ] Konva.Line closed shape
-  - [ ] Editable vertices
-
-#### Phase 5: Cable System (6-8 hours)
-- [ ] **Cable Drawing Workflow**
-  - [ ] Step 1: Click source (asset/room/floor pin)
-  - [ ] Step 2: Select cable type dropdown
-  - [ ] Step 3: Click target (asset/room/floor pin)
-  - [ ] Step 4: Choose routing mode (Straight/Orthogonal/Auto/Custom)
-  - [ ] Step 5: Confirm (save to DB)
-
-- [ ] **Routing Algorithms**
-  - [ ] `STRAIGHT`: Direct line from A to B
-  - [ ] `ORTHOGONAL`: 4 strategies (H-first, V-first, Shortest, Avoid-obstacles)
-  - [ ] `AUTO`: A* pathfinding around shapes/assets
-  - [ ] `CUSTOM`: User places waypoints, click-to-add nodes
-
-- [ ] **Cable Rendering**
-  - [ ] Konva.Line for cable path
-  - [ ] Color by cable type (Network=blue, Power=red, etc.)
-  - [ ] Dashed line if disconnected
-  - [ ] Label at midpoint (optional)
-  - [ ] Port labels at endpoints
-
-- [ ] **Cable Bundling**
-  - [ ] Detect overlapping cables
-  - [ ] Group into visual bundle
-  - [ ] Render as single thick line with count badge
-  - [ ] Click to expand/collapse bundle
-
-#### Phase 6: Backend API (4-5 hours)
-- [ ] **Cable Controller** (`backend/src/controllers/cable.controller.ts`)
-  - [ ] POST `/api/cables` - Create cable
-  - [ ] GET `/api/cables/:floorId` or `/api/cables/:roomId` - List cables
-  - [ ] PUT `/api/cables/:id` - Update cable (route, label, type)
-  - [ ] DELETE `/api/cables/:id` - Delete cable
-  - [ ] POST `/api/cables/bundle` - Create cable bundle
-
-- [ ] **DrawingShape Controller** (`backend/src/controllers/drawing-shape.controller.ts`)
-  - [ ] POST `/api/shapes` - Create shape
-  - [ ] GET `/api/shapes/:floorId` or `/api/shapes/:roomId` - List shapes
-  - [ ] PUT `/api/shapes/:id` - Update shape
-  - [ ] DELETE `/api/shapes/:id` - Delete shape
-  - [ ] PUT `/api/shapes/:id/layer` - Change shape layer/zIndex
-
-- [ ] **Register routes in `server.ts`**
-
-- [ ] **Frontend Services**
-  - [ ] `cable.service.ts` - API calls for cables
-  - [ ] `drawing-shape.service.ts` - API calls for shapes
-
-#### Phase 7: Polish & Core Features (4-6 hours)
-- [ ] **Undo/Redo**
-  - [ ] Keyboard shortcuts (Ctrl+Z, Ctrl+Shift+Z)
-  - [ ] History stack in store (max 50 actions)
-  - [ ] Actions: add, delete, move, resize, style change
-
-- [ ] **Multi-Select**
-  - [ ] Click-drag selection rectangle
-  - [ ] Shift+Click to add to selection
-  - [ ] Bulk move/resize/delete
-  - [ ] Group styling
-
-- [ ] **Measurement Tool**
-  - [ ] Calibration workflow (draw known distance, enter actual length)
-  - [ ] Store scale in `FloorPlanScale` model (pixelsPerMeter)
-  - [ ] Display real-world measurements on shapes/cables
-  - [ ] Ruler overlay (optional)
-
-- [ ] **Export**
-  - [ ] PDF export with jsPDF (existing)
-  - [ ] SVG export (Konva.Stage.toDataURL as SVG)
-  - [ ] PNG/JPEG export (Konva.Stage.toDataURL)
-  - [ ] JSON export (full state for backup)
-  - [ ] Export options modal: format, include/exclude layers, cables
-
-- [ ] **TypeScript Check**
-  - [ ] `cd frontend && npx tsc --noEmit`
-  - [ ] `cd backend && npx tsc --noEmit`
+#### Phase 5 (Original): Cable System (Future)
+- [ ] Cable Drawing Workflow (source → type → target → routing → save)
+- [ ] Routing Algorithms (Straight, Orthogonal, Auto, Custom)
+- [ ] Cable Rendering (color by type, dashed if disconnected, labels)
+- [ ] Cable Bundling (detect overlapping, visual bundle, expand/collapse)
 
 ---
 
