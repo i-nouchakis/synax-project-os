@@ -481,7 +481,7 @@ export function MessengerPage() {
       <Card className="overflow-hidden">
         <div className="flex" style={{ height: 'calc(100vh - 220px)', minHeight: '500px' }}>
           {/* Sidebar - Conversations */}
-          <div className="w-80 border-r border-surface-border flex flex-col flex-shrink-0">
+          <div className="w-64 md:w-80 border-r border-surface-border flex flex-col flex-shrink-0">
             <div className="p-3 border-b border-surface-border">
               <p className="text-body-sm font-medium text-text-primary">
                 Conversations ({filteredConversations.length})

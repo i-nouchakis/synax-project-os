@@ -123,7 +123,7 @@ export function FeedbackPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Total', value: items.length, color: 'text-text-primary' },
           { label: 'Bugs', value: bugCount, color: 'text-error' },

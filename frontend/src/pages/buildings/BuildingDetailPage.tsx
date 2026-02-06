@@ -239,7 +239,7 @@ export default function BuildingDetailPage() {
                   </a>
                 </div>
               ) : (
-                <div className="h-[500px]">
+                <div className="h-[300px] md:h-[500px]">
                   <FloorPlanCanvas
                     imageUrl={building.floorplanUrl}
                     pins={(building.floors || [])

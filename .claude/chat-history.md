@@ -10,8 +10,22 @@
 **Local Development:** Working (port 5173) - screenshot feedback confirmed working
 **Database (Local):** Rich seed (5 projects, 369 rooms, 702 assets, 500 labels)
 **Database (Cloud):** Needs `prisma db push --force-reset` then seed after deploy
-**Latest Feature:** Signatures UI Integration (RoomDetailPage + ProjectDetailPage)
-**Latest Commit:** `1a5fa64` - pushed to main
+**Latest Feature:** Mobile Fine-tuning (responsive fixes across 10+ pages)
+**Latest Commit:** `f0f0d8f` - pushed to main (File Sharing + Recurring Events + Drag&Drop)
+
+### Session (2026-02-06) - File Sharing, Recurring Events, Drag&Drop, Mobile Fine-tuning
+- **File Sharing in Messenger:** MessageAttachment model, upload endpoint (10MB limit), paperclip button, image thumbnails, file download links, image lightbox
+- **Recurring Calendar Events:** RecurrenceRule enum (DAILY/WEEKLY/MONTHLY/YEARLY), interval + end date, virtual instance expansion, repeat icon in grid
+- **Calendar Drag & Drop:** HTML5 drag/drop events between day cells, preserves time + duration, blue highlight on drop target
+- **Commit:** `f0f0d8f` - pushed to main (all 3 features)
+- **Mobile Fine-tuning:** Responsive audit + fixes across 10+ pages:
+  - `flex flex-wrap` on filter rows: InventoryPage (×2), AssetsPage, ChecklistsPage, IssuesPage, LabelsPage (×2), LookupsPage
+  - Responsive grids: FeedbackPage, LabelsPage (stats + config), FloorDetailPage (asset stats), IssuesPage (photos)
+  - Responsive heights: BuildingDetailPage floorplan (h-[300px] md:h-[500px])
+  - Narrower messenger sidebar on mobile: w-64 md:w-80
+  - Smaller calendar day cells on mobile: min-h-[60px] md:min-h-[100px]
+  - Project schedule form: grid-cols-1 sm:grid-cols-2
+  - TypeScript check: PASS
 
 ### Session (2026-02-06) - Help Bot & Signatures Integration
 - **Help Bot:** Built non-AI decision tree help widget with 9 categories, 25+ articles, keyword search, context-sensitive help

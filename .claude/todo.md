@@ -11,7 +11,7 @@
 #### 1. Mobile Fine-tuning
 - **Τι:** Audit όλων των pages για responsive issues σε mobile
 - **Λεπτομέρειες:** Fix margins, padding, layout σε μικρές οθόνες. Το βασικό responsive nav (hamburger, overlay sidebar) είναι OK αλλά τα individual pages χρειάζονται fine-tuning
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed - flex-wrap on filter rows (10 pages), responsive grids (grid-cols-2→md:grid-cols-4), responsive heights (h-[300px] md:h-[500px]), narrower messenger sidebar on mobile (w-64 md:w-80), smaller calendar cells on mobile
 
 #### 2. Cloud Deploy (Contabo)
 - **Τι:** Sync DB schema + seed στον Contabo server

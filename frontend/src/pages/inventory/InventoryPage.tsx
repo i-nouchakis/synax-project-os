@@ -563,7 +563,7 @@ export function InventoryPage() {
           </div>
 
           {/* Filters */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Select
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
@@ -587,7 +587,7 @@ export function InventoryPage() {
       {activeTab === 'equipment' && (
         <>
           {/* Equipment Filters */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Select
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
@@ -1663,7 +1663,7 @@ function ItemLogsModal({ item, onClose }: { item: InventoryItem; onClose: () => 
                 <p className="text-caption text-text-secondary">{displayItem.unit} in stock</p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-surface-border">
+            <div className="grid grid-cols-3 gap-2 md:gap-4 mt-4 pt-4 border-t border-surface-border">
               <div className="text-center">
                 <p className="text-body font-medium text-success">{displayItem.quantityReceived}</p>
                 <p className="text-caption text-text-tertiary">Received</p>

@@ -422,7 +422,7 @@ export function CalendarPage() {
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, cell.date)}
                   className={`
-                    ${viewMode === 'month' ? 'min-h-[100px]' : 'min-h-[200px]'}
+                    ${viewMode === 'month' ? 'min-h-[60px] md:min-h-[100px]' : 'min-h-[120px] md:min-h-[200px]'}
                     border-b border-r border-surface-border p-1.5 cursor-pointer
                     hover:bg-surface-hover/50 transition-colors
                     ${!cell.isCurrentMonth ? 'opacity-40' : ''}

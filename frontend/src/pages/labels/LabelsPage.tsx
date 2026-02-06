@@ -300,7 +300,7 @@ export function LabelsPage() {
       {selectedProjectId && (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="pt-4">
                 <div className="text-h2 font-bold text-text-primary">{stats.total}</div>
@@ -339,7 +339,7 @@ export function LabelsPage() {
               {/* Label Type */}
               <div>
                 <label className="text-body-sm text-text-secondary block mb-2">Label Type</label>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {(['CABLE', 'RACK', 'ASSET', 'ROOM'] as LabelType[]).map((type) => (
                     <button
                       key={type}
@@ -361,7 +361,7 @@ export function LabelsPage() {
               </div>
 
               {/* Configuration */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="text-body-sm text-text-secondary block mb-2">
                     Prefix (default: {LABEL_TYPE_PREFIXES[labelType]})
@@ -397,7 +397,7 @@ export function LabelsPage() {
               <div className="flex items-center gap-6">
                 <div>
                   <label className="text-body-sm text-text-secondary block mb-2">Print Color</label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {LABEL_COLORS.map((color) => (
                       <button
                         key={color.name}

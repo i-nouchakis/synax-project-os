@@ -928,7 +928,7 @@ function AssetModelsTab() {
               <label className="block text-caption font-medium text-text-secondary mb-1.5">
                 Manufacturer *
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <select
                   value={formData.manufacturerId}
                   onChange={(e) => setFormData({ ...formData, manufacturerId: e.target.value })}

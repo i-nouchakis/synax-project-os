@@ -473,7 +473,7 @@ function ProjectFormModal({
         </ModalSection>
 
         <ModalSection title="Schedule" icon={<Calendar size={14} />}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <DateInput
               label="Start Date"
               value={formData.startDate || ''}

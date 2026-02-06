@@ -912,7 +912,7 @@ export function FloorDetailPage() {
           ) : (
             <>
               {/* Asset stats */}
-              <div className="grid grid-cols-4 gap-4 p-4 border-b border-surface-border bg-surface-secondary/50">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border-b border-surface-border bg-surface-secondary/50">
                 <div className="text-center">
                   <p className="text-h3 text-text-primary">{assetStats.total}</p>
                   <p className="text-caption text-text-secondary">Total</p>
