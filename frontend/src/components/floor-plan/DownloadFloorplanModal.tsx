@@ -15,7 +15,7 @@ interface Pin {
 
 interface DownloadShape {
   type: string;
-  data: { x?: number; y?: number; width?: number; height?: number; radius?: number; points?: number[]; text?: string; rotation?: number };
+  data: { x?: number; y?: number; width?: number; height?: number; radius?: number; points?: number[]; text?: string; rotation?: number; tension?: number };
   style: { fill?: string; stroke?: string; strokeWidth?: number; opacity?: number; fontSize?: number; fontFamily?: string; dash?: number[] };
 }
 
@@ -26,6 +26,8 @@ interface DownloadCable {
   targetY: number;
   color: string;
   label?: string;
+  routingPoints?: { x: number; y: number }[];
+  tension?: number;
 }
 
 interface DownloadFloorplanModalProps {
@@ -61,6 +63,45 @@ const statusColors: Record<string, string> = {
   FAILED: '#ef4444',
 };
 
+// Draw a cardinal spline (similar to Konva tension) on Canvas2D
+function drawCardinalSpline(
+  ctx: CanvasRenderingContext2D,
+  flatPoints: number[],
+  tension: number,
+  scale: number
+) {
+  const n = flatPoints.length;
+  if (n < 4) return;
+
+  ctx.moveTo(flatPoints[0] * scale, flatPoints[1] * scale);
+
+  if (n === 4) {
+    // Only 2 points: straight line
+    ctx.lineTo(flatPoints[2] * scale, flatPoints[3] * scale);
+    return;
+  }
+
+  // Cardinal spline → cubic bezier segments
+  const t = tension;
+  for (let i = 0; i < n - 2; i += 2) {
+    const p0x = (i >= 2 ? flatPoints[i - 2] : flatPoints[i]) * scale;
+    const p0y = (i >= 2 ? flatPoints[i - 1] : flatPoints[i + 1]) * scale;
+    const p1x = flatPoints[i] * scale;
+    const p1y = flatPoints[i + 1] * scale;
+    const p2x = flatPoints[i + 2] * scale;
+    const p2y = flatPoints[i + 3] * scale;
+    const p3x = (i + 4 < n ? flatPoints[i + 4] : flatPoints[i + 2]) * scale;
+    const p3y = (i + 4 < n ? flatPoints[i + 5] : flatPoints[i + 3]) * scale;
+
+    const cp1x = p1x + (p2x - p0x) * t / 6;
+    const cp1y = p1y + (p2y - p0y) * t / 6;
+    const cp2x = p2x - (p3x - p1x) * t / 6;
+    const cp2y = p2y - (p3y - p1y) * t / 6;
+
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2x, p2y);
+  }
+}
+
 function drawShapesOnCanvas(
   ctx: CanvasRenderingContext2D,
   shapesToDraw: DownloadShape[],
@@ -69,12 +110,29 @@ function drawShapesOnCanvas(
 ) {
   // Draw cables first (below shapes)
   cablesToDraw.forEach((cable) => {
+    const rp = cable.routingPoints || [];
+    const tension = cable.tension || 0;
+
+    // Build full point list: source → routingPoints → target
+    const allPoints: number[] = [cable.sourceX, cable.sourceY];
+    rp.forEach((p) => { allPoints.push(p.x, p.y); });
+    allPoints.push(cable.targetX, cable.targetY);
+
     ctx.beginPath();
-    ctx.moveTo(cable.sourceX * scale, cable.sourceY * scale);
-    ctx.lineTo(cable.targetX * scale, cable.targetY * scale);
+    if (tension > 0 && allPoints.length >= 6) {
+      // Draw curved cable using cardinal spline
+      drawCardinalSpline(ctx, allPoints, tension, scale);
+    } else {
+      // Draw straight segments
+      ctx.moveTo(allPoints[0] * scale, allPoints[1] * scale);
+      for (let i = 2; i < allPoints.length; i += 2) {
+        ctx.lineTo(allPoints[i] * scale, allPoints[i + 1] * scale);
+      }
+    }
     ctx.strokeStyle = cable.color || '#6b7280';
     ctx.lineWidth = 2 * scale;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.stroke();
 
     // Cable endpoint dots
@@ -157,10 +215,15 @@ function drawShapesOnCanvas(
       case 'FREEHAND': {
         const pts = data.points || [];
         if (pts.length < 4) break;
+        const lineTension = shape.type === 'FREEHAND' ? 0.5 : (data.tension || 0);
         ctx.beginPath();
-        ctx.moveTo(pts[0] * scale, pts[1] * scale);
-        for (let i = 2; i < pts.length; i += 2) {
-          ctx.lineTo(pts[i] * scale, pts[i + 1] * scale);
+        if (lineTension > 0 && pts.length >= 6) {
+          drawCardinalSpline(ctx, pts, lineTension, scale);
+        } else {
+          ctx.moveTo(pts[0] * scale, pts[1] * scale);
+          for (let i = 2; i < pts.length; i += 2) {
+            ctx.lineTo(pts[i] * scale, pts[i + 1] * scale);
+          }
         }
         ctx.strokeStyle = style.stroke || '#6b7280';
         ctx.lineWidth = (style.strokeWidth || 2) * scale;
@@ -172,19 +235,28 @@ function drawShapesOnCanvas(
       case 'ARROW': {
         const pts = data.points || [];
         if (pts.length < 4) break;
+        const arrowTension = data.tension || 0;
         const x1 = pts[0] * scale;
         const y1 = pts[1] * scale;
         const x2 = pts[pts.length - 2] * scale;
         const y2 = pts[pts.length - 1] * scale;
-        // Line
+        // Line (with optional curve)
         ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
+        if (arrowTension > 0 && pts.length >= 6) {
+          drawCardinalSpline(ctx, pts, arrowTension, scale);
+        } else {
+          ctx.moveTo(x1, y1);
+          for (let i = 2; i < pts.length; i += 2) {
+            ctx.lineTo(pts[i] * scale, pts[i + 1] * scale);
+          }
+        }
         ctx.strokeStyle = style.stroke || '#ef4444';
         ctx.lineWidth = (style.strokeWidth || 2) * scale;
         ctx.stroke();
-        // Arrowhead
-        const angle = Math.atan2(y2 - y1, x2 - x1);
+        // Arrowhead (based on last segment direction)
+        const prevX = pts.length >= 4 ? pts[pts.length - 4] * scale : x1;
+        const prevY = pts.length >= 4 ? pts[pts.length - 3] * scale : y1;
+        const angle = Math.atan2(y2 - prevY, x2 - prevX);
         const headLen = 10 * scale;
         ctx.beginPath();
         ctx.moveTo(x2, y2);

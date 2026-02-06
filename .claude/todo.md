@@ -79,12 +79,12 @@
 - [x] Shape count + dirty indicator in toolbar
 
 #### Remaining V1 Items
-- [ ] **Cable Drawing Workflow** (Source → Target asset connections)
-- [ ] **Room-level Drawing** (RoomDetailPage integration)
-- [ ] **Layers Panel** (add/delete/rename/reorder layers)
-- [ ] **Multi-Select rectangle** (click-drag selection box)
-- [ ] **Measurement Tool** (calibration workflow)
-- [ ] **Export** (PDF, SVG, PNG, JSON)
+- [x] **Cable Drawing Workflow** (Source → Target asset connections) ✅
+- [x] **Room-level Drawing** (RoomDetailPage integration) ✅
+- [x] **Layers Panel** (add/delete/rename/reorder layers, visibility, lock, active layer) ✅
+- [x] **Multi-Select rectangle** (click-drag selection box, Shift additive) ✅
+- [x] **Measurement Tool** (calibration workflow, click-to-remove, units: m/cm/ft/in) ✅
+- [x] **Export** (JSON data export + existing PNG/PDF/JPEG/WebP via Download modal) ✅
 - [ ] **Visual testing by user** (hard refresh browser, test draw mode)
 
 #### Phase 5 (Original): Cable System (Future)
@@ -92,6 +92,16 @@
 - [ ] Routing Algorithms (Straight, Orthogonal, Auto, Custom)
 - [ ] Cable Rendering (color by type, dashed if disconnected, labels)
 - [ ] Cable Bundling (detect overlapping, visual bundle, expand/collapse)
+
+---
+
+### Floor Plan Layers (Future - Needs Redesign)
+- [ ] **Floor Plan Layers** - Σχεδιασμός από την αρχή με καθαρή αρχιτεκτονική
+  - Κάθε layer τελείως ανεξάρτητο (δικά του shapes, δικά του cables)
+  - Καθαρή δημιουργία νέου layer (κενό canvas)
+  - Download/export ανά layer ή combined
+  - Layer visibility/lock/reorder
+  - Πρέπει πρώτα να σχεδιαστεί σωστά πριν υλοποιηθεί
 
 ---
 

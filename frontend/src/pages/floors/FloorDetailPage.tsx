@@ -48,9 +48,10 @@ import { useSortable } from '@/hooks/useSortable';
 import { FloorPlanCanvas, RoomFloorplanCropModal, DownloadFloorplanModal } from '@/components/floor-plan';
 import { DrawingToolbar } from '@/components/canvas/DrawingToolbar';
 import { PropertiesPanel } from '@/components/canvas/PropertiesPanel';
+import { MeasurePanel } from '@/components/canvas/MeasurePanel';
 import { ImportInventoryModal } from '@/components/inventory';
 import { drawingService } from '@/services/drawing.service';
-import { useDrawingStore } from '@/stores/drawing.store';
+import { useDrawingStore, encodeRoutingData } from '@/stores/drawing.store';
 import { floorService, type Room, type CreateRoomData, type UpdateRoomData, type RoomStatus } from '@/services/floor.service';
 import { assetService, type Asset, type AssetType, type CreateAssetData, type UpdateAssetData, type AssetStatus } from '@/services/asset.service';
 import { uploadService } from '@/services/upload.service';
@@ -403,7 +404,7 @@ export function FloorDetailPage() {
           drawingService.updateCable(c.serverId!, {
             cableType: c.cableType,
             routingMode: c.routingMode,
-            routingPoints: c.routingPoints,
+            routingPoints: encodeRoutingData(c) as { x: number; y: number }[] | null,
             label: c.label,
             color: c.color,
             sourceAssetId: c.sourceAssetId,
@@ -422,7 +423,7 @@ export function FloorDetailPage() {
               targetAssetId: c.targetAssetId,
               cableType: c.cableType,
               routingMode: c.routingMode,
-              routingPoints: c.routingPoints,
+              routingPoints: encodeRoutingData(c) as { x: number; y: number }[] | null,
               label: c.label,
               color: c.color,
             })
@@ -736,13 +737,17 @@ export function FloorDetailPage() {
             ) : (
               <div>
                 {isDrawingMode && !isFullScreenOpen && (
-                  <div className="mb-2 space-y-2">
-                    <DrawingToolbar
-                      onSave={handleSaveDrawings}
-                      onDelete={handleDeleteSelected}
-                      isSaving={isSavingDrawing}
-                    />
-                    <PropertiesPanel />
+                  <div className="mb-2 flex gap-2">
+                    <div className="flex-1 space-y-2">
+                      <DrawingToolbar
+                        onSave={handleSaveDrawings}
+                        onDelete={handleDeleteSelected}
+                        isSaving={isSavingDrawing}
+                        exportFileName={`${floor.name}-drawing`}
+                      />
+                      <PropertiesPanel />
+                      <MeasurePanel />
+                    </div>
                   </div>
                 )}
                 <div className="h-[500px]">
@@ -1292,13 +1297,16 @@ export function FloorDetailPage() {
           )}
           {/* Drawing toolbar in fullscreen */}
           {isDrawingMode && (
-            <div className="mb-2 flex flex-col gap-2">
-              <DrawingToolbar
-                onSave={handleSaveDrawings}
-                onDelete={handleDeleteSelected}
-                isSaving={isSavingDrawing}
-              />
-              <PropertiesPanel />
+            <div className="mb-2 flex gap-2">
+              <div className="flex-1 flex flex-col gap-2">
+                <DrawingToolbar
+                  onSave={handleSaveDrawings}
+                  onDelete={handleDeleteSelected}
+                  isSaving={isSavingDrawing}
+                />
+                <PropertiesPanel />
+                <MeasurePanel />
+              </div>
             </div>
           )}
           <div className="h-[calc(95vh-120px)] -mx-6 -mb-6">
@@ -1493,6 +1501,8 @@ export function FloorDetailPage() {
             targetY: c.targetY,
             color: c.color,
             label: c.label,
+            routingPoints: c.routingPoints,
+            tension: c.tension,
           }))}
         />
       )}

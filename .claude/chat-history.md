@@ -12,7 +12,7 @@
 **Database (Cloud):** Needs `prisma db push --force-reset` then seed
 **Latest Feature:** Canvas Drawing V1 - Complete with always-visible shapes, cable tool, download integration
 
-### Recent Session (2026-02-06)
+### Recent Session (2026-02-06) - V1 Drawing Features Complete
 - **Fix:** Drawing save was broken - Prisma client in Docker didn't know Cable/DrawingShape models. Fixed with `prisma generate` + permanent CMD fix in Dockerfile.dev
 - **Fix:** Duplicate toolbars appeared - hid normal view toolbar when fullscreen open
 - **Fix:** Shapes only visible in draw mode - now always visible (like pins), loaded on floor mount
@@ -25,18 +25,126 @@
 - **Feature:** Messenger read receipts - ✓ (sent) / ✓✓ blue (read) on own messages, based on participant lastReadAt
 - **Feature:** Messenger emoji picker - 😊 button with categorized emoji panel (Smileys, Gestures, Hearts, Objects), click outside to close
 
-### Seed Data Summary
+#### V1 Drawing - Remaining Features (All Complete)
 
-| Table | Count |
-|-------|-------|
-| Projects | 1 (Demo Hotel) |
-| Buildings | 1 |
-| Floors | 4 (with floor plans) |
-| Rooms | 13 (with pin coordinates) |
-| Equipment IN_STOCK | 55 |
-| Equipment PLANNED | 8 |
-| Floor-level Assets | 3 |
-| Installed Assets | 10 |
+**1. Layers Panel ✅**
+- Created `LayersPanel.tsx` with full layer management
+- Features: add/delete/rename layers, visibility (eye icon), lock toggle, reorder (arrows), active layer highlight (cyan)
+- Double-click to rename, shape count per layer
+- Updated `drawing.store.ts`: `DrawingLayerInfo` type, layer state/actions, `activeLayerId`
+- Updated `DrawingLayer.tsx`: layer filtering (visibleShapes), lock respect, new shapes go to active layer
+- Updated `PropertiesPanel.tsx`: "Move to Layer" dropdown
+- Integrated in FloorDetailPage + RoomDetailPage
+
+**2. Multi-Select Rectangle ✅**
+- Click-drag rubber-band selection in DrawingLayer
+- Cyan dashed rect with light fill
+- AABB intersection testing (`getShapeBounds()` + `rectsIntersect()`)
+- Shift = additive selection
+- Click on empty = deselect all
+
+**3. Measurement Tool ✅**
+- Added `'measure'` to DrawingTool type, `M` keyboard shortcut
+- Yellow dashed lines with endpoints, distance label (px or calibrated)
+- Calibration workflow: draw line → input real-world length → set scale
+- Units: m/cm/ft/in
+- Click on measurement line to remove it
+- Created `MeasurePanel.tsx` with calibration status, controls, measurement count
+
+**4. Export (JSON) ✅**
+- Created `ExportPanel.tsx` with JSON export button in toolbar
+- Exports: layers, shapes, cables, measurements, calibration
+- Existing PNG/PDF/JPEG/WebP via `DownloadFloorplanModal` (no duplication)
+
+#### Thorough Code Review - 8 Fixes Applied
+1. `resetStore` missing `calibration` and `currentStyle` resets
+2. `reorderLayer` missing `isDirty: true`
+3. Cable endpoint update comparison always returning new array → `anyChanged` flag
+4. `renameLayer` missing `isDirty: true`
+5. Mouse leave canvas → stale refs (`handleMouseLeave` callback)
+6. ExportPanel missing layer visibility/locked in export
+7. ExportPanel missing error handling (try-catch)
+8. MeasurePanel missing NaN validation
+
+**TypeScript check: Frontend 0 errors, Backend 0 errors ✅**
+
+#### Bug Fixes + Line Bend Feature (Latest)
+
+**Fix 1: Shapes blocking drawing events ✅**
+- `DrawingLayer.tsx` line 702: `listening: activeTool === 'select'`
+- Shapes now transparent to mouse events when using drawing tools (line, rect, etc.)
+
+**Fix 2: Layer naming for persistence ✅**
+- `drawing.store.ts` `addLayer`: uses name as ID (e.g., "Layer 2" instead of "layer_1738800000000")
+- `renameLayer`: updates ID in all shapes + activeLayerId (renames persist on save/reload)
+
+**Feature: Line Bend Points + Tension ✅**
+- `DrawingLayer.tsx`: vertex handles (blue, draggable) + midpoint handles (green, drag to insert bend point)
+- Real-time line update during vertex drag
+- Double-click vertex to remove bend point (min 2 points)
+- Fixed `handleDragEnd` for LINE/ARROW/FREEHAND: updates points by offset instead of x/y
+- `PropertiesPanel.tsx`: Curve slider (0-100%) for LINE/ARROW tension
+- TypeScript: 0 errors
+
+**Feature: Cable Bend Points + Tension ✅**
+- `DrawingLayer.tsx`: `renderCableHandles` - vertex handles (blue, drag to move waypoint) + midpoint handles (green, drag to insert new waypoint)
+- Cable routing points: source → routingPoints → target (flat points array built via `buildCablePoints`)
+- Double-click vertex to remove waypoint
+- Endpoints (source/target) fixed to asset pins - only routing waypoints are editable
+- Cable tension via `LocalCable.tension` field + Konva Line `tension` prop
+- `PropertiesPanel.tsx`: Curve slider for cables (0-100%)
+- Save/load: tension encoded in `routingPoints` JSON as `{ waypoints: [...], tension: number }`, backwards-compatible with old `[{x,y}]` format
+- Updated both FloorDetailPage + RoomDetailPage save flows
+- TypeScript: 0 errors
+
+**Feature: Layer Duplicate (Mirror) ✅**
+- `drawing.store.ts`: `duplicateLayer(id)` - creates new layer with "(Copy)" suffix + clones all shapes with new IDs
+- `LayersPanel.tsx`: Copy icon button (δίπλα στο delete) for every layer including default
+- New layers are always clean (empty) - duplicate copies shapes explicitly
+
+**Bug Fix: Cable selection was broken ✅**
+- `handleCableClick`: `setSelectedCableIds([id])` then `setSelectedIds([])` cleared cable selection because `setSelectedIds` always clears `selectedCableIds`
+- Fix: Swapped order → `setSelectedIds([])` first, then `setSelectedCableIds([id])`
+
+**Bug Fix: Cable Curve slider did nothing on straight cables ✅**
+- Konva Line `tension` needs 3+ points to have visual effect
+- Fix: PropertiesPanel auto-inserts midpoint routing point when user increases tension on a 2-point cable
+
+**Bug Fix: Floor plan jumping on handle drag ✅**
+- Stage `onDragEnd` was firing when child elements (handles) were dragged - `e.target` was the handle, not the Stage
+- Fix: Guard `onDragStart`/`onDragEnd` with `e.target === e.target.getStage()` check
+- Also disabled Stage `draggable` in drawingMode (`!drawingMode`)
+- Applied to both FloorPlanCanvas + RoomPlanCanvas
+
+**All V1 Drawing features tested and working ✅**
+
+**Feature: Download respects current layer view ✅**
+- Download modal now captures EXACTLY what user sees (active layers + cables visibility)
+- `DownloadFloorplanModal.tsx`: Added `layers` prop with checkboxes to select/deselect layers
+- Shapes filtered by `selectedLayers` in both preview and full-resolution export
+- Default: only visible layers pre-selected
+- Cable routing: `DownloadCable` now includes `routingPoints` + `tension`
+- `drawCardinalSpline()`: Canvas2D cardinal spline rendering (matches Konva tension)
+- LINE/ARROW/FREEHAND shapes: tension/curves rendered properly via cardinal spline
+- Cable bends in download: curved cables with proper routing points
+
+**REMOVED: Layers feature completely ❌→✅**
+- User requested full removal of layers logic ("σβησε την λογική μετα layers - τελειως")
+- Deleted `LayersPanel.tsx` component entirely
+- `drawing.store.ts`: Removed all layer management actions (addLayer, removeLayer, renameLayer, toggleLayerVisibility, toggleLayerLock, reorderLayer, moveShapesToLayer, duplicateLayer), removed showCables/setShowCables. Kept minimal layers/activeLayerId for DB backward compat.
+- `DrawingLayer.tsx`: Removed layer filtering, all shapes visible regardless of layer
+- `PropertiesPanel.tsx`: Removed "Move to Layer" dropdown
+- `DownloadFloorplanModal.tsx`: Removed layer selection UI, selectedLayers state, filteredShapes logic. Shapes passed directly.
+- FloorDetailPage + RoomDetailPage: Removed `<LayersPanel />` from both regular and fullscreen views, removed layer/showCables props from download modal
+- TypeScript: 0 errors frontend + backend ✅
+
+### Database Seed (2026-02-06)
+- Complete DB reset + rich seed
+- 7 users, 5 projects, 13 buildings, 41 floors, 369 rooms
+- 702 assets (50-80 toInstall, 40-70 inStock, 15-30 planned per project)
+- 500 labels, 150 inventory items, 165 checklists, 120 issues
+- 5 clients with contact info
+- All members added to all projects
 
 ---
 

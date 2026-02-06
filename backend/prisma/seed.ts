@@ -7,6 +7,14 @@ async function main() {
   console.log('🗑️  Clearing database...');
 
   // Delete in correct order (respecting foreign keys)
+  await prisma.message.deleteMany();
+  await prisma.conversationParticipant.deleteMany();
+  await prisma.conversation.deleteMany();
+  await prisma.calendarEventAttendee.deleteMany();
+  await prisma.calendarEvent.deleteMany();
+  await prisma.cable.deleteMany();
+  await prisma.cableBundle.deleteMany();
+  await prisma.drawingShape.deleteMany();
   await prisma.checklistPhoto.deleteMany();
   await prisma.checklistItem.deleteMany();
   await prisma.checklist.deleteMany();
@@ -19,12 +27,14 @@ async function main() {
   await prisma.inventoryItem.deleteMany();
   await prisma.signature.deleteMany();
   await prisma.generatedReport.deleteMany();
+  await prisma.projectFile.deleteMany();
   await prisma.label.deleteMany();
   await prisma.asset.deleteMany();
   await prisma.room.deleteMany();
   await prisma.floor.deleteMany();
   await prisma.building.deleteMany();
   await prisma.projectMember.deleteMany();
+  await prisma.client.deleteMany();
   await prisma.project.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.passwordResetToken.deleteMany();
@@ -581,6 +591,24 @@ async function main() {
   console.log('✅ Checklist templates created');
 
   // ============================================
+  // CLIENTS
+  // ============================================
+  console.log('🏢 Creating clients...');
+  const clientsData = [
+    { name: 'Athens Grand Hotels S.A.', email: 'info@athenshotels.gr', phone: '+30 210 1234567', contactPerson: 'Δημήτρης Αλεξάνδρου', address: 'Σύνταγμα, Αθήνα' },
+    { name: 'Thessaloniki Tech Park', email: 'admin@techpark.gr', phone: '+30 2310 987654', contactPerson: 'Ελένη Βασιλείου', address: 'Πυλαία, Θεσσαλονίκη' },
+    { name: 'Crete Luxury Resorts', email: 'management@creteresorts.com', phone: '+30 2810 456789', contactPerson: 'Μανόλης Καζαντζάκης', address: 'Ηράκλειο, Κρήτη' },
+    { name: 'Piraeus Commercial Properties', email: 'info@piraeuscp.gr', phone: '+30 210 4567890', contactPerson: 'Σταυρούλα Μαρίνου', address: 'Πειραιάς' },
+    { name: 'Patras Medical Center', email: 'admin@patrasmedical.gr', phone: '+30 2610 345678', contactPerson: 'Ιωάννης Γεωργίου', address: 'Πάτρα' },
+  ];
+
+  const clients: Record<string, { id: string }> = {};
+  for (const c of clientsData) {
+    clients[c.name] = await prisma.client.create({ data: c });
+  }
+  console.log('✅ Clients created');
+
+  // ============================================
   // PROJECTS
   // ============================================
   console.log('🏗️  Creating projects...');
@@ -659,10 +687,12 @@ async function main() {
       data: {
         name: projectData.name,
         clientName: projectData.clientName,
+        clientId: clients[projectData.clientName]?.id,
         description: projectData.description,
         location: projectData.location,
         status: projectData.status,
         startDate: new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000),
+        endDate: projectData.status === 'COMPLETED' ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000) : undefined,
       },
     });
 
@@ -671,23 +701,45 @@ async function main() {
       data: [
         { projectId: project.id, userId: admin.id, role: 'ADMIN' },
         { projectId: project.id, userId: pm1.id, role: 'PM' },
+        { projectId: project.id, userId: pm2.id, role: 'PM' },
         { projectId: project.id, userId: tech1.id, role: 'TECHNICIAN' },
         { projectId: project.id, userId: tech2.id, role: 'TECHNICIAN' },
+        { projectId: project.id, userId: tech3.id, role: 'TECHNICIAN' },
       ],
     });
 
     // Create inventory items (materials)
     const materials = [
-      { itemType: 'Cable', description: 'Cat6 UTP Cable', unit: 'm', quantityReceived: 1000, quantityUsed: Math.floor(Math.random() * 500) },
-      { itemType: 'Cable', description: 'Cat6A STP Cable', unit: 'm', quantityReceived: 500, quantityUsed: Math.floor(Math.random() * 200) },
-      { itemType: 'Cable', description: 'Fiber OM4 Multimode', unit: 'm', quantityReceived: 200, quantityUsed: Math.floor(Math.random() * 100) },
-      { itemType: 'Connector', description: 'RJ45 Connectors', unit: 'pcs', quantityReceived: 500, quantityUsed: Math.floor(Math.random() * 200) },
-      { itemType: 'Connector', description: 'Keystone Jacks Cat6', unit: 'pcs', quantityReceived: 200, quantityUsed: Math.floor(Math.random() * 100) },
-      { itemType: 'Mounting', description: 'AP Mounting Brackets', unit: 'pcs', quantityReceived: 50, quantityUsed: Math.floor(Math.random() * 30) },
-      { itemType: 'Mounting', description: 'Camera Mounts', unit: 'pcs', quantityReceived: 30, quantityUsed: Math.floor(Math.random() * 20) },
-      { itemType: 'Cable Management', description: 'Cable Ties (pack of 100)', unit: 'pack', quantityReceived: 20, quantityUsed: Math.floor(Math.random() * 10) },
-      { itemType: 'Cable Management', description: 'Velcro Strips (roll)', unit: 'roll', quantityReceived: 10, quantityUsed: Math.floor(Math.random() * 5) },
-      { itemType: 'Labels', description: 'Cable Labels', unit: 'roll', quantityReceived: 5, quantityUsed: Math.floor(Math.random() * 3) },
+      { itemType: 'Cable', description: 'Cat6 UTP Cable', unit: 'm', quantityReceived: 5000, quantityUsed: Math.floor(Math.random() * 2500) },
+      { itemType: 'Cable', description: 'Cat6A STP Cable', unit: 'm', quantityReceived: 3000, quantityUsed: Math.floor(Math.random() * 1500) },
+      { itemType: 'Cable', description: 'Fiber OM4 Multimode', unit: 'm', quantityReceived: 1000, quantityUsed: Math.floor(Math.random() * 400) },
+      { itemType: 'Cable', description: 'Fiber OS2 Singlemode', unit: 'm', quantityReceived: 500, quantityUsed: Math.floor(Math.random() * 200) },
+      { itemType: 'Cable', description: 'Coaxial RG6', unit: 'm', quantityReceived: 800, quantityUsed: Math.floor(Math.random() * 300) },
+      { itemType: 'Cable', description: 'HDMI Cable 2m', unit: 'pcs', quantityReceived: 100, quantityUsed: Math.floor(Math.random() * 50) },
+      { itemType: 'Cable', description: 'Power Extension 3m', unit: 'pcs', quantityReceived: 60, quantityUsed: Math.floor(Math.random() * 30) },
+      { itemType: 'Connector', description: 'RJ45 Connectors Cat6', unit: 'pcs', quantityReceived: 2000, quantityUsed: Math.floor(Math.random() * 800) },
+      { itemType: 'Connector', description: 'RJ45 Connectors Cat6A', unit: 'pcs', quantityReceived: 1000, quantityUsed: Math.floor(Math.random() * 400) },
+      { itemType: 'Connector', description: 'Keystone Jacks Cat6', unit: 'pcs', quantityReceived: 500, quantityUsed: Math.floor(Math.random() * 200) },
+      { itemType: 'Connector', description: 'Fiber SC Connectors', unit: 'pcs', quantityReceived: 200, quantityUsed: Math.floor(Math.random() * 80) },
+      { itemType: 'Connector', description: 'Fiber LC Connectors', unit: 'pcs', quantityReceived: 200, quantityUsed: Math.floor(Math.random() * 80) },
+      { itemType: 'Patch Panel', description: 'Patch Panel 24-port Cat6', unit: 'pcs', quantityReceived: 20, quantityUsed: Math.floor(Math.random() * 12) },
+      { itemType: 'Patch Panel', description: 'Patch Panel 48-port Cat6', unit: 'pcs', quantityReceived: 10, quantityUsed: Math.floor(Math.random() * 6) },
+      { itemType: 'Patch Panel', description: 'Fiber Patch Panel 24-port', unit: 'pcs', quantityReceived: 8, quantityUsed: Math.floor(Math.random() * 4) },
+      { itemType: 'Mounting', description: 'AP Mounting Brackets', unit: 'pcs', quantityReceived: 100, quantityUsed: Math.floor(Math.random() * 60) },
+      { itemType: 'Mounting', description: 'Camera Wall Mounts', unit: 'pcs', quantityReceived: 80, quantityUsed: Math.floor(Math.random() * 40) },
+      { itemType: 'Mounting', description: 'Camera Ceiling Mounts', unit: 'pcs', quantityReceived: 40, quantityUsed: Math.floor(Math.random() * 20) },
+      { itemType: 'Mounting', description: 'TV Wall Brackets', unit: 'pcs', quantityReceived: 50, quantityUsed: Math.floor(Math.random() * 25) },
+      { itemType: 'Rack', description: 'Server Rack 42U', unit: 'pcs', quantityReceived: 4, quantityUsed: Math.floor(Math.random() * 3) },
+      { itemType: 'Rack', description: 'Wall Cabinet 12U', unit: 'pcs', quantityReceived: 10, quantityUsed: Math.floor(Math.random() * 6) },
+      { itemType: 'Rack', description: 'Rack Shelf 1U', unit: 'pcs', quantityReceived: 20, quantityUsed: Math.floor(Math.random() * 10) },
+      { itemType: 'Cable Management', description: 'Cable Ties (pack of 100)', unit: 'pack', quantityReceived: 50, quantityUsed: Math.floor(Math.random() * 25) },
+      { itemType: 'Cable Management', description: 'Velcro Strips (roll)', unit: 'roll', quantityReceived: 30, quantityUsed: Math.floor(Math.random() * 15) },
+      { itemType: 'Cable Management', description: 'Cable Tray 2m', unit: 'pcs', quantityReceived: 40, quantityUsed: Math.floor(Math.random() * 20) },
+      { itemType: 'Cable Management', description: 'Conduit PVC 25mm 3m', unit: 'pcs', quantityReceived: 60, quantityUsed: Math.floor(Math.random() * 30) },
+      { itemType: 'Tools', description: 'Face Plates Single', unit: 'pcs', quantityReceived: 200, quantityUsed: Math.floor(Math.random() * 100) },
+      { itemType: 'Tools', description: 'Face Plates Double', unit: 'pcs', quantityReceived: 100, quantityUsed: Math.floor(Math.random() * 50) },
+      { itemType: 'Labels', description: 'Cable Labels (roll)', unit: 'roll', quantityReceived: 15, quantityUsed: Math.floor(Math.random() * 8) },
+      { itemType: 'Labels', description: 'Asset Label Stickers', unit: 'roll', quantityReceived: 10, quantityUsed: Math.floor(Math.random() * 5) },
     ];
 
     for (const material of materials) {
@@ -705,7 +757,7 @@ async function main() {
     const allProjectAssets: { id: string; name: string }[] = [];
 
     // Create assets that will be INSTALLED (to be placed in rooms/floors)
-    const toInstallCount = 8 + Math.floor(Math.random() * 8);
+    const toInstallCount = 50 + Math.floor(Math.random() * 30);
     for (let i = 0; i < toInstallCount; i++) {
       const assetType = assetTypesList[Math.floor(Math.random() * assetTypesList.length)];
       const compatibleModels = modelsList.filter(m => m.assetTypeId === assetType.id);
@@ -729,7 +781,7 @@ async function main() {
     }
 
     // Create IN_STOCK assets that will STAY in inventory (not installed)
-    const inStockCount = 10 + Math.floor(Math.random() * 10);
+    const inStockCount = 40 + Math.floor(Math.random() * 30);
     for (let i = 0; i < inStockCount; i++) {
       const assetType = assetTypesList[Math.floor(Math.random() * assetTypesList.length)];
       const compatibleModels = modelsList.filter(m => m.assetTypeId === assetType.id);
@@ -754,7 +806,7 @@ async function main() {
     }
 
     // Create PLANNED assets (on order)
-    const plannedCount = 5 + Math.floor(Math.random() * 10);
+    const plannedCount = 15 + Math.floor(Math.random() * 15);
     for (let i = 0; i < plannedCount; i++) {
       const assetType = assetTypesList[Math.floor(Math.random() * assetTypesList.length)];
       const compatibleModels = modelsList.filter(m => m.assetTypeId === assetType.id);
@@ -794,8 +846,8 @@ async function main() {
           },
         });
 
-        // Create rooms for this floor
-        const roomCount = 3 + Math.floor(Math.random() * 8);
+        // Create rooms for this floor (5-12 rooms)
+        const roomCount = 5 + Math.floor(Math.random() * 8);
         for (let roomIdx = 0; roomIdx < roomCount; roomIdx++) {
           const roomType = roomTypesArray[Math.floor(Math.random() * roomTypesArray.length)];
           const statuses: ('NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED')[] = ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED'];
@@ -822,8 +874,8 @@ async function main() {
             },
           });
 
-          // Add assets to room (installed)
-          const assetsInRoom = Math.floor(Math.random() * 4);
+          // Add assets to room (installed) - 2-6 per room
+          const assetsInRoom = 2 + Math.floor(Math.random() * 5);
           for (let assetIdx = 0; assetIdx < assetsInRoom && projectAssets.length > 0; assetIdx++) {
             const assetToInstall = projectAssets.shift();
             if (assetToInstall) {
@@ -913,8 +965,8 @@ async function main() {
           }
         }
 
-        // Add some floor-level assets
-        const floorAssets = 1 + Math.floor(Math.random() * 3);
+        // Add some floor-level assets (2-5 per floor)
+        const floorAssets = 2 + Math.floor(Math.random() * 4);
         for (let i = 0; i < floorAssets && projectAssets.length > 0; i++) {
           const assetToInstall = projectAssets.shift();
           if (assetToInstall) {
@@ -943,7 +995,7 @@ async function main() {
     // Get all assets for this project to assign labels
     const projectAssetsForLabels = await prisma.asset.findMany({
       where: { projectId: project.id },
-      take: 30, // Assign labels to first 30 assets
+      take: 60, // Assign labels to first 60 assets
     });
 
     // Create labels and assign to assets
@@ -978,7 +1030,7 @@ async function main() {
     }
 
     // Create additional unassigned labels (available for future use)
-    const unassignedCount = 20;
+    const unassignedCount = 40;
     for (let i = 0; i < unassignedCount; i++) {
       labelCounter++;
       const labelType = labelTypes[Math.floor(Math.random() * labelTypes.length)];

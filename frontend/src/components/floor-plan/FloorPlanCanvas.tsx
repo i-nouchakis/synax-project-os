@@ -687,9 +687,12 @@ export function FloorPlanCanvas({
         onWheel={handleWheel}
         onClick={handleStageClick}
         onTouchEnd={handleStageClick as (e: Konva.KonvaEventObject<TouchEvent>) => void}
-        draggable={isPanUnlocked && !isDraggingPin}
-        onDragStart={() => setIsDraggingStage(true)}
+        draggable={isPanUnlocked && !isDraggingPin && !drawingMode}
+        onDragStart={(e) => {
+          if (e.target === e.target.getStage()) setIsDraggingStage(true);
+        }}
         onDragEnd={(e) => {
+          if (e.target !== e.target.getStage()) return;
           setIsDraggingStage(false);
           setPosition({
             x: e.target.x(),

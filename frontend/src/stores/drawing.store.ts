@@ -11,7 +11,8 @@ export type DrawingTool =
   | 'text'
   | 'freehand'
   | 'polygon'
-  | 'cable';
+  | 'cable'
+  | 'measure';
 
 const TOOL_TO_SHAPE_TYPE: Partial<Record<DrawingTool, ShapeType>> = {
   rectangle: 'RECTANGLE',
@@ -50,6 +51,14 @@ export interface LocalShape {
   visible: boolean;
 }
 
+export interface DrawingLayerInfo {
+  id: string;
+  name: string;
+  visible: boolean;
+  locked: boolean;
+  order: number;
+}
+
 // Cable drawing state machine
 export type CableDrawingPhase = 'idle' | 'selecting_source' | 'selecting_type' | 'selecting_target';
 
@@ -61,6 +70,7 @@ export interface LocalCable {
   cableType: CableType;
   routingMode: RoutingMode;
   routingPoints?: { x: number; y: number }[];
+  tension?: number;
   label?: string;
   color: string;
   // Denormalized asset positions for rendering
@@ -91,6 +101,10 @@ interface DrawingState {
   // Tool
   activeTool: DrawingTool;
   setActiveTool: (tool: DrawingTool) => void;
+
+  // Layers (kept minimal for DB compat)
+  layers: DrawingLayerInfo[];
+  activeLayerId: string;
 
   // Shapes (local state, synced with backend)
   shapes: LocalShape[];
@@ -141,6 +155,14 @@ interface DrawingState {
   currentStyle: ShapeStyle;
   setCurrentStyle: (style: Partial<ShapeStyle>) => void;
 
+  // Measurement / Calibration
+  calibration: { pixelsPerUnit: number; unit: string } | null; // null = not calibrated
+  setCalibration: (cal: { pixelsPerUnit: number; unit: string } | null) => void;
+  measurements: { id: string; startX: number; startY: number; endX: number; endY: number }[];
+  addMeasurement: (m: { id: string; startX: number; startY: number; endX: number; endY: number }) => void;
+  removeMeasurement: (id: string) => void;
+  clearMeasurements: () => void;
+
   // History (undo/redo)
   history: HistoryEntry[];
   historyIndex: number;
@@ -151,12 +173,46 @@ interface DrawingState {
   canRedo: () => boolean;
 }
 
+const DEFAULT_LAYER: DrawingLayerInfo = {
+  id: 'default',
+  name: 'Default',
+  visible: true,
+  locked: false,
+  order: 0,
+};
+
 let nextId = 1;
 export function generateLocalId(): string {
   return `local_${nextId++}_${Date.now()}`;
 }
 
+// Parse routingPoints from server: supports old format (array) and new format (object with waypoints + tension)
+function parseRoutingData(raw: unknown): { waypoints?: { x: number; y: number }[]; tension?: number } {
+  if (!raw) return {};
+  if (Array.isArray(raw)) {
+    // Old format: [{x,y}, ...]
+    return { waypoints: raw as { x: number; y: number }[] };
+  }
+  if (typeof raw === 'object') {
+    const obj = raw as { waypoints?: { x: number; y: number }[]; tension?: number };
+    return { waypoints: obj.waypoints, tension: obj.tension };
+  }
+  return {};
+}
+
+// Encode routingPoints for server save
+export function encodeRoutingData(cable: LocalCable): { x: number; y: number }[] | { waypoints: { x: number; y: number }[]; tension: number } | null {
+  const hasWaypoints = cable.routingPoints && cable.routingPoints.length > 0;
+  const hasTension = cable.tension && cable.tension > 0;
+  if (!hasWaypoints && !hasTension) return null;
+  if (hasTension) {
+    return { waypoints: cable.routingPoints || [], tension: cable.tension! };
+  }
+  return cable.routingPoints || null;
+}
+
 function cableFromServer(c: Cable): LocalCable {
+  const routing = parseRoutingData(c.routingPoints);
   return {
     id: c.id,
     serverId: c.id,
@@ -164,7 +220,8 @@ function cableFromServer(c: Cable): LocalCable {
     targetAssetId: c.targetAssetId || '',
     cableType: c.cableType,
     routingMode: c.routingMode,
-    routingPoints: (c.routingPoints as { x: number; y: number }[]) || undefined,
+    routingPoints: routing.waypoints,
+    tension: routing.tension,
     label: c.label || undefined,
     color: c.color || CABLE_TYPE_COLORS[c.cableType] || '#6b7280',
     sourceX: c.sourceAsset?.pinX ?? 0,
@@ -181,12 +238,18 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
   activeTool: 'select',
   setActiveTool: (tool) => {
     // Reset cable drawing state when switching away from cable tool
-    if (tool !== 'cable') {
-      set({ activeTool: tool, cablePhase: 'idle', pendingCable: null });
-    } else {
+    if (tool === 'cable') {
       set({ activeTool: tool, cablePhase: 'selecting_source', pendingCable: null, selectedIds: [], selectedCableIds: [] });
+    } else if (tool === 'measure') {
+      set({ activeTool: tool, cablePhase: 'idle', pendingCable: null, selectedIds: [], selectedCableIds: [] });
+    } else {
+      set({ activeTool: tool, cablePhase: 'idle', pendingCable: null });
     }
   },
+
+  // Layers (kept minimal for DB compat)
+  layers: [{ ...DEFAULT_LAYER }],
+  activeLayerId: 'default',
 
   // Shapes
   shapes: [],
@@ -252,6 +315,7 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
   // Update cable endpoints when an asset pin moves
   updateCableEndpointsForAsset: (assetId, newX, newY) => {
     set((s) => {
+      let anyChanged = false;
       const updated = s.cables.map((c) => {
         let changed = false;
         const copy = { ...c };
@@ -265,10 +329,10 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
           copy.targetY = newY;
           changed = true;
         }
+        if (changed) anyChanged = true;
         return changed ? copy : c;
       });
-      // Only update if something actually changed
-      return updated !== s.cables ? { cables: updated } : {};
+      return anyChanged ? { cables: updated } : {};
     });
   },
 
@@ -299,9 +363,27 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       visible: s.visible,
     }));
     const localCables: LocalCable[] = serverCables.map(cableFromServer);
+
+    // Extract unique layer names from shapes and build layer list
+    const layerNames = new Set(localShapes.map((s) => s.layer));
+    layerNames.add('default'); // Always include default
+    const layers: DrawingLayerInfo[] = [];
+    let order = 0;
+    for (const name of layerNames) {
+      layers.push({
+        id: name,
+        name: name === 'default' ? 'Default' : name,
+        visible: true,
+        locked: false,
+        order: order++,
+      });
+    }
+
     set({
       shapes: localShapes,
       cables: localCables,
+      layers,
+      activeLayerId: 'default',
       deletedServerIds: [],
       deletedCableServerIds: [],
       isDirty: false,
@@ -322,6 +404,8 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
     set({
       shapes: [],
       cables: [],
+      layers: [{ ...DEFAULT_LAYER }],
+      activeLayerId: 'default',
       deletedServerIds: [],
       deletedCableServerIds: [],
       isDirty: false,
@@ -332,6 +416,9 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       drawingShape: null,
       cablePhase: 'idle',
       pendingCable: null,
+      calibration: null,
+      measurements: [],
+      currentStyle: DEFAULT_STYLES.RECTANGLE,
       history: [],
       historyIndex: -1,
     }),
@@ -357,6 +444,14 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
   currentStyle: DEFAULT_STYLES.RECTANGLE,
   setCurrentStyle: (style) =>
     set((s) => ({ currentStyle: { ...s.currentStyle, ...style } })),
+
+  // Measurement / Calibration
+  calibration: null,
+  setCalibration: (cal) => set({ calibration: cal }),
+  measurements: [],
+  addMeasurement: (m) => set((s) => ({ measurements: [...s.measurements, m] })),
+  removeMeasurement: (id) => set((s) => ({ measurements: s.measurements.filter((m) => m.id !== id) })),
+  clearMeasurements: () => set({ measurements: [] }),
 
   // History
   history: [],

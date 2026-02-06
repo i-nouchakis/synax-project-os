@@ -87,6 +87,44 @@ export function PropertiesPanel() {
 
         <div className="w-px h-5 bg-surface-border" />
 
+        {/* Cable curve/tension */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-caption text-text-tertiary">Curve</span>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={firstCable.tension || 0}
+            onChange={(e) => {
+              const tension = Number(e.target.value);
+              selectedCableIds.forEach((cId) => {
+                const cable = cables.find((c) => c.id === cId);
+                if (!cable) return;
+                // Konva tension needs 3+ points - auto-add midpoint if none exist
+                const hasRoutingPts = cable.routingPoints && cable.routingPoints.length > 0;
+                if (tension > 0 && !hasRoutingPts) {
+                  const midX = (cable.sourceX + cable.targetX) / 2;
+                  const midY = (cable.sourceY + cable.targetY) / 2;
+                  updateCable(cId, {
+                    tension,
+                    routingPoints: [{ x: midX, y: midY }],
+                  });
+                } else {
+                  updateCable(cId, { tension });
+                }
+              });
+            }}
+            onMouseDown={() => pushHistory()}
+            className="w-16 h-1 accent-primary"
+          />
+          <span className="text-caption text-text-tertiary w-6">
+            {Math.round((firstCable.tension || 0) * 100)}%
+          </span>
+        </div>
+
+        <div className="w-px h-5 bg-surface-border" />
+
         {/* Connection info */}
         <span className="text-caption text-text-tertiary">
           {firstCable.sourceAssetName || 'Source'} → {firstCable.targetAssetName || 'Target'}
@@ -211,6 +249,37 @@ export function PropertiesPanel() {
         </span>
       </div>
 
+      {/* Tension/Curve for lines and arrows */}
+      {allSameType && (firstType === 'LINE' || firstType === 'ARROW') && (
+        <>
+          <div className="w-px h-5 bg-surface-border" />
+          <div className="flex items-center gap-1.5">
+            <span className="text-caption text-text-tertiary">Curve</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={selectedShapes[0].data.tension || 0}
+              onChange={(e) => {
+                const tension = Number(e.target.value);
+                selectedIds.forEach((sid) => {
+                  const shape = shapes.find((s) => s.id === sid);
+                  if (shape) {
+                    updateShape(sid, { data: { ...shape.data, tension } });
+                  }
+                });
+              }}
+              onMouseDown={() => pushHistory()}
+              className="w-16 h-1 accent-primary"
+            />
+            <span className="text-caption text-text-tertiary w-6">
+              {Math.round((selectedShapes[0].data.tension || 0) * 100)}%
+            </span>
+          </div>
+        </>
+      )}
+
       {/* Font size for text */}
       {isText && (
         <>
@@ -229,6 +298,7 @@ export function PropertiesPanel() {
           </div>
         </>
       )}
+
     </div>
   );
 }

@@ -8,12 +8,14 @@ import {
   Pencil,
   Hexagon,
   Cable,
+  Ruler,
   Undo2,
   Redo2,
   Trash2,
   Save,
 } from 'lucide-react';
 import { useDrawingStore, type DrawingTool } from '@/stores/drawing.store';
+import { ExportPanel } from './ExportPanel';
 
 interface ToolButton {
   tool: DrawingTool;
@@ -32,15 +34,17 @@ const TOOLS: ToolButton[] = [
   { tool: 'freehand', icon: <Pencil size={18} />, label: 'Freehand', shortcut: 'P' },
   { tool: 'polygon', icon: <Hexagon size={18} />, label: 'Polygon' },
   { tool: 'cable', icon: <Cable size={18} />, label: 'Cable', shortcut: 'K' },
+  { tool: 'measure', icon: <Ruler size={18} />, label: 'Measure', shortcut: 'M' },
 ];
 
 interface DrawingToolbarProps {
   onSave?: () => void;
   onDelete?: () => void;
   isSaving?: boolean;
+  exportFileName?: string;
 }
 
-export function DrawingToolbar({ onSave, onDelete, isSaving }: DrawingToolbarProps) {
+export function DrawingToolbar({ onSave, onDelete, isSaving, exportFileName }: DrawingToolbarProps) {
   const activeTool = useDrawingStore((s) => s.activeTool);
   const setActiveTool = useDrawingStore((s) => s.setActiveTool);
   const selectedIds = useDrawingStore((s) => s.selectedIds);
@@ -122,6 +126,9 @@ export function DrawingToolbar({ onSave, onDelete, isSaving }: DrawingToolbarPro
           <Save size={18} />
         </button>
       )}
+
+      {/* Export JSON */}
+      <ExportPanel fileName={exportFileName} />
 
       {/* Shape & cable count */}
       {(shapes.length > 0 || cables.length > 0) && (
