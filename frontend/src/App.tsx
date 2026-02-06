@@ -32,6 +32,7 @@ import { ChecklistTemplatesPage } from '@/pages/checklist-templates';
 import { ClientsPage, ClientDetailPage } from '@/pages/clients';
 import { CalendarPage } from '@/pages/calendar/CalendarPage';
 import { MessengerPage } from '@/pages/messenger/MessengerPage';
+import { FeedbackPage } from '@/pages/feedback/FeedbackPage';
 import { useAuthStore } from '@/stores/auth.store';
 import { useThemeStore } from '@/stores/theme.store';
 import { useOfflineStore } from '@/stores/offline.store';
@@ -169,6 +170,14 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['ADMIN', 'PM']}>
                     <ChecklistTemplatesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/feedback"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <FeedbackPage />
                   </ProtectedRoute>
                 }
               />

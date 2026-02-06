@@ -26,6 +26,7 @@ import {
   Briefcase,
   Calendar,
   MessageSquare,
+  MessageSquarePlus,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { api } from '@/lib/api';
@@ -93,6 +94,7 @@ const getNavigation = (openIssuesCount: number): NavSection[] => [
       { label: 'Users', icon: <Users size={20} />, href: '/users', adminOnly: true },
       { label: 'Dropdowns', icon: <ListFilter size={20} />, href: '/lookups', adminOnly: true },
       { label: 'Templates', icon: <ClipboardList size={20} />, href: '/checklist-templates', adminOnly: true },
+      { label: 'Feedback', icon: <MessageSquarePlus size={20} />, href: '/feedback', adminOnly: true },
     ],
   },
 ];

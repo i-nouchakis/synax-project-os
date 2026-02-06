@@ -91,6 +91,7 @@ model User {
   calendarAttendances     CalendarEventAttendee[]   @relation("CalendarAttendees")
   conversationParticipants ConversationParticipant[]
   sentMessages            Message[]                 @relation("SentMessages")
+  feedback                Feedback[]
 
   @@map("users")
 }
@@ -790,4 +791,25 @@ model CableBundle {
   cables        Cable[]
 
   @@map("cable_bundles")
+}
+
+enum FeedbackType {
+  BUG
+  CHANGE
+}
+
+model Feedback {
+  id            String       @id @default(cuid())
+  type          FeedbackType
+  description   String
+  screenshotUrl String?      @map("screenshot_url")
+  pageUrl       String       @map("page_url")
+  adminNotes    String?      @map("admin_notes")
+  resolved      Boolean      @default(false)
+  userId        String       @map("user_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  user          User         @relation(fields: [userId], references: [id])
+
+  @@map("feedback")
 }

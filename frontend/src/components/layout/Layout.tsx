@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { FeedbackButton } from '@/components/feedback/FeedbackButton';
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -67,6 +68,7 @@ export function Layout() {
           <Outlet />
         </div>
       </main>
+      <FeedbackButton />
     </div>
   );
 }
