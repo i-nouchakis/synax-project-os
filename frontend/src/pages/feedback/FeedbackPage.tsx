@@ -4,7 +4,6 @@ import {
   Bug,
   Lightbulb,
   Trash2,
-  ExternalLink,
   MessageSquarePlus,
   AlertTriangle,
   Image as ImageIcon,
@@ -232,7 +231,7 @@ export function FeedbackPage() {
                           )}
                           <p className="text-body-sm text-text-primary truncate">{item.description}</p>
                           {item.adminNotes && (
-                            <MessageCircle size={14} className="flex-shrink-0 text-primary" title="Has admin notes" />
+                            <MessageCircle size={14} className="flex-shrink-0 text-primary" />
                           )}
                         </div>
                       </td>

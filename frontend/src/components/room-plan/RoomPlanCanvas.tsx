@@ -366,11 +366,6 @@ export function RoomPlanCanvas({
     setIsDraggingPin(true);
   }, []);
 
-  // Handle pin drag move - prevent stage from moving
-  const handlePinDragMove = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
-    e.cancelBubble = true;
-  }, []);
-
   // Handle asset pin drag move - also update cable endpoints in real-time
   const handleAssetDragMove = useCallback((assetId: string, e: Konva.KonvaEventObject<DragEvent>) => {
     e.cancelBubble = true;

@@ -107,7 +107,7 @@ export function AssetsPage() {
     assignedAssets.forEach((asset: Asset) => {
       const projectId = asset.room?.floor?.building?.project?.id || asset.floor?.building?.project?.id || 'unassigned';
       const projectName = asset.room?.floor?.building?.project?.name || asset.floor?.building?.project?.name || 'Unassigned';
-      const clientName = asset.room?.floor?.building?.project?.clientName || asset.floor?.building?.project?.clientName || '';
+      const clientName = '';
 
       if (!groups.has(projectId)) {
         groups.set(projectId, {

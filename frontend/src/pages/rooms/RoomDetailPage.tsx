@@ -1126,8 +1126,8 @@ function AssetFormModal({
   assetTypes,
   initialData,
   showStatus,
-  projectName,
-  roomName,
+  projectName: _projectName,
+  roomName: _roomName,
   nested,
   availableLabels = [],
   allLabels = [],
@@ -1147,49 +1147,7 @@ function AssetFormModal({
   const [selectedLabelId, setSelectedLabelId] = useState<string>('');
 
   // Asset type abbreviations for label code generation
-  const assetTypeAbbreviations: Record<string, string> = {
-    'Access Point': 'AP',
-    'Network Switch': 'SW',
-    'IP Camera': 'CAM',
-    'Smart TV': 'TV',
-    'VoIP Phone': 'VOIP',
-    'POS Terminal': 'POS',
-    'Digital Signage': 'DS',
-    'Router': 'RTR',
-    'Server': 'SRV',
-    'UPS': 'UPS',
-    'Patch Panel': 'PP',
-    'Firewall': 'FW',
-    'NVR': 'NVR',
-    'Controller': 'CTR',
-    'Sensor': 'SNS',
-    'Thermostat': 'THR',
-  };
 
-  // Generate label code
-  const generateLabelCode = () => {
-    // Project prefix (first 3-4 chars, uppercase, no spaces)
-    const projectPrefix = projectName
-      ? projectName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase()
-      : 'SYN';
-
-    // Room prefix (extract numbers or use first chars)
-    const roomPrefix = roomName
-      ? roomName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase()
-      : 'RM';
-
-    // Asset type abbreviation
-    const selectedType = assetTypes.find(t => t.id === formData.assetTypeId);
-    const typeAbbrev = selectedType
-      ? assetTypeAbbreviations[selectedType.name] || selectedType.name.substring(0, 3).toUpperCase()
-      : 'AST';
-
-    // Unique suffix (4 chars alphanumeric)
-    const uniqueSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-
-    const labelCode = `${projectPrefix}-${roomPrefix}-${typeAbbrev}-${uniqueSuffix}`;
-    setFormData({ ...formData, labelCode });
-  };
 
   // Fetch all asset models
   const { data: assetModelsData } = useQuery({

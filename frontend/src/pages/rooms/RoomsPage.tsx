@@ -243,7 +243,7 @@ export function RoomsPage() {
                                   room.status === 'COMPLETED' ? 'success' :
                                   room.status === 'IN_PROGRESS' ? 'primary' :
                                   room.status === 'BLOCKED' ? 'error' :
-                                  'secondary'
+                                  'default'
                                 }
                                 size="sm"
                               >

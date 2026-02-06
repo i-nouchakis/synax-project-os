@@ -1512,7 +1512,7 @@ export function FloorDetailPage() {
         isOpen={isCreateAssetModalOpen}
         onClose={() => setIsCreateAssetModalOpen(false)}
         onSubmit={async (data, labelId) => {
-          const asset = await assetService.createFloorAsset(id!, data as CreateAssetData);
+          const asset = await assetService.createInFloor(id!, data as CreateAssetData);
           if (labelId) {
             await assignLabelMutation.mutateAsync({ labelId, assetId: asset.id });
           }
@@ -1849,8 +1849,8 @@ function FloorAssetFormModal({
   assetTypes,
   initialData,
   showStatus,
-  projectName,
-  floorName,
+  projectName: _projectName,
+  floorName: _floorName,
   nested,
   availableLabels = [],
   allLabels = [],
@@ -1937,50 +1937,7 @@ function FloorAssetFormModal({
     },
   });
 
-  // Asset type abbreviations for label code generation
-  const assetTypeAbbreviations: Record<string, string> = {
-    'Access Point': 'AP',
-    'Network Switch': 'SW',
-    'IP Camera': 'CAM',
-    'Smart TV': 'TV',
-    'VoIP Phone': 'VOIP',
-    'POS Terminal': 'POS',
-    'Digital Signage': 'DS',
-    'Router': 'RTR',
-    'Server': 'SRV',
-    'UPS': 'UPS',
-    'Patch Panel': 'PP',
-    'Firewall': 'FW',
-    'NVR': 'NVR',
-    'Controller': 'CTR',
-    'Sensor': 'SNS',
-    'Thermostat': 'THR',
-  };
 
-  // Generate label code
-  const generateLabelCode = () => {
-    // Project prefix (first 3-4 chars, uppercase, no spaces)
-    const projectPrefix = projectName
-      ? projectName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase()
-      : 'SYN';
-
-    // Floor prefix (extract numbers or use first chars)
-    const floorPrefix = floorName
-      ? floorName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase()
-      : 'FL';
-
-    // Asset type abbreviation
-    const selectedType = assetTypes.find(t => t.id === formData.assetTypeId);
-    const typeAbbrev = selectedType
-      ? assetTypeAbbreviations[selectedType.name] || selectedType.name.substring(0, 3).toUpperCase()
-      : 'AST';
-
-    // Unique suffix (4 chars alphanumeric)
-    const uniqueSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-
-    const labelCode = `${projectPrefix}-${floorPrefix}-${typeAbbrev}-${uniqueSuffix}`;
-    setFormData({ ...formData, labelCode });
-  };
 
   // Fetch all asset models
   const { data: assetModelsData } = useQuery({

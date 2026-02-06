@@ -18,7 +18,7 @@ import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Modal, ModalSection, ModalActions } from '../../components/ui/modal';
-import { IconPicker, getRoomTypeIcon, ROOM_TYPE_ICONS } from '../../components/ui/icon-picker';
+import { IconPicker, getRoomTypeIcon } from '../../components/ui/icon-picker';
 import {
   roomTypeService,
   inventoryUnitService,

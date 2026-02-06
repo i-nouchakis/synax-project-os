@@ -13,6 +13,7 @@ export interface ShapeData {
   points?: number[];
   text?: string;
   rotation?: number;
+  tension?: number;
 }
 
 export interface ShapeStyle {

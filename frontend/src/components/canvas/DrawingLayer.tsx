@@ -48,8 +48,6 @@ export function DrawingLayer({ stageRef, imageWidth, imageHeight, scale, assetPi
   // Cable drawing state
   const cablePhase = useDrawingStore((s) => s.cablePhase);
   const pendingCable = useDrawingStore((s) => s.pendingCable);
-  const addCable = useDrawingStore((s) => s.addCable);
-
   // Measurement state
   const measurements = useDrawingStore((s) => s.measurements);
   const calibration = useDrawingStore((s) => s.calibration);

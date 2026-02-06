@@ -1,6 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import {
   Tags,
@@ -8,7 +7,6 @@ import {
   Plus,
   Trash2,
   Printer,
-  Download,
   CheckSquare,
   Square,
   Package,
@@ -29,7 +27,6 @@ import { cn } from '@/lib/utils';
 import { projectService } from '@/services/project.service';
 import {
   labelService,
-  type Label,
   type LabelType,
   LABEL_TYPE_LABELS,
   LABEL_TYPE_PREFIXES,
@@ -48,8 +45,6 @@ const LABEL_COLORS = [
 
 export function LabelsPage() {
   const queryClient = useQueryClient();
-  const printRef = useRef<HTMLDivElement>(null);
-
   // State
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [labelType, setLabelType] = useState<LabelType>('ASSET');
@@ -161,28 +156,6 @@ export function LabelsPage() {
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-
-    const labelsHtml = labelsToPrint
-      .map(
-        (label) => `
-        <div class="label" style="background-color: ${selectedColor.value}">
-          <div class="label-title">${label.code}</div>
-          ${selectedProject ? `<div class="label-subtitle">${selectedProject.name}</div>` : ''}
-          ${
-            includeQR
-              ? `<div class="label-qr">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" width="64" height="64">
-                    <!-- QR will be rendered by print -->
-                  </svg>
-                  <div class="qr-value">SYNAX:${label.code}</div>
-                </div>`
-              : ''
-          }
-          <div class="label-code">${label.code}</div>
-        </div>
-      `
-      )
-      .join('');
 
     printWindow.document.write(`
       <!DOCTYPE html>
