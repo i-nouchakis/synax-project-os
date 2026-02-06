@@ -40,8 +40,9 @@ export function FeedbackButton() {
         setScreenshotBlob(blob);
         setScreenshotUrl(URL.createObjectURL(blob));
       }
-    } catch (err) {
-      console.error('Screenshot capture failed:', err);
+    } catch {
+      // Screenshot capture may fail in production due to CSS parsing (oklab/oklch).
+      // Feedback still works without screenshot - silently continue.
     }
     setStep('select_type');
   };
