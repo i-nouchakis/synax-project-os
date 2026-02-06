@@ -2,6 +2,7 @@ import { api } from '@/lib/api';
 
 export type CalendarEventType = 'APPOINTMENT' | 'REMINDER' | 'DEADLINE' | 'MEETING' | 'INSPECTION' | 'DELIVERY';
 export type AttendeeStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
+export type RecurrenceRule = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
 
 export interface CalendarEventAttendee {
   id: string;
@@ -22,6 +23,11 @@ export interface CalendarEvent {
   color?: string | null;
   projectId?: string | null;
   createdById: string;
+  recurrenceRule?: RecurrenceRule | null;
+  recurrenceInterval?: number;
+  recurrenceEnd?: string | null;
+  isRecurring?: boolean;
+  originalEventId?: string;
   createdAt: string;
   updatedAt: string;
   project?: { id: string; name: string } | null;
@@ -39,6 +45,9 @@ export interface CreateCalendarEventData {
   color?: string | null;
   projectId?: string | null;
   attendeeIds?: string[];
+  recurrenceRule?: RecurrenceRule | null;
+  recurrenceInterval?: number;
+  recurrenceEnd?: string | null;
 }
 
 export type UpdateCalendarEventData = Partial<CreateCalendarEventData>;
@@ -64,6 +73,26 @@ export const EVENT_TYPES: { value: CalendarEventType; label: string; color: stri
   { value: 'INSPECTION', label: 'Inspection', color: '#10b981' },
   { value: 'DELIVERY', label: 'Delivery', color: '#06b6d4' },
 ];
+
+export const RECURRENCE_OPTIONS: { value: RecurrenceRule | ''; label: string }[] = [
+  { value: '', label: 'No repeat' },
+  { value: 'DAILY', label: 'Daily' },
+  { value: 'WEEKLY', label: 'Weekly' },
+  { value: 'MONTHLY', label: 'Monthly' },
+  { value: 'YEARLY', label: 'Yearly' },
+];
+
+export function getRecurrenceLabel(rule: RecurrenceRule | null | undefined, interval?: number): string {
+  if (!rule) return '';
+  const i = interval || 1;
+  switch (rule) {
+    case 'DAILY': return i === 1 ? 'Daily' : `Every ${i} days`;
+    case 'WEEKLY': return i === 1 ? 'Weekly' : `Every ${i} weeks`;
+    case 'MONTHLY': return i === 1 ? 'Monthly' : `Every ${i} months`;
+    case 'YEARLY': return i === 1 ? 'Yearly' : `Every ${i} years`;
+    default: return '';
+  }
+}
 
 export function getEventColor(type: CalendarEventType, customColor?: string | null): string {
   if (customColor) return customColor;

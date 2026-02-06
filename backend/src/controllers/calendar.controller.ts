@@ -6,6 +6,7 @@ import { sendValidationError } from '../utils/errors.js';
 
 const EVENT_TYPES = ['APPOINTMENT', 'REMINDER', 'DEADLINE', 'MEETING', 'INSPECTION', 'DELIVERY'] as const;
 const ATTENDEE_STATUSES = ['PENDING', 'ACCEPTED', 'DECLINED'] as const;
+const RECURRENCE_RULES = ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'] as const;
 
 const attendeesInclude = {
   attendees: {
@@ -31,6 +32,9 @@ const createEventSchema = z.object({
   color: z.string().max(20).optional().nullable(),
   projectId: z.string().optional().nullable(),
   attendeeIds: z.array(z.string()).optional(),
+  recurrenceRule: z.enum(RECURRENCE_RULES).optional().nullable(),
+  recurrenceInterval: z.number().int().min(1).max(99).optional().default(1),
+  recurrenceEnd: z.string().optional().nullable(),
 });
 
 const updateEventSchema = createEventSchema.partial();
@@ -96,6 +100,83 @@ async function checkOverlaps(userId: string, startDate: Date, endDate: Date | nu
   return overlapping;
 }
 
+// Expand recurring events into virtual instances within a date range
+function expandRecurringEvents(
+  events: Array<Record<string, unknown>>,
+  rangeStart: Date,
+  rangeEnd: Date
+): Array<Record<string, unknown>> {
+  const result: Array<Record<string, unknown>> = [];
+
+  for (const event of events) {
+    const rule = event.recurrenceRule as string | null;
+
+    if (!rule) {
+      // Non-recurring: include as-is
+      result.push(event);
+      continue;
+    }
+
+    const eventStart = new Date(event.startDate as string);
+    const eventEnd = event.endDate ? new Date(event.endDate as string) : null;
+    const duration = eventEnd ? eventEnd.getTime() - eventStart.getTime() : 0;
+    const interval = (event.recurrenceInterval as number) || 1;
+    const recEnd = event.recurrenceEnd ? new Date(event.recurrenceEnd as string) : null;
+
+    // Generate instances
+    const maxInstances = 200; // safety limit
+    let count = 0;
+    const current = new Date(eventStart);
+
+    while (count < maxInstances) {
+      // Check bounds
+      if (recEnd && current > recEnd) break;
+      if (current > rangeEnd) break;
+
+      // If this instance falls within range, add it
+      if (current >= rangeStart || isSameDayUTC(current, rangeStart)) {
+        const instanceDate = new Date(current);
+        const instanceEnd = duration > 0 ? new Date(instanceDate.getTime() + duration) : null;
+
+        result.push({
+          ...event,
+          id: `${event.id}_${instanceDate.toISOString().split('T')[0]}`,
+          originalEventId: event.id,
+          startDate: instanceDate,
+          endDate: instanceEnd,
+          isRecurring: true,
+          recurrenceRule: rule,
+        });
+      }
+
+      // Advance to next occurrence
+      switch (rule) {
+        case 'DAILY':
+          current.setDate(current.getDate() + interval);
+          break;
+        case 'WEEKLY':
+          current.setDate(current.getDate() + 7 * interval);
+          break;
+        case 'MONTHLY':
+          current.setMonth(current.getMonth() + interval);
+          break;
+        case 'YEARLY':
+          current.setFullYear(current.getFullYear() + interval);
+          break;
+      }
+      count++;
+    }
+  }
+
+  return result;
+}
+
+function isSameDayUTC(d1: Date, d2: Date): boolean {
+  return d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate();
+}
+
 export async function calendarRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate);
 
@@ -110,11 +191,27 @@ export async function calendarRoutes(app: FastifyInstance) {
 
     const where: Record<string, unknown> = {};
 
-    // Date range filter
+    // For recurring events, we need to fetch events that STARTED before the range end
+    // (they may recur into the range even if their startDate is before range start)
     if (start || end) {
-      where.startDate = {};
-      if (start) (where.startDate as Record<string, unknown>).gte = new Date(start);
-      if (end) (where.startDate as Record<string, unknown>).lte = new Date(end);
+      const conditions: Record<string, unknown>[] = [];
+      // Non-recurring: normal date range filter
+      const nonRecurring: Record<string, unknown> = { recurrenceRule: null };
+      if (start || end) {
+        nonRecurring.startDate = {};
+        if (start) (nonRecurring.startDate as Record<string, unknown>).gte = new Date(start);
+        if (end) (nonRecurring.startDate as Record<string, unknown>).lte = new Date(end);
+      }
+      conditions.push(nonRecurring);
+      // Recurring: started before range end (instances may fall within range)
+      const recurring: Record<string, unknown> = {
+        recurrenceRule: { not: null },
+      };
+      if (end) {
+        recurring.startDate = { lte: new Date(end) };
+      }
+      conditions.push(recurring);
+      where.OR_dateFilter = conditions;
     }
 
     // Project filter
@@ -122,19 +219,52 @@ export async function calendarRoutes(app: FastifyInstance) {
       where.projectId = projectId;
     }
 
-    // Show events where user is creator OR attendee
-    where.OR = [
-      { createdById: user.id },
-      { attendees: { some: { userId: user.id } } },
-    ];
+    // Build final where with user filter
+    const finalWhere: Record<string, unknown> = {};
+
+    if (where.OR_dateFilter) {
+      finalWhere.AND = [
+        { OR: where.OR_dateFilter as Record<string, unknown>[] },
+        {
+          OR: [
+            { createdById: user.id },
+            { attendees: { some: { userId: user.id } } },
+          ],
+        },
+      ];
+      if (projectId) finalWhere.projectId = projectId;
+    } else {
+      finalWhere.OR = [
+        { createdById: user.id },
+        { attendees: { some: { userId: user.id } } },
+      ];
+      if (projectId) finalWhere.projectId = projectId;
+    }
 
     const events = await prisma.calendarEvent.findMany({
-      where,
+      where: finalWhere,
       orderBy: { startDate: 'asc' },
       include: eventInclude,
     });
 
-    return reply.send({ events });
+    // Expand recurring events into virtual instances
+    let expandedEvents;
+    if (start && end) {
+      expandedEvents = expandRecurringEvents(
+        events as unknown as Array<Record<string, unknown>>,
+        new Date(start),
+        new Date(end)
+      );
+    } else {
+      // No date range - add flags but don't expand
+      expandedEvents = events.map(e => ({
+        ...e,
+        isRecurring: !!e.recurrenceRule,
+        originalEventId: e.recurrenceRule ? e.id : undefined,
+      }));
+    }
+
+    return reply.send({ events: expandedEvents });
   });
 
   // GET /api/calendar/:id - Get single event
@@ -188,6 +318,9 @@ export async function calendarRoutes(app: FastifyInstance) {
           color: data.color,
           projectId: data.projectId || null,
           createdById: user.id,
+          recurrenceRule: data.recurrenceRule || null,
+          recurrenceInterval: data.recurrenceInterval || 1,
+          recurrenceEnd: data.recurrenceEnd ? new Date(data.recurrenceEnd) : null,
           // Create attendees if provided
           ...(data.attendeeIds && data.attendeeIds.length > 0 ? {
             attendees: {
@@ -237,6 +370,9 @@ export async function calendarRoutes(app: FastifyInstance) {
       if (data.type !== undefined) updateData.type = data.type;
       if (data.color !== undefined) updateData.color = data.color;
       if (data.projectId !== undefined) updateData.projectId = data.projectId || null;
+      if (data.recurrenceRule !== undefined) updateData.recurrenceRule = data.recurrenceRule || null;
+      if (data.recurrenceInterval !== undefined) updateData.recurrenceInterval = data.recurrenceInterval || 1;
+      if (data.recurrenceEnd !== undefined) updateData.recurrenceEnd = data.recurrenceEnd ? new Date(data.recurrenceEnd) : null;
 
       // Update attendees if provided
       if (data.attendeeIds !== undefined) {

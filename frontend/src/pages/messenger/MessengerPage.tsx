@@ -10,6 +10,11 @@ import {
   CheckCheck,
   X,
   Smile,
+  Paperclip,
+  FileText,
+  Download,
+  Image as ImageIcon,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -21,7 +26,7 @@ import {
   ModalActions,
   Input,
 } from '@/components/ui';
-import { messengerService, type Conversation, type Message, type ReadParticipant } from '@/services/messenger.service';
+import { messengerService, type Conversation, type Message, type MessageAttachment, type ReadParticipant } from '@/services/messenger.service';
 import { userService } from '@/services/user.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSearchStore } from '@/stores/search.store';
@@ -83,6 +88,29 @@ const EMOJI_CATEGORIES: { label: string; emojis: string[] }[] = [
   },
 ];
 
+// ─── File Helpers ────────────────────────────────────────────
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip'];
+
+function isImageMimeType(mimeType: string): boolean {
+  return mimeType.startsWith('image/');
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getFileExtension(filename: string): string {
+  return filename.split('.').pop()?.toLowerCase() || '';
+}
+
+interface PendingFile {
+  file: File;
+  preview?: string; // data URL for images
+}
+
 // ─── Main Component ─────────────────────────────────────────
 export function MessengerPage() {
   const queryClient = useQueryClient();
@@ -100,7 +128,11 @@ export function MessengerPage() {
   const [userSearch, setUserSearch] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({});
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
 
@@ -167,12 +199,16 @@ export function MessengerPage() {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: ({ conversationId, content }: { conversationId: string; content: string }) =>
-      messengerService.sendMessage(conversationId, content),
+    mutationFn: ({ conversationId, content, attachments }: {
+      conversationId: string;
+      content: string;
+      attachments?: { filename: string; url: string; mimeType: string; size: number }[];
+    }) => messengerService.sendMessage(conversationId, content, attachments),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messenger-messages', activeConversationId] });
       queryClient.invalidateQueries({ queryKey: ['messenger-conversations'] });
       setMessageText('');
+      setPendingFiles([]);
     },
     onError: (err: Error) => toast.error(err.message || 'Failed to send message'),
   });
@@ -195,16 +231,82 @@ export function MessengerPage() {
     onError: (err: Error) => toast.error(err.message || 'Failed to create conversation'),
   });
 
-  const handleSend = () => {
-    if (!messageText.trim() || !activeConversationId) return;
+  const handleSend = async () => {
+    if ((!messageText.trim() && pendingFiles.length === 0) || !activeConversationId) return;
     // Stop typing indicator
     if (isTypingRef.current) {
       isTypingRef.current = false;
       emit('typing:stop', { conversationId: activeConversationId });
     }
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-    sendMessageMutation.mutate({ conversationId: activeConversationId, content: messageText.trim() });
     setShowEmojiPicker(false);
+
+    // Upload pending files first
+    let uploadedAttachments: { filename: string; url: string; mimeType: string; size: number }[] | undefined;
+    if (pendingFiles.length > 0) {
+      setIsUploading(true);
+      try {
+        uploadedAttachments = await Promise.all(
+          pendingFiles.map(pf => messengerService.uploadFile(pf.file))
+        );
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'File upload failed');
+        setIsUploading(false);
+        return;
+      }
+      setIsUploading(false);
+    }
+
+    sendMessageMutation.mutate({
+      conversationId: activeConversationId,
+      content: messageText.trim(),
+      attachments: uploadedAttachments,
+    });
+  };
+
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const newPending: PendingFile[] = [];
+
+    for (const file of files) {
+      // Validate extension
+      const ext = getFileExtension(file.name);
+      if (!ALLOWED_EXTENSIONS.includes(ext)) {
+        toast.error(`"${file.name}" is not an allowed file type`);
+        continue;
+      }
+      // Validate size
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`"${file.name}" is too large (max 10MB)`);
+        continue;
+      }
+
+      const pending: PendingFile = { file };
+      // Generate preview for images
+      if (file.type.startsWith('image/')) {
+        pending.preview = URL.createObjectURL(file);
+      }
+      newPending.push(pending);
+    }
+
+    if (newPending.length > 0) {
+      setPendingFiles(prev => [...prev, ...newPending]);
+    }
+
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
+  // Remove a pending file
+  const removePendingFile = (index: number) => {
+    setPendingFiles(prev => {
+      const removed = prev[index];
+      if (removed.preview) URL.revokeObjectURL(removed.preview);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -428,7 +530,13 @@ export function MessengerPage() {
                         <div className="flex items-center justify-between gap-2 mt-0.5">
                           <p className={`text-caption truncate ${conv.unreadCount > 0 ? 'text-text-primary font-medium' : 'text-text-tertiary'}`}>
                             {lastMessage
-                              ? `${lastMessage.senderId === currentUser?.id ? 'You: ' : ''}${lastMessage.content}`
+                              ? `${lastMessage.senderId === currentUser?.id ? 'You: ' : ''}${
+                                  lastMessage.content
+                                    ? lastMessage.content
+                                    : lastMessage.attachments?.length
+                                      ? `Sent ${lastMessage.attachments.length} file${lastMessage.attachments.length > 1 ? 's' : ''}`
+                                      : 'No messages yet'
+                                }`
                               : 'No messages yet'}
                           </p>
                           {conv.unreadCount > 0 && (
@@ -518,7 +626,45 @@ export function MessengerPage() {
                                           : 'bg-surface-secondary text-text-primary rounded-bl-md'
                                       }`}
                                     >
-                                      {msg.content}
+                                      {/* Attachments */}
+                                      {msg.attachments && msg.attachments.length > 0 && (
+                                        <div className={`space-y-1.5 ${msg.content ? 'mb-1.5' : ''}`}>
+                                          {msg.attachments.map((att: MessageAttachment) => (
+                                            isImageMimeType(att.mimeType) ? (
+                                              <div key={att.id} className="relative">
+                                                <img
+                                                  src={att.url}
+                                                  alt={att.filename}
+                                                  className="max-w-[280px] max-h-[200px] rounded-lg cursor-pointer object-cover"
+                                                  onClick={() => setImagePreview(att.url)}
+                                                />
+                                              </div>
+                                            ) : (
+                                              <a
+                                                key={att.id}
+                                                href={att.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-colors ${
+                                                  isMine
+                                                    ? 'bg-white/10 hover:bg-white/20'
+                                                    : 'bg-surface-hover hover:bg-surface-border'
+                                                }`}
+                                              >
+                                                <FileText size={16} className="flex-shrink-0" />
+                                                <div className="min-w-0 flex-1">
+                                                  <p className="text-caption font-medium truncate">{att.filename}</p>
+                                                  <p className={`text-[10px] ${isMine ? 'text-white/60' : 'text-text-tertiary'}`}>
+                                                    {formatFileSize(att.size)}
+                                                  </p>
+                                                </div>
+                                                <Download size={14} className="flex-shrink-0 opacity-60" />
+                                              </a>
+                                            )
+                                          ))}
+                                        </div>
+                                      )}
+                                      {msg.content && msg.content}
                                     </div>
                                     <div className={`flex items-center gap-1 mt-0.5 ${isMine ? 'justify-end mr-1' : 'ml-1'}`}>
                                       <span className="text-[10px] text-text-tertiary">
@@ -553,9 +699,52 @@ export function MessengerPage() {
                   </div>
                 )}
 
+                {/* Pending Files Preview */}
+                {pendingFiles.length > 0 && (
+                  <div className="px-4 py-2 border-t border-surface-border bg-surface-secondary/50">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {pendingFiles.map((pf, idx) => (
+                        <div
+                          key={idx}
+                          className="relative group flex items-center gap-2 bg-surface border border-surface-border rounded-lg px-2.5 py-1.5"
+                        >
+                          {pf.preview ? (
+                            <img src={pf.preview} alt="" className="w-8 h-8 rounded object-cover" />
+                          ) : (
+                            <FileText size={16} className="text-text-tertiary" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-caption font-medium text-text-primary truncate max-w-[120px]">
+                              {pf.file.name}
+                            </p>
+                            <p className="text-[10px] text-text-tertiary">
+                              {formatFileSize(pf.file.size)}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => removePendingFile(idx)}
+                            className="p-0.5 rounded-full hover:bg-error/10 text-text-tertiary hover:text-error transition-colors"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Message Input */}
                 <div className="px-4 py-3 border-t border-surface-border">
                   <div className="flex items-center gap-2 relative">
+                    {/* Hidden file input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip"
+                      onChange={handleFileSelect}
+                    />
                     {/* Emoji Picker */}
                     {showEmojiPicker && (
                       <div
@@ -595,6 +784,14 @@ export function MessengerPage() {
                     >
                       <Smile size={20} />
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="p-2.5 rounded-full text-text-tertiary hover:text-text-secondary hover:bg-surface-hover transition-colors"
+                      title="Attach file"
+                    >
+                      <Paperclip size={20} />
+                    </button>
                     <input
                       ref={inputRef}
                       type="text"
@@ -606,10 +803,10 @@ export function MessengerPage() {
                     />
                     <button
                       onClick={handleSend}
-                      disabled={!messageText.trim() || sendMessageMutation.isPending}
+                      disabled={(!messageText.trim() && pendingFiles.length === 0) || sendMessageMutation.isPending || isUploading}
                       className="p-2.5 rounded-full bg-primary text-white hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      <Send size={18} />
+                      {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                     </button>
                   </div>
                 </div>
@@ -629,6 +826,27 @@ export function MessengerPage() {
           </div>
         </div>
       </Card>
+
+      {/* Image Lightbox */}
+      {imagePreview && (
+        <div
+          className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-8 cursor-pointer"
+          onClick={() => setImagePreview(null)}
+        >
+          <button
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+            onClick={() => setImagePreview(null)}
+          >
+            <X size={24} />
+          </button>
+          <img
+            src={imagePreview}
+            alt="Preview"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* New Chat Modal */}
       {isNewChatOpen && (

@@ -6,6 +6,15 @@ export interface MessageSender {
   avatar: string | null;
 }
 
+export interface MessageAttachment {
+  id: string;
+  messageId: string;
+  filename: string;
+  url: string;
+  mimeType: string;
+  size: number;
+}
+
 export interface Message {
   id: string;
   conversationId: string;
@@ -13,6 +22,7 @@ export interface Message {
   content: string;
   createdAt: string;
   sender: MessageSender;
+  attachments: MessageAttachment[];
 }
 
 export interface ConversationParticipant {
@@ -87,12 +97,36 @@ export const messengerService = {
     return { messages: response.messages, participants: response.participants };
   },
 
-  async sendMessage(conversationId: string, content: string): Promise<Message> {
+  async sendMessage(
+    conversationId: string,
+    content: string,
+    attachments?: { filename: string; url: string; mimeType: string; size: number }[]
+  ): Promise<Message> {
     const response = await api.post<MessageResponse>(
       `/messenger/conversations/${conversationId}/messages`,
-      { content }
+      { content, attachments }
     );
     return response.message;
+  },
+
+  async uploadFile(file: File): Promise<{ filename: string; url: string; mimeType: string; size: number }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/messenger/upload', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('synax_token')}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Upload failed');
+    }
+
+    return response.json();
   },
 
   async markAsRead(conversationId: string): Promise<void> {

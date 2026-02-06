@@ -4,7 +4,7 @@
 
 ---
 
-## Pending Tasks (12 items)
+## Pending Tasks (8 items)
 
 ### Μικρή Πολυπλοκότητα
 
@@ -23,7 +23,7 @@
 #### 3. File Sharing in Messenger
 - **Τι:** Upload αρχείων/εικόνων μέσα στο chat
 - **Λεπτομέρειες:** Τώρα μόνο text + emoji. Χρειάζεται: file upload, image preview, file download, validation τύπων αρχείων
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed - MessageAttachment model, upload endpoint (10MB limit, images/PDF/docs), paperclip button, pending file preview, image thumbnails in bubbles, file download links, image lightbox
 
 #### 4. Signatures UI Integration
 - **Τι:** Ενσωμάτωση signature capture στο UI
@@ -45,7 +45,7 @@
 #### 7. Recurring Calendar Events
 - **Τι:** Επαναλαμβανόμενα events στο ημερολόγιο
 - **Λεπτομέρειες:** Τώρα μόνο one-time events. Χρειάζεται: daily, weekly, monthly, yearly patterns, recurrence rules, exceptions, display recurring instances
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed - RecurrenceRule enum (DAILY/WEEKLY/MONTHLY/YEARLY), interval + end date, virtual instance expansion, repeat icon in grid, recurrence section in form
 
 #### 8. PWA Configuration
 - **Τι:** Proper PWA setup
@@ -79,7 +79,7 @@
 
 ---
 
-## Ολοκληρωμένα Features (30 items) ✅
+## Ολοκληρωμένα Features (33 items) ✅
 
 | # | Feature | Commit |
 |---|---------|--------|
@@ -113,6 +113,10 @@
 | 28 | Descriptive Error Messages (13 controllers) | Multiple |
 | 29 | Fullscreen Modals (floor plans, z-index fix) | `9cb7ae8` |
 | 30 | Feedback System (widget + admin + screenshot) | `b879e70` |
+| 31 | Signatures UI (Room Sign Off + Project Stage/Final) | `d008e98` |
+| 32 | WebSocket for Messenger (real-time, typing, unread badge) | `d008e98` |
+| 33 | File Sharing in Messenger (upload, preview, lightbox) | Pending commit |
+| 34 | Recurring Calendar Events (daily/weekly/monthly/yearly) | Pending commit |
 
 ---
 

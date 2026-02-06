@@ -4,6 +4,7 @@ import { prisma } from '../utils/prisma.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { sendValidationError } from '../utils/errors.js';
 import { wsManager } from '../utils/ws-manager.js';
+import { storageService } from '../services/storage.service.js';
 
 const participantInclude = {
   user: { select: { id: true, name: true, email: true, avatar: true, role: true } },
@@ -11,6 +12,7 @@ const participantInclude = {
 
 const messageInclude = {
   sender: { select: { id: true, name: true, avatar: true } },
+  attachments: true,
 };
 
 const conversationInclude = {
@@ -237,11 +239,22 @@ export async function messengerRoutes(app: FastifyInstance) {
     const user = request.user as { id: string };
 
     const schema = z.object({
-      content: z.string().min(1, 'Message cannot be empty').max(5000),
+      content: z.string().max(5000).default(''),
+      attachments: z.array(z.object({
+        filename: z.string(),
+        url: z.string(),
+        mimeType: z.string(),
+        size: z.number(),
+      })).optional(),
     });
 
     try {
-      const { content } = schema.parse(request.body);
+      const { content, attachments } = schema.parse(request.body);
+
+      // Must have content or attachments
+      if (!content.trim() && (!attachments || attachments.length === 0)) {
+        return reply.status(400).send({ error: 'Message must have content or attachments' });
+      }
 
       // Verify participation
       const participant = await prisma.conversationParticipant.findUnique({
@@ -254,7 +267,19 @@ export async function messengerRoutes(app: FastifyInstance) {
       // Create message and update conversation + sender's read marker
       const [message] = await prisma.$transaction([
         prisma.message.create({
-          data: { conversationId: id, senderId: user.id, content },
+          data: {
+            conversationId: id,
+            senderId: user.id,
+            content: content || '',
+            attachments: attachments && attachments.length > 0 ? {
+              create: attachments.map(a => ({
+                filename: a.filename,
+                url: a.url,
+                mimeType: a.mimeType,
+                size: a.size,
+              })),
+            } : undefined,
+          },
           include: messageInclude,
         }),
         prisma.conversation.update({
@@ -300,6 +325,59 @@ export async function messengerRoutes(app: FastifyInstance) {
     });
 
     return reply.send({ success: true });
+  });
+
+  // POST /api/messenger/upload - Upload a file for messenger attachment
+  app.post('/upload', async (request: FastifyRequest, reply: FastifyReply) => {
+    const ALLOWED_TYPES = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/plain',
+      'text/csv',
+      'application/zip',
+    ];
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+    const data = await request.file();
+
+    if (!data) {
+      return reply.status(400).send({ error: 'No file uploaded' });
+    }
+
+    if (!ALLOWED_TYPES.includes(data.mimetype)) {
+      return reply.status(400).send({
+        error: 'File type not allowed. Accepted: images, PDF, Word, Excel, text, CSV, ZIP',
+      });
+    }
+
+    const buffer = await data.toBuffer();
+
+    if (buffer.length > MAX_SIZE) {
+      return reply.status(400).send({ error: 'File too large. Maximum size: 10MB' });
+    }
+
+    // Upload images with compression, others as-is
+    let result;
+    if (data.mimetype.startsWith('image/')) {
+      result = await storageService.uploadImage(buffer, data.filename, 'messenger', {
+        maxWidth: 1920,
+        maxHeight: 1080,
+        quality: 85,
+      });
+    } else {
+      result = await storageService.uploadFile(buffer, data.filename, data.mimetype, 'messenger');
+    }
+
+    return reply.send({
+      filename: data.filename,
+      url: result.url,
+      mimeType: result.mimeType,
+      size: result.size,
+    });
   });
 
   // GET /api/messenger/unread - Get total unread count (for sidebar badge)

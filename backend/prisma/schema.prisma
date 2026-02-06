@@ -617,19 +617,29 @@ enum CalendarEventType {
   DELIVERY
 }
 
+enum RecurrenceRule {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
 model CalendarEvent {
-  id          String            @id @default(cuid())
-  title       String
-  description String?
-  startDate   DateTime          @map("start_date")
-  endDate     DateTime?         @map("end_date")
-  allDay      Boolean           @default(false) @map("all_day")
-  type        CalendarEventType @default(REMINDER)
-  color       String?
-  projectId   String?           @map("project_id")
-  createdById String            @map("created_by_id")
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
+  id                 String            @id @default(cuid())
+  title              String
+  description        String?
+  startDate          DateTime          @map("start_date")
+  endDate            DateTime?         @map("end_date")
+  allDay             Boolean           @default(false) @map("all_day")
+  type               CalendarEventType @default(REMINDER)
+  color              String?
+  projectId          String?           @map("project_id")
+  createdById        String            @map("created_by_id")
+  recurrenceRule     RecurrenceRule?   @map("recurrence_rule")
+  recurrenceInterval Int               @default(1) @map("recurrence_interval")
+  recurrenceEnd      DateTime?         @map("recurrence_end")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
 
   project     Project?                @relation(fields: [projectId], references: [id])
   createdBy   User                    @relation("CalendarEvents", fields: [createdById], references: [id])
@@ -689,17 +699,33 @@ model ConversationParticipant {
 }
 
 model Message {
-  id             String       @id @default(cuid())
-  conversationId String       @map("conversation_id")
-  senderId       String       @map("sender_id")
+  id             String              @id @default(cuid())
+  conversationId String              @map("conversation_id")
+  senderId       String              @map("sender_id")
   content        String
-  createdAt      DateTime     @default(now()) @map("created_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
 
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+  conversation   Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User                @relation("SentMessages", fields: [senderId], references: [id])
+  attachments    MessageAttachment[]
 
   @@index([conversationId, createdAt])
   @@map("messages")
+}
+
+model MessageAttachment {
+  id        String   @id @default(cuid())
+  messageId String   @map("message_id")
+  filename  String
+  url       String
+  mimeType  String   @map("mime_type")
+  size      Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("message_attachments")
 }
 
 // ─── Canvas Drawing ─────────────────────────────────────────

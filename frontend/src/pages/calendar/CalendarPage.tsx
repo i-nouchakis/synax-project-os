@@ -14,6 +14,7 @@ import {
   X as XIcon,
   UserPlus,
   Eye,
+  Repeat,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -28,7 +29,7 @@ import {
   Select,
   DateInput,
 } from '@/components/ui';
-import { calendarService, EVENT_TYPES, getEventColor, type CalendarEvent, type CalendarEventType, type CreateCalendarEventData } from '@/services/calendar.service';
+import { calendarService, EVENT_TYPES, RECURRENCE_OPTIONS, getEventColor, getRecurrenceLabel, type CalendarEvent, type CalendarEventType, type RecurrenceRule, type CreateCalendarEventData } from '@/services/calendar.service';
 import { projectService } from '@/services/project.service';
 import { userService } from '@/services/user.service';
 import { useAuthStore } from '@/stores/auth.store';
@@ -76,6 +77,7 @@ export function CalendarPage() {
   const [deletingEvent, setDeletingEvent] = useState<CalendarEvent | null>(null);
   const [selectedDayEvents, setSelectedDayEvents] = useState<{ date: Date; events: CalendarEvent[] } | null>(null);
   const [viewingEvent, setViewingEvent] = useState<CalendarEvent | null>(null);
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -251,6 +253,71 @@ export function CalendarPage() {
     }
   };
 
+  // ─── Drag & Drop handlers ──────────────────────────────────
+  const handleDragStart = (e: React.DragEvent, event: CalendarEvent) => {
+    if (!canManage) return;
+    // For recurring instances, store the original event id
+    const eventId = event.originalEventId || event.id;
+    e.dataTransfer.setData('text/plain', JSON.stringify({
+      eventId,
+      startDate: event.startDate,
+      endDate: event.endDate || null,
+    }));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, dateKey: string) => {
+    if (!canManage) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverDate(dateKey);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverDate(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetDate: Date) => {
+    e.preventDefault();
+    setDragOverDate(null);
+    if (!canManage) return;
+
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+      const { eventId, startDate: origStart, endDate: origEnd } = data as {
+        eventId: string;
+        startDate: string;
+        endDate: string | null;
+      };
+
+      const oldStart = new Date(origStart);
+      // If dropping on the same day, do nothing
+      if (isSameDay(oldStart, targetDate)) return;
+
+      // Calculate new start: keep the same time, change the date
+      const newStart = new Date(targetDate);
+      newStart.setHours(oldStart.getHours(), oldStart.getMinutes(), oldStart.getSeconds());
+
+      // Shift endDate by the same offset
+      let newEnd: string | null = null;
+      if (origEnd) {
+        const oldEnd = new Date(origEnd);
+        const diffMs = newStart.getTime() - oldStart.getTime();
+        newEnd = new Date(oldEnd.getTime() + diffMs).toISOString();
+      }
+
+      updateEventMutation.mutate({
+        id: eventId,
+        data: {
+          startDate: newStart.toISOString(),
+          endDate: newEnd,
+        },
+      });
+    } catch {
+      // Ignore invalid drag data
+    }
+  };
+
   const weekLabel = useMemo(() => {
     const cells = buildWeekGrid();
     const start = cells[0].date;
@@ -345,16 +412,22 @@ export function CalendarPage() {
             {grid.map((cell, idx) => {
               const dayEvents = getEventsForDay(cell.date);
               const today = isToday(cell.date);
+              const dateKey = cell.date.toISOString().split('T')[0];
+              const isDragTarget = dragOverDate === dateKey;
               return (
                 <div
                   key={idx}
                   onClick={() => handleDayClick(cell.date, dayEvents)}
+                  onDragOver={(e) => handleDragOver(e, dateKey)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, cell.date)}
                   className={`
                     ${viewMode === 'month' ? 'min-h-[100px]' : 'min-h-[200px]'}
                     border-b border-r border-surface-border p-1.5 cursor-pointer
                     hover:bg-surface-hover/50 transition-colors
                     ${!cell.isCurrentMonth ? 'opacity-40' : ''}
                     ${idx % 7 === 0 ? 'border-l' : ''}
+                    ${isDragTarget ? 'bg-primary/10 ring-2 ring-inset ring-primary/30' : ''}
                   `}
                 >
                   {/* Day number */}
@@ -381,19 +454,22 @@ export function CalendarPage() {
                       return (
                       <div
                         key={event.id}
-                        className="px-1.5 py-0.5 rounded text-caption hover:opacity-80"
+                        draggable={canManage}
+                        onDragStart={(e) => handleDragStart(e, event)}
+                        className={`px-1.5 py-0.5 rounded text-caption hover:opacity-80 ${canManage ? 'cursor-grab active:cursor-grabbing' : ''}`}
                         style={{ backgroundColor: `${color}20`, color }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedDayEvents({ date: cell.date, events: dayEvents });
                         }}
-                        title={`${event.title} (${timeStr})`}
+                        title={`${event.title} (${timeStr})${canManage ? ' — Drag to reschedule' : ''}`}
                       >
                         <div className="flex items-center gap-1 truncate">
                           <span
                             className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                             style={{ backgroundColor: color }}
                           />
+                          {event.isRecurring && <Repeat size={8} className="flex-shrink-0 opacity-60" />}
                           <span className="truncate">{event.title}</span>
                         </div>
                         <div className="text-[10px] opacity-70 truncate ml-2.5">{timeStr}</div>
@@ -474,6 +550,12 @@ export function CalendarPage() {
                           {event.project && (
                             <span className="text-caption text-primary">{event.project.name}</span>
                           )}
+                          {event.isRecurring && (
+                            <span className="text-caption text-text-tertiary flex items-center gap-1">
+                              <Repeat size={10} />
+                              {getRecurrenceLabel(event.recurrenceRule, event.recurrenceInterval)}
+                            </span>
+                          )}
                         </div>
                         {event.description && (
                           <p className="text-caption text-text-secondary mt-1">{event.description}</p>
@@ -492,8 +574,17 @@ export function CalendarPage() {
                         <>
                           <button
                             onClick={() => {
-                              setEditingEvent(event);
-                              setSelectedDayEvents(null);
+                              // For recurring instances, edit the original event
+                              if (event.originalEventId) {
+                                const originalId = event.originalEventId;
+                                calendarService.getById(originalId).then(orig => {
+                                  setEditingEvent(orig);
+                                  setSelectedDayEvents(null);
+                                }).catch(() => toast.error('Failed to load event'));
+                              } else {
+                                setEditingEvent(event);
+                                setSelectedDayEvents(null);
+                              }
                             }}
                             className="p-1.5 rounded hover:bg-surface text-text-secondary hover:text-primary"
                             title="Edit"
@@ -502,10 +593,15 @@ export function CalendarPage() {
                           </button>
                           <button
                             onClick={() => {
-                              setDeletingEvent(event);
+                              // For recurring instances, delete the original event
+                              if (event.originalEventId) {
+                                setDeletingEvent({ ...event, id: event.originalEventId } as CalendarEvent);
+                              } else {
+                                setDeletingEvent(event);
+                              }
                             }}
                             className="p-1.5 rounded hover:bg-surface text-text-secondary hover:text-error"
-                            title="Delete"
+                            title={event.isRecurring ? 'Delete all occurrences' : 'Delete'}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -594,9 +690,17 @@ export function CalendarPage() {
                 <Button
                   leftIcon={<Pencil size={14} />}
                   onClick={() => {
-                    setEditingEvent(viewingEvent);
-                    setViewingEvent(null);
-                    setSelectedDayEvents(null);
+                    if (viewingEvent.originalEventId) {
+                      calendarService.getById(viewingEvent.originalEventId).then(orig => {
+                        setEditingEvent(orig);
+                        setViewingEvent(null);
+                        setSelectedDayEvents(null);
+                      }).catch(() => toast.error('Failed to load event'));
+                    } else {
+                      setEditingEvent(viewingEvent);
+                      setViewingEvent(null);
+                      setSelectedDayEvents(null);
+                    }
                   }}
                 >
                   Edit
@@ -621,6 +725,17 @@ export function CalendarPage() {
                 </div>
                 {viewingEvent.description && (
                   <p className="text-body-sm text-text-secondary">{viewingEvent.description}</p>
+                )}
+                {viewingEvent.isRecurring && viewingEvent.recurrenceRule && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <Repeat size={14} className="text-text-tertiary" />
+                    <span className="text-body-sm text-text-secondary">
+                      {getRecurrenceLabel(viewingEvent.recurrenceRule, viewingEvent.recurrenceInterval)}
+                      {viewingEvent.recurrenceEnd && (
+                        <> &middot; Until {new Date(viewingEvent.recurrenceEnd).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</>
+                      )}
+                    </span>
+                  </div>
                 )}
               </div>
             </ModalSection>
@@ -735,7 +850,9 @@ export function CalendarPage() {
               Delete <strong>{deletingEvent.title}</strong>?
             </p>
             <p className="text-body-sm text-text-secondary">
-              This action cannot be undone.
+              {deletingEvent.isRecurring
+                ? 'This will delete the event and all its recurring occurrences.'
+                : 'This action cannot be undone.'}
             </p>
           </div>
         </Modal>
@@ -768,6 +885,9 @@ function EventFormModal({ isOpen, onClose, onSubmit, isLoading, event, defaultDa
     type: 'REMINDER' as CalendarEventType,
     projectId: '',
     attendeeIds: [] as string[],
+    recurrenceRule: '' as RecurrenceRule | '',
+    recurrenceInterval: 1,
+    recurrenceEnd: '',
   });
 
   // Fetch users for invite picker
@@ -796,6 +916,9 @@ function EventFormModal({ isOpen, onClose, onSubmit, isLoading, event, defaultDa
         type: event.type,
         projectId: event.projectId || '',
         attendeeIds: event.attendees?.map(a => a.userId) || [],
+        recurrenceRule: event.recurrenceRule || '',
+        recurrenceInterval: event.recurrenceInterval || 1,
+        recurrenceEnd: event.recurrenceEnd ? event.recurrenceEnd.split('T')[0] : '',
       });
     } else if (!event && defaultDateStr !== lastDefaultDate && !lastEventId) {
       setLastDefaultDate(defaultDateStr);
@@ -808,6 +931,9 @@ function EventFormModal({ isOpen, onClose, onSubmit, isLoading, event, defaultDa
         type: 'REMINDER',
         projectId: '',
         attendeeIds: [],
+        recurrenceRule: '',
+        recurrenceInterval: 1,
+        recurrenceEnd: '',
       });
     }
   }
@@ -844,6 +970,11 @@ function EventFormModal({ isOpen, onClose, onSubmit, isLoading, event, defaultDa
       type: formData.type,
       projectId: formData.projectId || null,
       attendeeIds: formData.attendeeIds.length > 0 ? formData.attendeeIds : undefined,
+      recurrenceRule: formData.recurrenceRule || null,
+      recurrenceInterval: formData.recurrenceRule ? formData.recurrenceInterval : 1,
+      recurrenceEnd: formData.recurrenceRule && formData.recurrenceEnd
+        ? new Date(formData.recurrenceEnd + 'T23:59:59').toISOString()
+        : null,
     });
   };
 
@@ -945,6 +1076,34 @@ function EventFormModal({ isOpen, onClose, onSubmit, isLoading, event, defaultDa
                 </>
               )}
             </div>
+          </div>
+        </ModalSection>
+
+        <ModalSection title="Repeat" icon={<Repeat size={14} />}>
+          <div className="space-y-4">
+            <Select
+              label="Recurrence"
+              value={formData.recurrenceRule}
+              onChange={(e) => setFormData({ ...formData, recurrenceRule: e.target.value as RecurrenceRule | '' })}
+              options={RECURRENCE_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+            />
+            {formData.recurrenceRule && (
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label={`Every X ${formData.recurrenceRule === 'DAILY' ? 'days' : formData.recurrenceRule === 'WEEKLY' ? 'weeks' : formData.recurrenceRule === 'MONTHLY' ? 'months' : 'years'}`}
+                  type="number"
+                  min={1}
+                  max={99}
+                  value={formData.recurrenceInterval}
+                  onChange={(e) => setFormData({ ...formData, recurrenceInterval: parseInt(e.target.value) || 1 })}
+                />
+                <DateInput
+                  label="End Date (Optional)"
+                  value={formData.recurrenceEnd}
+                  onChange={(value) => setFormData({ ...formData, recurrenceEnd: value })}
+                />
+              </div>
+            )}
           </div>
         </ModalSection>
 
