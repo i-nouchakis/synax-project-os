@@ -979,6 +979,7 @@ function AssetModelsTab() {
           <IconPicker
             value={formData.icon}
             onChange={(iconName) => setFormData({ ...formData, icon: iconName })}
+            iconSet="asset"
           />
         </ModalSection>
       </Modal>

@@ -33,6 +33,31 @@ import {
   MdRoofing,
   MdWarehouse,
   MdHomeWork,
+  MdRouter,
+  MdCable,
+  MdSecurity,
+  MdMonitor,
+  MdComputer,
+  MdPrint,
+  MdKeyboard,
+  MdMouse,
+  MdUsb,
+  MdMemory,
+  MdSettingsEthernet,
+  MdDeviceHub,
+  MdCast,
+  MdSpeaker,
+  MdPhoneAndroid,
+  MdDesktopWindows,
+  MdTv,
+  MdVideocam,
+  MdPowerSettingsNew,
+  MdDns,
+  MdCloud,
+  MdLan,
+  MdElectricalServices,
+  MdSettingsInputAntenna,
+  MdSdCard,
 } from 'react-icons/md';
 
 import {
@@ -55,6 +80,18 @@ import {
   FaSchool,
   FaHotel,
   FaWineGlass,
+  FaPlug,
+  FaHdd,
+  FaDatabase,
+  FaMicrochip,
+  FaSatelliteDish,
+  FaDesktop,
+  FaLaptop,
+  FaPrint,
+  FaShieldAlt,
+  FaTabletAlt,
+  FaUsb,
+  FaKeyboard,
 } from 'react-icons/fa';
 
 import {
@@ -62,6 +99,9 @@ import {
   BsReception4,
   BsLamp,
   BsHouseDoor,
+  BsEthernet,
+  BsCpu,
+  BsGpuCard,
 } from 'react-icons/bs';
 
 import {
@@ -158,112 +198,144 @@ export const ROOM_TYPE_ICONS: Record<string, { name: string; icon: React.Compone
   'FaSchool': { name: 'Classroom', icon: FaSchool },
 };
 
-// Get icon component by key
+// Network / IT asset icons
+export const ASSET_ICONS: Record<string, { name: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = {
+  // Network Infrastructure
+  'FaServer': { name: 'Server', icon: FaServer },
+  'MdRouter': { name: 'Router', icon: MdRouter },
+  'FaNetworkWired': { name: 'Switch', icon: FaNetworkWired },
+  'FaShieldAlt': { name: 'Firewall', icon: FaShieldAlt },
+  'FaWifi': { name: 'Access Point', icon: FaWifi },
+  'MdDns': { name: 'DNS Server', icon: MdDns },
+  'MdCloud': { name: 'Cloud', icon: MdCloud },
+  'MdDeviceHub': { name: 'Hub', icon: MdDeviceHub },
+  'MdLan': { name: 'LAN', icon: MdLan },
+  'MdSettingsEthernet': { name: 'Ethernet', icon: MdSettingsEthernet },
+  'BsEthernet': { name: 'Ethernet Port', icon: BsEthernet },
+
+  // Power & Electrical
+  'FaPlug': { name: 'Power Outlet', icon: FaPlug },
+  'FaBolt': { name: 'UPS', icon: FaBolt },
+  'MdPowerSettingsNew': { name: 'Power Supply', icon: MdPowerSettingsNew },
+  'MdElectricalServices': { name: 'Electrical Panel', icon: MdElectricalServices },
+
+  // Connectivity & Cabling
+  'MdCable': { name: 'Cable', icon: MdCable },
+  'MdSettingsInputAntenna': { name: 'Antenna', icon: MdSettingsInputAntenna },
+  'FaSatelliteDish': { name: 'Satellite Dish', icon: FaSatelliteDish },
+  'FaUsb': { name: 'USB', icon: FaUsb },
+  'MdUsb': { name: 'USB Port', icon: MdUsb },
+  'MdCast': { name: 'Streaming', icon: MdCast },
+
+  // End Devices
+  'MdDesktopWindows': { name: 'Desktop PC', icon: MdDesktopWindows },
+  'FaDesktop': { name: 'Workstation', icon: FaDesktop },
+  'FaLaptop': { name: 'Laptop', icon: FaLaptop },
+  'MdMonitor': { name: 'Monitor', icon: MdMonitor },
+  'FaPrint': { name: 'Printer', icon: FaPrint },
+  'MdPrint': { name: 'MFP Printer', icon: MdPrint },
+  'MdPhoneAndroid': { name: 'VoIP Phone', icon: MdPhoneAndroid },
+  'MdTv': { name: 'Smart TV', icon: MdTv },
+  'MdVideocam': { name: 'IP Camera', icon: MdVideocam },
+  'GiCctvCamera': { name: 'CCTV Camera', icon: GiCctvCamera },
+  'FaTabletAlt': { name: 'Tablet', icon: FaTabletAlt },
+  'MdSpeaker': { name: 'Speaker', icon: MdSpeaker },
+  'FaKeyboard': { name: 'Keyboard', icon: FaKeyboard },
+  'MdKeyboard': { name: 'Input Device', icon: MdKeyboard },
+  'MdMouse': { name: 'Mouse', icon: MdMouse },
+  'MdComputer': { name: 'Computer', icon: MdComputer },
+
+  // Storage
+  'FaHdd': { name: 'Hard Drive / NAS', icon: FaHdd },
+  'FaDatabase': { name: 'Database', icon: FaDatabase },
+  'MdStorage': { name: 'Storage', icon: MdStorage },
+  'MdSdCard': { name: 'Media Card', icon: MdSdCard },
+
+  // Components
+  'FaMicrochip': { name: 'Controller', icon: FaMicrochip },
+  'BsCpu': { name: 'CPU', icon: BsCpu },
+  'BsGpuCard': { name: 'GPU', icon: BsGpuCard },
+  'MdMemory': { name: 'RAM', icon: MdMemory },
+  'MdSecurity': { name: 'Security Module', icon: MdSecurity },
+};
+
+// Get icon component by key (checks both room and asset icons)
 export function getRoomTypeIcon(iconKey: string | null | undefined): React.ComponentType<{ size?: number; className?: string }> | null {
   if (!iconKey) return null;
-  return ROOM_TYPE_ICONS[iconKey]?.icon || null;
+  return ROOM_TYPE_ICONS[iconKey]?.icon || ASSET_ICONS[iconKey]?.icon || null;
 }
 
 interface IconPickerProps {
   value: string | null | undefined;
   onChange: (iconKey: string) => void;
   className?: string;
+  iconSet?: 'room' | 'asset';
 }
 
-export function IconPicker({ value, onChange, className }: IconPickerProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function IconPicker({ value, onChange, className, iconSet = 'room' }: IconPickerProps) {
   const [search, setSearch] = useState('');
 
-  const filteredIcons = Object.entries(ROOM_TYPE_ICONS).filter(([, data]) =>
+  const icons = iconSet === 'asset' ? ASSET_ICONS : ROOM_TYPE_ICONS;
+
+  const filteredIcons = Object.entries(icons).filter(([, data]) =>
     data.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const selectedIcon = value ? ROOM_TYPE_ICONS[value] : null;
+  const selectedIcon = value ? (icons[value] || ROOM_TYPE_ICONS[value] || ASSET_ICONS[value]) : null;
   const SelectedIconComponent = selectedIcon?.icon;
 
   return (
-    <div className={cn('relative', className)}>
-      {/* Trigger button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          'w-full flex items-center gap-3 px-3 py-2 rounded-md border transition-colors text-left',
-          'bg-surface border-surface-border hover:border-primary/50',
-          isOpen && 'border-primary ring-2 ring-primary/20'
-        )}
-      >
-        {SelectedIconComponent ? (
-          <>
-            <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
-              <SelectedIconComponent size={20} className="text-primary" />
-            </div>
-            <span className="text-body text-text-primary">{selectedIcon?.name}</span>
-          </>
-        ) : (
-          <span className="text-body text-text-tertiary">Select an icon...</span>
-        )}
-      </button>
-
-      {/* Dropdown */}
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
-
-          {/* Picker panel */}
-          <div className="absolute top-full left-0 mt-1 w-80 max-h-96 bg-surface border border-surface-border rounded-lg shadow-lg z-50 overflow-hidden">
-            {/* Search */}
-            <div className="p-2 border-b border-surface-border">
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search icons..."
-                className="w-full px-3 py-2 bg-surface-secondary border border-surface-border rounded-md text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary"
-                autoFocus
-              />
-            </div>
-
-            {/* Icons grid */}
-            <div className="p-2 max-h-72 overflow-y-auto">
-              <div className="grid grid-cols-5 gap-1">
-                {filteredIcons.map(([key, data]) => {
-                  const IconComponent = data.icon;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => {
-                        onChange(key);
-                        setIsOpen(false);
-                        setSearch('');
-                      }}
-                      title={data.name}
-                      className={cn(
-                        'p-2 rounded-md transition-colors flex items-center justify-center',
-                        'hover:bg-surface-hover',
-                        value === key && 'bg-primary/10 text-primary'
-                      )}
-                    >
-                      <IconComponent size={24} className={value === key ? 'text-primary' : 'text-text-secondary'} />
-                    </button>
-                  );
-                })}
-              </div>
-
-              {filteredIcons.length === 0 && (
-                <p className="text-center text-body-sm text-text-tertiary py-4">
-                  No icons found
-                </p>
-              )}
-            </div>
+    <div className={cn('space-y-3', className)}>
+      {/* Selected icon display */}
+      {SelectedIconComponent && (
+        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <SelectedIconComponent size={18} className="text-primary" />
           </div>
-        </>
+          <span className="text-body-sm font-medium text-primary">{selectedIcon?.name}</span>
+        </div>
       )}
+
+      {/* Search */}
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search icons..."
+        className="w-full px-3 py-2 bg-surface-secondary border border-surface-border rounded-md text-body-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary"
+      />
+
+      {/* Icons grid */}
+      <div className="max-h-48 overflow-y-auto rounded-lg border border-surface-border bg-surface-secondary p-3">
+        {filteredIcons.length === 0 ? (
+          <div className="py-4 text-center text-text-tertiary">
+            <p className="text-body-sm">No icons found</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-7 gap-2.5">
+            {filteredIcons.map(([key, data]) => {
+              const IconComponent = data.icon;
+              const isSelected = value === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  title={data.name}
+                  onClick={() => onChange(key)}
+                  className={cn(
+                    'w-11 h-11 rounded-lg flex items-center justify-center transition-all',
+                    isSelected
+                      ? 'bg-primary ring-2 ring-primary text-white'
+                      : 'bg-surface-hover text-text-primary hover:bg-primary/30 hover:text-white'
+                  )}
+                >
+                  <IconComponent size={22} />
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
