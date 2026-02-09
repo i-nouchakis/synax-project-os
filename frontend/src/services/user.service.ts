@@ -47,6 +47,11 @@ export const userService = {
     return response.user;
   },
 
+  // Reset user password (Admin only)
+  async resetPassword(id: string, newPassword: string): Promise<void> {
+    await api.put(`/users/${id}/reset-password`, { newPassword });
+  },
+
   // Delete user (Admin only)
   async delete(id: string): Promise<void> {
     await api.delete(`/users/${id}`);

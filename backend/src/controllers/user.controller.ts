@@ -290,6 +290,31 @@ export async function userRoutes(app: FastifyInstance) {
     }
   });
 
+  // PUT /api/users/:id/reset-password - Admin reset password
+  app.put('/:id/reset-password', {
+    preHandler: [requireRole(['ADMIN'])],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const schema = z.object({ newPassword: z.string().min(6) });
+
+    try {
+      const { newPassword } = schema.parse(request.body);
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+
+      await prisma.user.update({
+        where: { id },
+        data: { passwordHash },
+      });
+
+      return reply.send({ message: 'Password reset successfully' });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return sendValidationError(reply, error);
+      }
+      throw error;
+    }
+  });
+
   // DELETE /api/users/:id - Delete user (Admin only)
   app.delete('/:id', {
     preHandler: [requireRole(['ADMIN'])],

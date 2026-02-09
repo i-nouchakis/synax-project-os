@@ -436,15 +436,38 @@ function EditUserModal({ isOpen, onClose, user, onSubmit, isLoading }: EditUserM
     name: user.name,
     role: user.role,
   });
+  const [newPassword, setNewPassword] = useState('');
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: () => userService.resetPassword(user.id, newPassword),
+    onSuccess: () => {
+      toast.success('Password reset successfully');
+      setNewPassword('');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to reset password');
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
   };
 
+  const handleResetPassword = () => {
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    if (confirm(`Are you sure you want to reset the password for ${user.name}?`)) {
+      resetPasswordMutation.mutate();
+    }
+  };
+
   // Update form when user changes
   useEffect(() => {
     setFormData({ name: user.name, role: user.role });
+    setNewPassword('');
   }, [user]);
 
   return (
@@ -498,6 +521,29 @@ function EditUserModal({ isOpen, onClose, user, onSubmit, isLoading }: EditUserM
           />
         </ModalSection>
       </form>
+
+      <div className="mt-5">
+        <ModalSection title="Reset Password" icon={<Key size={14} />}>
+          <div className="flex gap-2">
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New password (min 6 chars)"
+              leftIcon={<Key size={16} />}
+            />
+            <Button
+              type="button"
+              variant="danger"
+              onClick={handleResetPassword}
+              isLoading={resetPasswordMutation.isPending}
+              className="shrink-0"
+            >
+              Reset
+            </Button>
+          </div>
+        </ModalSection>
+      </div>
     </Modal>
   );
 }
