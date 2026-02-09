@@ -32,48 +32,53 @@ function randomDate(daysAgo: number): Date {
 async function main() {
   console.log('🗑️  Clearing database...');
 
+  // Helper: try delete, skip if table doesn't exist
+  async function tryDelete(fn: () => Promise<unknown>, name: string) {
+    try { await fn(); } catch { console.log(`  ⚠️  Skipped ${name} (table may not exist)`); }
+  }
+
   // Delete in correct order (respecting foreign keys)
-  await prisma.messageAttachment.deleteMany();
-  await prisma.message.deleteMany();
-  await prisma.conversationParticipant.deleteMany();
-  await prisma.conversation.deleteMany();
-  await prisma.calendarEventAttendee.deleteMany();
-  await prisma.calendarEvent.deleteMany();
-  await prisma.cable.deleteMany();
-  await prisma.cableBundle.deleteMany();
-  await prisma.drawingShape.deleteMany();
-  await prisma.checklistPhoto.deleteMany();
-  await prisma.checklistItem.deleteMany();
-  await prisma.checklist.deleteMany();
-  await prisma.checklistTemplateItem.deleteMany();
-  await prisma.checklistTemplate.deleteMany();
-  await prisma.issueComment.deleteMany();
-  await prisma.issuePhoto.deleteMany();
-  await prisma.issue.deleteMany();
-  await prisma.inventoryLog.deleteMany();
-  await prisma.inventoryItem.deleteMany();
-  await prisma.signature.deleteMany();
-  await prisma.generatedReport.deleteMany();
-  await prisma.projectFile.deleteMany();
-  await prisma.label.deleteMany();
-  await prisma.asset.deleteMany();
-  await prisma.room.deleteMany();
-  await prisma.floor.deleteMany();
-  await prisma.building.deleteMany();
-  await prisma.projectMember.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.feedback.deleteMany();
-  await prisma.client.deleteMany();
-  await prisma.project.deleteMany();
-  await prisma.refreshToken.deleteMany();
-  await prisma.passwordResetToken.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.lookupAssetModel.deleteMany();
-  await prisma.lookupManufacturer.deleteMany();
-  await prisma.lookupRoomType.deleteMany();
-  await prisma.lookupInventoryUnit.deleteMany();
-  await prisma.lookupIssueCause.deleteMany();
-  await prisma.assetType.deleteMany();
+  await tryDelete(() => prisma.messageAttachment.deleteMany(), 'messageAttachment');
+  await tryDelete(() => prisma.message.deleteMany(), 'message');
+  await tryDelete(() => prisma.conversationParticipant.deleteMany(), 'conversationParticipant');
+  await tryDelete(() => prisma.conversation.deleteMany(), 'conversation');
+  await tryDelete(() => prisma.calendarEventAttendee.deleteMany(), 'calendarEventAttendee');
+  await tryDelete(() => prisma.calendarEvent.deleteMany(), 'calendarEvent');
+  await tryDelete(() => prisma.cable.deleteMany(), 'cable');
+  await tryDelete(() => prisma.cableBundle.deleteMany(), 'cableBundle');
+  await tryDelete(() => prisma.drawingShape.deleteMany(), 'drawingShape');
+  await tryDelete(() => prisma.checklistPhoto.deleteMany(), 'checklistPhoto');
+  await tryDelete(() => prisma.checklistItem.deleteMany(), 'checklistItem');
+  await tryDelete(() => prisma.checklist.deleteMany(), 'checklist');
+  await tryDelete(() => prisma.checklistTemplateItem.deleteMany(), 'checklistTemplateItem');
+  await tryDelete(() => prisma.checklistTemplate.deleteMany(), 'checklistTemplate');
+  await tryDelete(() => prisma.issueComment.deleteMany(), 'issueComment');
+  await tryDelete(() => prisma.issuePhoto.deleteMany(), 'issuePhoto');
+  await tryDelete(() => prisma.issue.deleteMany(), 'issue');
+  await tryDelete(() => prisma.inventoryLog.deleteMany(), 'inventoryLog');
+  await tryDelete(() => prisma.inventoryItem.deleteMany(), 'inventoryItem');
+  await tryDelete(() => prisma.signature.deleteMany(), 'signature');
+  await tryDelete(() => prisma.generatedReport.deleteMany(), 'generatedReport');
+  await tryDelete(() => prisma.projectFile.deleteMany(), 'projectFile');
+  await tryDelete(() => prisma.label.deleteMany(), 'label');
+  await tryDelete(() => prisma.asset.deleteMany(), 'asset');
+  await tryDelete(() => prisma.room.deleteMany(), 'room');
+  await tryDelete(() => prisma.floor.deleteMany(), 'floor');
+  await tryDelete(() => prisma.building.deleteMany(), 'building');
+  await tryDelete(() => prisma.projectMember.deleteMany(), 'projectMember');
+  await tryDelete(() => prisma.notification.deleteMany(), 'notification');
+  await tryDelete(() => prisma.feedback.deleteMany(), 'feedback');
+  await tryDelete(() => prisma.client.deleteMany(), 'client');
+  await tryDelete(() => prisma.project.deleteMany(), 'project');
+  await tryDelete(() => prisma.refreshToken.deleteMany(), 'refreshToken');
+  await tryDelete(() => prisma.passwordResetToken.deleteMany(), 'passwordResetToken');
+  await tryDelete(() => prisma.user.deleteMany(), 'user');
+  await tryDelete(() => prisma.lookupAssetModel.deleteMany(), 'lookupAssetModel');
+  await tryDelete(() => prisma.lookupManufacturer.deleteMany(), 'lookupManufacturer');
+  await tryDelete(() => prisma.lookupRoomType.deleteMany(), 'lookupRoomType');
+  await tryDelete(() => prisma.lookupInventoryUnit.deleteMany(), 'lookupInventoryUnit');
+  await tryDelete(() => prisma.lookupIssueCause.deleteMany(), 'lookupIssueCause');
+  await tryDelete(() => prisma.assetType.deleteMany(), 'assetType');
 
   console.log('✅ Database cleared');
 
