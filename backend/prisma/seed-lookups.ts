@@ -134,43 +134,81 @@ async function main() {
   console.log(`✅ Manufacturers: ${manufacturers.length} items`);
 
   // ============================================
+  // Asset Types
+  // ============================================
+  const assetTypes = [
+    { name: 'Switch', icon: 'network' },
+    { name: 'Router', icon: 'router' },
+    { name: 'Access Point', icon: 'wifi' },
+    { name: 'Firewall', icon: 'shield' },
+    { name: 'Server', icon: 'server' },
+    { name: 'IP Camera', icon: 'camera' },
+    { name: 'NVR', icon: 'hard-drive' },
+    { name: 'UPS', icon: 'battery-charging' },
+    { name: 'Rack Cabinet', icon: 'archive' },
+    { name: 'Patch Panel', icon: 'cable' },
+    { name: 'Media Converter', icon: 'repeat' },
+    { name: 'PoE Injector', icon: 'plug' },
+    { name: 'Antenna', icon: 'radio' },
+    { name: 'Sensor', icon: 'thermometer' },
+    { name: 'Controller', icon: 'cpu' },
+    { name: 'Display', icon: 'monitor' },
+    { name: 'Printer', icon: 'printer' },
+    { name: 'Phone', icon: 'phone' },
+    { name: 'Other', icon: 'circle' },
+  ];
+
+  const assetTypeMap: Record<string, string> = {};
+
+  for (const at of assetTypes) {
+    const created = await prisma.assetType.upsert({
+      where: { name: at.name },
+      update: { icon: at.icon },
+      create: at,
+    });
+    assetTypeMap[at.name] = created.id;
+  }
+  console.log(`✅ Asset Types: ${assetTypes.length} items`);
+
+  // ============================================
   // Asset Models
   // ============================================
   const assetModels = [
     // Cisco
-    { manufacturer: 'Cisco', name: 'Catalyst 9300', order: 1 },
-    { manufacturer: 'Cisco', name: 'Catalyst 9200', order: 2 },
-    { manufacturer: 'Cisco', name: 'Catalyst 2960X', order: 3 },
-    { manufacturer: 'Cisco', name: 'ISR 4000', order: 4 },
-    { manufacturer: 'Cisco', name: 'Meraki MR46', order: 5 },
-    { manufacturer: 'Cisco', name: 'Meraki MS120', order: 6 },
+    { manufacturer: 'Cisco', name: 'Catalyst 9300', assetType: 'Switch', order: 1 },
+    { manufacturer: 'Cisco', name: 'Catalyst 9200', assetType: 'Switch', order: 2 },
+    { manufacturer: 'Cisco', name: 'Catalyst 2960X', assetType: 'Switch', order: 3 },
+    { manufacturer: 'Cisco', name: 'ISR 4000', assetType: 'Router', order: 4 },
+    { manufacturer: 'Cisco', name: 'Meraki MR46', assetType: 'Access Point', order: 5 },
+    { manufacturer: 'Cisco', name: 'Meraki MS120', assetType: 'Switch', order: 6 },
 
     // Ubiquiti
-    { manufacturer: 'Ubiquiti', name: 'UniFi 6 Pro', order: 1 },
-    { manufacturer: 'Ubiquiti', name: 'UniFi 6 LR', order: 2 },
-    { manufacturer: 'Ubiquiti', name: 'UniFi 6 Lite', order: 3 },
-    { manufacturer: 'Ubiquiti', name: 'UniFi Switch Pro 24', order: 4 },
-    { manufacturer: 'Ubiquiti', name: 'UniFi Switch Pro 48', order: 5 },
-    { manufacturer: 'Ubiquiti', name: 'UniFi Dream Machine Pro', order: 6 },
+    { manufacturer: 'Ubiquiti', name: 'UniFi 6 Pro', assetType: 'Access Point', order: 1 },
+    { manufacturer: 'Ubiquiti', name: 'UniFi 6 LR', assetType: 'Access Point', order: 2 },
+    { manufacturer: 'Ubiquiti', name: 'UniFi 6 Lite', assetType: 'Access Point', order: 3 },
+    { manufacturer: 'Ubiquiti', name: 'UniFi Switch Pro 24', assetType: 'Switch', order: 4 },
+    { manufacturer: 'Ubiquiti', name: 'UniFi Switch Pro 48', assetType: 'Switch', order: 5 },
+    { manufacturer: 'Ubiquiti', name: 'UniFi Dream Machine Pro', assetType: 'Router', order: 6 },
 
     // Dahua
-    { manufacturer: 'Dahua', name: 'IPC-HDBW2431E', order: 1 },
-    { manufacturer: 'Dahua', name: 'IPC-HFW2831S', order: 2 },
-    { manufacturer: 'Dahua', name: 'NVR5216-16P-4KS2E', order: 3 },
+    { manufacturer: 'Dahua', name: 'IPC-HDBW2431E', assetType: 'IP Camera', order: 1 },
+    { manufacturer: 'Dahua', name: 'IPC-HFW2831S', assetType: 'IP Camera', order: 2 },
+    { manufacturer: 'Dahua', name: 'NVR5216-16P-4KS2E', assetType: 'NVR', order: 3 },
 
     // Hikvision
-    { manufacturer: 'Hikvision', name: 'DS-2CD2143G2-I', order: 1 },
-    { manufacturer: 'Hikvision', name: 'DS-2CD2683G2-IZS', order: 2 },
-    { manufacturer: 'Hikvision', name: 'DS-7616NI-K2/16P', order: 3 },
+    { manufacturer: 'Hikvision', name: 'DS-2CD2143G2-I', assetType: 'IP Camera', order: 1 },
+    { manufacturer: 'Hikvision', name: 'DS-2CD2683G2-IZS', assetType: 'IP Camera', order: 2 },
+    { manufacturer: 'Hikvision', name: 'DS-7616NI-K2/16P', assetType: 'NVR', order: 3 },
 
     // APC
-    { manufacturer: 'APC', name: 'Smart-UPS 1500VA', order: 1 },
-    { manufacturer: 'APC', name: 'Smart-UPS 3000VA', order: 2 },
-    { manufacturer: 'APC', name: 'NetShelter SX 42U', order: 3 },
+    { manufacturer: 'APC', name: 'Smart-UPS 1500VA', assetType: 'UPS', order: 1 },
+    { manufacturer: 'APC', name: 'Smart-UPS 3000VA', assetType: 'UPS', order: 2 },
+    { manufacturer: 'APC', name: 'NetShelter SX 42U', assetType: 'Rack Cabinet', order: 3 },
   ];
 
   for (const model of assetModels) {
     const manufacturerId = manufacturerMap[model.manufacturer];
+    const assetTypeId = assetTypeMap[model.assetType];
     if (manufacturerId) {
       await prisma.lookupAssetModel.upsert({
         where: {
@@ -179,11 +217,12 @@ async function main() {
             name: model.name,
           },
         },
-        update: { order: model.order },
+        update: { order: model.order, assetTypeId },
         create: {
           manufacturerId,
           name: model.name,
           order: model.order,
+          assetTypeId,
         },
       });
     }
