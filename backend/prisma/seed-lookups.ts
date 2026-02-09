@@ -9,26 +9,26 @@ async function main() {
   // Room Types
   // ============================================
   const roomTypes = [
-    { name: 'Server Room', icon: 'server', order: 1 },
-    { name: 'Comms Room', icon: 'router', order: 2 },
-    { name: 'Data Center', icon: 'database', order: 3 },
-    { name: 'Network Closet', icon: 'network', order: 4 },
-    { name: 'Office', icon: 'briefcase', order: 5 },
-    { name: 'Meeting Room', icon: 'users', order: 6 },
-    { name: 'Reception', icon: 'door-open', order: 7 },
-    { name: 'Lobby', icon: 'building', order: 8 },
-    { name: 'Hallway', icon: 'move-horizontal', order: 9 },
-    { name: 'Storage', icon: 'archive', order: 10 },
-    { name: 'Utility Room', icon: 'wrench', order: 11 },
-    { name: 'Guest Room', icon: 'bed', order: 12 },
-    { name: 'Suite', icon: 'home', order: 13 },
-    { name: 'Restaurant', icon: 'utensils', order: 14 },
-    { name: 'Bar', icon: 'wine', order: 15 },
-    { name: 'Pool Area', icon: 'waves', order: 16 },
-    { name: 'Gym', icon: 'dumbbell', order: 17 },
-    { name: 'Spa', icon: 'sparkles', order: 18 },
-    { name: 'Parking', icon: 'car', order: 19 },
-    { name: 'Other', icon: 'circle', order: 99 },
+    { name: 'Server Room', icon: 'FaServer', order: 1 },
+    { name: 'Comms Room', icon: 'FaWifi', order: 2 },
+    { name: 'Data Center', icon: 'FaNetworkWired', order: 3 },
+    { name: 'Network Closet', icon: 'MdLan', order: 4 },
+    { name: 'Office', icon: 'MdDesk', order: 5 },
+    { name: 'Meeting Room', icon: 'MdMeetingRoom', order: 6 },
+    { name: 'Reception', icon: 'BsReception4', order: 7 },
+    { name: 'Lobby', icon: 'BsLamp', order: 8 },
+    { name: 'Hallway', icon: 'MdDoorFront', order: 9 },
+    { name: 'Storage', icon: 'MdStorage', order: 10 },
+    { name: 'Utility Room', icon: 'FaBolt', order: 11 },
+    { name: 'Guest Room', icon: 'MdBed', order: 12 },
+    { name: 'Suite', icon: 'FaBed', order: 13 },
+    { name: 'Restaurant', icon: 'MdRestaurant', order: 14 },
+    { name: 'Bar', icon: 'MdLocalBar', order: 15 },
+    { name: 'Pool Area', icon: 'MdPool', order: 16 },
+    { name: 'Gym', icon: 'MdFitnessCenter', order: 17 },
+    { name: 'Spa', icon: 'MdSpa', order: 18 },
+    { name: 'Parking', icon: 'MdLocalParking', order: 19 },
+    { name: 'Other', icon: 'MdDoorFront', order: 99 },
   ];
 
   for (const rt of roomTypes) {
@@ -137,28 +137,29 @@ async function main() {
   // Asset Types
   // ============================================
   const assetTypes = [
-    { name: 'Switch', icon: 'network' },
-    { name: 'Router', icon: 'router' },
-    { name: 'Access Point', icon: 'wifi' },
-    { name: 'Firewall', icon: 'shield' },
-    { name: 'Server', icon: 'server' },
-    { name: 'IP Camera', icon: 'camera' },
-    { name: 'NVR', icon: 'hard-drive' },
-    { name: 'UPS', icon: 'battery-charging' },
-    { name: 'Rack Cabinet', icon: 'archive' },
-    { name: 'Patch Panel', icon: 'cable' },
-    { name: 'Media Converter', icon: 'repeat' },
-    { name: 'PoE Injector', icon: 'plug' },
-    { name: 'Antenna', icon: 'radio' },
-    { name: 'Sensor', icon: 'thermometer' },
-    { name: 'Controller', icon: 'cpu' },
-    { name: 'Display', icon: 'monitor' },
-    { name: 'Printer', icon: 'printer' },
-    { name: 'Phone', icon: 'phone' },
-    { name: 'Other', icon: 'circle' },
+    { name: 'Switch', icon: 'FaNetworkWired' },
+    { name: 'Router', icon: 'MdRouter' },
+    { name: 'Access Point', icon: 'FaWifi' },
+    { name: 'Firewall', icon: 'FaShieldAlt' },
+    { name: 'Server', icon: 'FaServer' },
+    { name: 'IP Camera', icon: 'MdVideocam' },
+    { name: 'NVR', icon: 'FaHdd' },
+    { name: 'UPS', icon: 'FaBolt' },
+    { name: 'Rack Cabinet', icon: 'MdStorage' },
+    { name: 'Patch Panel', icon: 'MdCable' },
+    { name: 'Media Converter', icon: 'MdDeviceHub' },
+    { name: 'PoE Injector', icon: 'FaPlug' },
+    { name: 'Antenna', icon: 'MdSettingsInputAntenna' },
+    { name: 'Sensor', icon: 'MdSecurity' },
+    { name: 'Controller', icon: 'FaMicrochip' },
+    { name: 'Display', icon: 'MdMonitor' },
+    { name: 'Printer', icon: 'FaPrint' },
+    { name: 'Phone', icon: 'MdPhoneAndroid' },
+    { name: 'Other', icon: 'MdDeviceHub' },
   ];
 
   const assetTypeMap: Record<string, string> = {};
+  const assetTypeIconMap: Record<string, string> = {};
 
   for (const at of assetTypes) {
     const created = await prisma.assetType.upsert({
@@ -167,6 +168,7 @@ async function main() {
       create: at,
     });
     assetTypeMap[at.name] = created.id;
+    assetTypeIconMap[at.name] = at.icon;
   }
   console.log(`✅ Asset Types: ${assetTypes.length} items`);
 
@@ -209,6 +211,7 @@ async function main() {
   for (const model of assetModels) {
     const manufacturerId = manufacturerMap[model.manufacturer];
     const assetTypeId = assetTypeMap[model.assetType];
+    const icon = assetTypeIconMap[model.assetType];
     if (manufacturerId) {
       await prisma.lookupAssetModel.upsert({
         where: {
@@ -217,12 +220,13 @@ async function main() {
             name: model.name,
           },
         },
-        update: { order: model.order, assetTypeId },
+        update: { order: model.order, assetTypeId, icon },
         create: {
           manufacturerId,
           name: model.name,
           order: model.order,
           assetTypeId,
+          icon,
         },
       });
     }
