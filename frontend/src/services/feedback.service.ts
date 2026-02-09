@@ -52,7 +52,7 @@ export const feedbackService = {
     return api.get(`/feedback${params}`);
   },
 
-  update(id: string, data: { adminNotes?: string; resolved?: boolean }): Promise<Feedback> {
+  update(id: string, data: { adminNotes?: string; resolved?: boolean; type?: FeedbackType }): Promise<Feedback> {
     return api.put(`/feedback/${id}`, data);
   },
 

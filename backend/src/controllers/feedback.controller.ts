@@ -84,13 +84,14 @@ export async function feedbackRoutes(app: FastifyInstance) {
     preHandler: requireRole(['ADMIN']),
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as { adminNotes?: string; resolved?: boolean };
+    const body = request.body as { adminNotes?: string; resolved?: boolean; type?: string };
 
     const feedback = await prisma.feedback.update({
       where: { id },
       data: {
         ...(body.adminNotes !== undefined && { adminNotes: body.adminNotes || null }),
         ...(body.resolved !== undefined && { resolved: body.resolved }),
+        ...(body.type && FEEDBACK_TYPES.includes(body.type as typeof FEEDBACK_TYPES[number]) && { type: body.type as typeof FEEDBACK_TYPES[number] }),
       },
       include: { user: { select: { id: true, name: true, email: true, avatar: true } } },
     });

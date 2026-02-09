@@ -48,7 +48,7 @@ export function FeedbackPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { adminNotes?: string; resolved?: boolean } }) =>
+    mutationFn: ({ id, data }: { id: string; data: { adminNotes?: string; resolved?: boolean; type?: FeedbackType } }) =>
       feedbackService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['feedback'] });
@@ -91,6 +91,14 @@ export function FeedbackPage() {
     updateMutation.mutate(
       { id: item.id, data: { resolved: !item.resolved } },
       { onSuccess: () => { if (selectedItem?.id === item.id) setSelectedItem({ ...item, resolved: !item.resolved }); } }
+    );
+  };
+
+  const handleToggleType = (item: Feedback) => {
+    const newType: FeedbackType = item.type === 'BUG' ? 'CHANGE' : 'BUG';
+    updateMutation.mutate(
+      { id: item.id, data: { type: newType } },
+      { onSuccess: () => { if (selectedItem?.id === item.id) setSelectedItem({ ...item, type: newType }); } }
     );
   };
 
@@ -294,10 +302,23 @@ export function FeedbackPage() {
           <div className="space-y-4">
             {/* Meta info */}
             <div className="flex items-center gap-4 text-caption text-text-tertiary flex-wrap">
-              <Badge variant={TYPE_CONFIG[selectedItem.type].variant} size="sm">
-                {TYPE_CONFIG[selectedItem.type].icon}
-                <span className="ml-1">{TYPE_CONFIG[selectedItem.type].label}</span>
-              </Badge>
+              <div className="flex gap-1 bg-surface border border-surface-border rounded-lg p-0.5">
+                {(['BUG', 'CHANGE'] as FeedbackType[]).map((t) => {
+                  const cfg = TYPE_CONFIG[t];
+                  const isActive = selectedItem.type === t;
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => { if (!isActive) handleToggleType(selectedItem); }}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-caption font-medium transition-colors ${
+                        isActive ? 'bg-primary text-white' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                      }`}
+                    >
+                      {cfg.icon} {cfg.label}
+                    </button>
+                  );
+                })}
+              </div>
               {selectedItem.resolved && (
                 <Badge variant="success" size="sm">
                   <CheckCircle2 size={12} className="mr-1" />
