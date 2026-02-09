@@ -1,0 +1,101 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PROJECT_DIR=\"/home/administrator/projects/synax\" bash \"/home/administrator/projects/Claude App/backend/src/project-sandbox.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PROJECT_DIR=\"/home/administrator/projects/synax\" bash \"/home/administrator/projects/Claude App/backend/src/project-sandbox.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PROJECT_DIR=\"/home/administrator/projects/synax\" bash \"/home/administrator/projects/Claude App/backend/src/project-sandbox.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PROJECT_DIR=\"/home/administrator/projects/synax\" bash \"/home/administrator/projects/Claude App/backend/src/project-sandbox.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PROJECT_DIR=\"/home/administrator/projects/synax\" bash \"/home/administrator/projects/Claude App/backend/src/project-sandbox.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PROJECT_DIR=\"/home/administrator/projects/synax\" bash \"/home/administrator/projects/Claude App/backend/src/project-sandbox.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PROJECT_DIR=\"/home/administrator/projects/synax\" bash \"/home/administrator/projects/Claude App/backend/src/project-sandbox.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash(ls*)",
+      "Bash(cat*)",
+      "Bash(mkdir*)",
+      "Bash(npm*)",
+      "Bash(node*)",
+      "Bash(npx*)",
+      "Bash(git*)",
+      "Bash(sleep*)",
+      "Bash(/bin/sleep*)",
+      "Bash(echo*)",
+      "Bash(test*)",
+      "Bash(pwd*)",
+      "Bash(which*)",
+      "Bash(curl*)",
+      "mcp__claude-app__*"
+    ]
+  }
+}

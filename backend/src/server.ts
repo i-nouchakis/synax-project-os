@@ -29,6 +29,7 @@ import { messengerRoutes } from './controllers/messenger.controller.js';
 import { drawingShapeRoutes } from './controllers/drawing-shape.controller.js';
 import { cableRoutes } from './controllers/cable.controller.js';
 import { feedbackRoutes } from './controllers/feedback.controller.js';
+import { notificationRoutes } from './controllers/notification.controller.js';
 
 const app = Fastify({
   logger: {
@@ -92,6 +93,7 @@ const start = async () => {
     await app.register(drawingShapeRoutes, { prefix: '/api/shapes' });
     await app.register(cableRoutes, { prefix: '/api/cables' });
     await app.register(feedbackRoutes, { prefix: '/api/feedback' });
+    await app.register(notificationRoutes, { prefix: '/api/notifications' });
 
     // Start listening
     await app.listen({ port: config.port, host: config.host });

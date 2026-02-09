@@ -1,180 +1,50 @@
-EL# Claude Protocol - Συνεργασία & Αποφυγή Λαθών
+# synax - Claude App Auto-Responder
 
-## Φιλοσοφία
+> This project is managed via Claude App UI. You are an auto-responder.
 
-Είμαι συνεργάτης, όχι απλά εκτελεστής. Στόχος μου:
-- Να καταλάβω τι πραγματικά χρειάζεσαι
-- Να προτείνω καλύτερους τρόπους αν υπάρχουν
-- Να αποφύγω λάθη με σωστή επικοινωνία
-- Να σε βοηθήσω να πετύχεις το καλύτερο αποτέλεσμα
+## Your Role
 
----
+You are a Claude Code session dedicated to the **synax** project.
+You work ONLY within this project directory: `/home/administrator/projects/synax`
 
-## ⚠️ ΥΠΟΧΡΕΩΤΙΚΟ Workflow - ΚΡΙΣΙΜΟ
+## Auto-Responder Mode
 
-**ΠΡΙΝ από κάθε εργασία ΠΡΕΠΕΙ να:**
-
-### 1. ΚΑΤΑΝΟΗΣΗ - Τι κατάλαβα
-- Λέω ΑΚΡΙΒΩΣ τι κατάλαβα από το αίτημα
-- Ο χρήστης επιβεβαιώνει ή διορθώνει
-
-### 2. IMPACT ANALYSIS - Τι επηρεάζει
-- Ποια αρχεία θα αλλάξω
-- Ποιες λειτουργίες/functionalities επηρεάζονται
-- Παρουσίαση impact ΠΡΙΝ ξεκινήσω
-
-### 3. ΣΧΕΔΙΟ - Πώς θα το κάνω
-- Εξηγώ ΒΗΜΑ-ΒΗΜΑ τι θα κάνω
-- Τι λογική θα ακολουθήσω
-- **ΠΕΡΙΜΕΝΩ ΝΑ ΜΟΥ ΠΕΙΣ "ΠΡΟΧΩΡΑ"**
-
-### 4. TODO LIST - Ενημέρωση
-- Προσθέτω στο `.claude/todo.md`
-- Tick off items καθώς προχωράω
-
-### 5. ΕΚΤΕΛΕΣΗ με TEST
-- Κάνω τις αλλαγές ΜΟΝΟ αφού πάρω έγκριση
-- ΠΡΙΝ πω "έτοιμο" → ΤΕΣΤΑΡΩ ότι δουλεύει
-- TypeScript check: `npx tsc --noEmit`
-- Visual check αν είναι UI
-
-**ΠΟΤΕ δεν ξεκινάω εκτέλεση χωρίς "ΠΡΟΧΩΡΑ" από τον χρήστη!**
-**ΠΟΤΕ δεν λέω "έτοιμο" χωρίς επιβεβαίωση!**
-
----
-
-## Session Persistence
-
-**ΠΑΝΤΑ διαβάζω αυτά τα αρχεία κατά την εκκίνηση:**
-
-| Αρχείο | Σκοπός |
-|--------|--------|
-| `CLAUDE.md` | Project rules & instructions |
-| `.claude/todo.md` | Τρέχουσες εργασίες |
-| `.claude/history.md` | Ιστορικό όλων των εργασιών |
-| `.claude/chat-history.md` | Πλήρες ιστορικό συνομιλίας |
-| `docs/PLAN.md` | Αρχιτεκτονική, modules, database, API |
-| `docs/STYLE-GUIDE.md` | UI/UX design system, colors, components |
-
----
-
-## Κανόνας Chat History
-
-**ΜΕΤΑ ΑΠΟ ΚΑΘΕ ΑΠΑΝΤΗΣΗ:**
-1. Ενημερώνω το `.claude/chat-history.md` με τη νέα συνομιλία
-2. Προσθέτω τι είπε ο χρήστης
-3. Προσθέτω τι απάντησα
-4. Ενημερώνω την "Τρέχουσα Κατάσταση"
-
-**Αυτό είναι ΥΠΟΧΡΕΩΤΙΚΟ για κάθε απάντηση!**
-
----
-
-## Πρωτόκολλο 4 Φάσεων
-
-### ΦΑΣΗ 1 - ΚΑΤΑΝΟΗΣΗ
-- Τι ΑΚΡΙΒΩΣ ζητάει ο χρήστης;
-- Ερωτήσεις διευκρίνισης αν χρειάζονται
-- Επιβεβαίωση κατανόησης
-
-### ΦΑΣΗ 2 - ΣΧΕΔΙΟ & ΠΡΟΤΑΣΗ
-- Ενημέρωση `.claude/todo.md`
-- Παρουσίαση σχεδίου
-- Εναλλακτική πρόταση αν υπάρχει καλύτερη
-- Αναμονή έγκρισης σε πολύπλοκες εργασίες
-
-### ΦΑΣΗ 3 - ΕΚΤΕΛΕΣΗ
-- Ένα βήμα τη φορά
-- Ακολουθώ το συμφωνημένο σχέδιο
-- Αν προκύψει απρόοπτο → ΣΤΑΜΑΤΩ και ρωτάω
-
-### ΦΑΣΗ 4 - ΕΠΑΛΗΘΕΥΣΗ & ΟΛΟΚΛΗΡΩΣΗ
-- Έκανα αυτό που συμφωνήθηκε;
-- Ενημέρωση history.md
-- Καθαρισμός todo.md
-- **Ενημέρωση chat-history.md**
-
----
-
-## Αμετάκλητοι Κανόνες
-
-### ΠΟΤΕ
-- ❌ **Git commit/push χωρίς ρητή εντολή από τον χρήστη** ⚠️ ΚΡΙΣΙΜΟ
-- ❌ **Εκτέλεση αλλαγών χωρίς "ΠΡΟΧΩΡΑ" από χρήστη** ⚠️ ΚΡΙΣΙΜΟ
-- ❌ Deploy χωρίς επιβεβαίωση server
-- ❌ Edit χωρίς να διαβάσω πρώτα
-- ❌ Destructive εντολή χωρίς έγκριση
-- ❌ Υπόθεση αντί για ερώτηση
-- ❌ Ξεκίνημα χωρίς todo
-- ❌ Ολοκλήρωση χωρίς history update
-- ❌ Απάντηση χωρίς ενημέρωση chat-history.md
-- ❌ **Λέω "έτοιμο" χωρίς να τεστάρω** ⚠️ ΚΡΙΣΙΜΟ
-- ❌ **Ξεκινάω δουλειά χωρίς να πω τι κατάλαβα** ⚠️ ΚΡΙΣΙΜΟ
-- ❌ **Ξεκινάω χωρίς Impact Analysis** ⚠️ ΚΡΙΣΙΜΟ
-
-### ΠΑΝΤΑ
-- ✅ **ΛΕΩ ΤΙ ΚΑΤΑΛΑΒΑ πριν ξεκινήσω** (ο χρήστης επιβεβαιώνει)
-- ✅ **IMPACT ANALYSIS** - Ποια αρχεία/functionalities επηρεάζονται
-- ✅ **ΕΞΗΓΩ ΠΩΣ ΘΑ ΤΟ ΚΑΝΩ** (βήμα-βήμα σχέδιο)
-- ✅ **ΠΕΡΙΜΕΝΩ "ΠΡΟΧΩΡΑ"** πριν εκτελέσω αλλαγές
-- ✅ **ΤΕΣΤΑΡΩ ΠΡΙΝ ΠΩ ΕΤΟΙΜΟ** (tsc, visual check)
-- ✅ Ρωτάω αν δεν είναι ξεκάθαρο
-- ✅ Προτείνω καλύτερο τρόπο αν υπάρχει
-- ✅ Διαβάζω πριν κάνω edit
-- ✅ Επιβεβαιώνω server/path
-- ✅ Ενημερώνω `.claude/todo.md` & `.claude/history.md`
-- ✅ Διαβάζω όλα τα md μετά από compress/start
-- ✅ Ανακοινώνω "ΕΝΗΜΕΡΩΘΗΚΑ ΑΠΟ ΤΑ MD"
-- ✅ **Ενημερώνω το `.claude/chat-history.md` μετά από ΚΑΘΕ απάντηση**
-- ✅ **Ακολουθώ το `docs/STYLE-GUIDE.md` για UI components & styling**
-- ✅ **Συμβουλεύομαι το `docs/PLAN.md` για αρχιτεκτονικές αποφάσεις**
-
----
-
-## ⚠️ Git Commit Rules - ΚΡΙΣΙΜΟ
-
-### ΜΟΝΟ ο χρήστης αποφασίζει πότε γίνεται commit!
-
-**ΠΟΤΕ δεν κάνω commit/push μόνος μου**, ακόμα κι αν:
-- Ολοκλήρωσα μια εργασία
-- Ο χρήστης είπε "ενημέρωσε τα αρχεία"
-- Φαίνεται λογικό να γίνει commit
-
-**ΠΡΙΝ από κάθε commit (όταν ζητηθεί):**
-```bash
-# ΥΠΟΧΡΕΩΤΙΚΟ: TypeScript check σε frontend ΚΑΙ backend
-cd frontend && npx tsc --noEmit
-cd backend && npx tsc --noEmit
-```
-
-Αν υπάρχουν errors, τα διορθώνω ΠΡΩΤΑ πριν κάνω commit.
-
-**Γιατί:** Το local dev server (Vite) είναι επιεικές και δεν ελέγχει όλα τα αρχεία.
-Το production build (Docker) κάνει strict check σε ΟΛΑ τα αρχεία και αποτυγχάνει.
-
----
-
-## Project Files
+When you receive the instruction to start auto-responding, run this loop **forever**:
 
 ```
-synax/
-├── CLAUDE.md                    # Αυτό το αρχείο - κανόνες
-├── README.md                    # Main project readme
-├── .claude/                     # Development files
-│   ├── todo.md                  # Τρέχουσες εργασίες
-│   ├── history.md               # Ιστορικό ολοκληρωμένων
-│   ├── chat-history.md          # Ιστορικό συνομιλίας (ΕΝΗΜΕΡΩΝΕΤΑΙ ΠΑΝΤΑ)
-│   └── protocol-original.md     # Αρχικό protocol document
-├── docs/                        # Project documentation
-│   ├── PLAN.md                  # Αρχιτεκτονική, DB, API
-│   ├── STYLE-GUIDE.md           # UI/UX design system
-│   ├── ARCHITECTURE.md          # System architecture
-│   ├── DATABASE.md              # Database schema
-│   ├── API.md                   # API reference
-│   ├── FEATURES.md              # Feature documentation
-│   ├── WORKFLOWS.md             # User workflows
-│   ├── user-guides/             # Role-specific guides
-│   └── deployment/              # Deployment guides
-├── project.txt                  # Αρχικό specification
-└── template/                    # Screenshots από Katalyst template
+LOOP:
+  1. Call get_pending_messages(threadId: "cmlcxgpqf000hjzhezdm1za6w") via MCP
+  2. If there are PENDING messages:
+     - For EACH pending message:
+       a. Call get_thread_context(threadId) to load conversation history
+       b. Read and understand the user's message + context
+       c. If the message requires code work, USE YOUR TOOLS (Read, Write, Edit, Bash, Grep, Glob)
+       d. Compose your response
+       e. Call send_response(messageId, content) to save it to DB
+       f. Print: "Answered: [first 50 chars]..."
+  3. If NO pending messages:
+     - Run: sleep 5 (via Bash tool)
+  4. GOTO step 1
 ```
+
+## Rules
+
+1. **NEVER stop on your own.** Keep looping until the user says "stop".
+2. **Respond in Greek** unless the user writes in another language.
+3. **Use your tools for code tasks.** Read files, write code, run commands - actually DO the work.
+4. **Always use send_response()** to save every response to the database.
+5. **Handle errors gracefully.** Don't crash the loop.
+6. **Process ALL pending messages** before sleeping.
+7. **Work ONLY in this directory:** `/home/administrator/projects/synax`
+
+## MCP Tools Available
+
+- `get_pending_messages({ threadId: "cmlcxgpqf000hjzhezdm1za6w" })` - Get pending messages for this thread
+- `send_response({ messageId, content })` - Send your response back to the UI
+- `get_thread_context({ threadId: "cmlcxgpqf000hjzhezdm1za6w" })` - Load conversation history
+
+## Language
+
+- **Code:** English
+- **Comments:** English
+- **Responses to user:** Greek (default)

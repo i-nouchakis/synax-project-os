@@ -1,28 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { useSearchStore } from '@/stores/search.store';
-import { Search, Bell, Wifi, WifiOff, RefreshCw, LogOut, User, Settings, CloudOff, QrCode, AlertTriangle, CheckCircle2, Box, Clock, Menu } from 'lucide-react';
+import { useNotificationStore } from '@/stores/notification.store';
+import { Search, Bell, Wifi, WifiOff, RefreshCw, LogOut, User, Settings, CloudOff, QrCode, AlertTriangle, CheckCircle2, ListChecks, MessageSquare, Menu, Check, X, ExternalLink, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui';
 import { QRScannerModal } from '@/components/qr';
 import { useAuthStore } from '@/stores/auth.store';
 import { useOfflineStore } from '@/stores/offline.store';
-import { api } from '@/lib/api';
 
 interface HeaderProps {
   sidebarCollapsed?: boolean;
   isMobile?: boolean;
   onToggleMobileSidebar?: () => void;
-}
-
-interface ActivityItem {
-  id: string;
-  type: 'issue' | 'checklist' | 'asset';
-  title: string;
-  description: string;
-  timestamp: string;
-  projectName?: string;
 }
 
 // Get search placeholder based on current route
@@ -42,15 +32,24 @@ const getSearchPlaceholder = (pathname: string): string => {
   return 'Search...';
 };
 
+const NOTIFICATION_ICONS: Record<string, React.ReactNode> = {
+  ISSUE_CREATED: <AlertTriangle size={16} className="text-warning" />,
+  TASK_ASSIGNED: <ListChecks size={16} className="text-primary" />,
+  COMMENT_ADDED: <MessageSquare size={16} className="text-info" />,
+  CHECKLIST_COMPLETED: <CheckCircle2 size={16} className="text-success" />,
+};
+
 export function Header({ sidebarCollapsed = false, isMobile = false, onToggleMobileSidebar }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { query, setQuery } = useSearchStore();
   const { user, logout } = useAuthStore();
   const { isOnline, isSyncing, pendingMutations, syncNow } = useOfflineStore();
+  const { notifications, unreadCount, fetchNotifications, fetchUnreadCount, markAsRead, markAllAsRead } = useNotificationStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<typeof notifications[0] | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
@@ -65,14 +64,17 @@ export function Header({ sidebarCollapsed = false, isMobile = false, onToggleMob
     prevPathRef.current = location.pathname;
   }, [location.pathname, setQuery]);
 
-  // Fetch recent activity
-  const { data: activityData } = useQuery({
-    queryKey: ['dashboard', 'activity'],
-    queryFn: () => api.get<{ items: ActivityItem[] }>('/dashboard/activity'),
-    staleTime: 30000, // 30 seconds
-  });
+  // Fetch notifications on mount and poll every 30 seconds
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications, fetchUnreadCount]);
 
-  const notifications = activityData?.items?.slice(0, 5) || [];
+  // Refresh when dropdown opens
+  useEffect(() => {
+    if (showNotifications) fetchNotifications();
+  }, [showNotifications, fetchNotifications]);
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -93,24 +95,16 @@ export function Header({ sidebarCollapsed = false, isMobile = false, onToggleMob
     navigate('/login');
   };
 
-  // Get user initials
   const getInitials = (name: string | undefined | null) => {
     if (!name) return '?';
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  // Format role for display
   const formatRole = (role: string | undefined) => {
     if (!role) return '';
     return role.charAt(0) + role.slice(1).toLowerCase();
   };
 
-  // Format time ago
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
     const date = new Date(timestamp);
@@ -126,18 +120,10 @@ export function Header({ sidebarCollapsed = false, isMobile = false, onToggleMob
     return date.toLocaleDateString();
   };
 
-  // Get icon for activity type
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'issue':
-        return <AlertTriangle size={16} className="text-warning" />;
-      case 'checklist':
-        return <CheckCircle2 size={16} className="text-success" />;
-      case 'asset':
-        return <Box size={16} className="text-primary" />;
-      default:
-        return <Clock size={16} className="text-text-tertiary" />;
-    }
+  const handleNotificationClick = (notification: typeof notifications[0]) => {
+    if (!notification.read) markAsRead(notification.id);
+    setSelectedNotification(notification);
+    setShowNotifications(false);
   };
 
   return (
@@ -228,8 +214,10 @@ export function Header({ sidebarCollapsed = false, isMobile = false, onToggleMob
             title="Notifications"
           >
             <Bell size={20} />
-            {notifications.length > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-error text-white text-[10px] font-bold rounded-full px-1">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
             )}
           </button>
 
@@ -237,39 +225,52 @@ export function Header({ sidebarCollapsed = false, isMobile = false, onToggleMob
           {showNotifications && (
             <div className="absolute right-0 top-full mt-2 w-80 bg-surface border border-surface-border rounded-lg shadow-lg overflow-hidden z-50">
               <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">
-                <span className="text-body-sm font-medium text-text-primary">Recent Activity</span>
-                {notifications.length > 0 && (
-                  <span className="text-caption text-text-tertiary">{notifications.length} new</span>
+                <span className="text-body-sm font-medium text-text-primary">Notifications</span>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={() => markAllAsRead()}
+                    className="flex items-center gap-1 text-caption text-primary hover:text-primary-600 transition-colors"
+                  >
+                    <Check size={12} />
+                    Mark all read
+                  </button>
                 )}
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
                   <div className="px-4 py-8 text-center">
                     <Bell size={24} className="mx-auto text-text-tertiary mb-2" />
-                    <p className="text-body-sm text-text-tertiary">No recent activity</p>
+                    <p className="text-body-sm text-text-tertiary">No notifications</p>
                   </div>
                 ) : (
                   notifications.map((item) => (
                     <button
                       key={item.id}
-                      onClick={() => {
-                        setShowNotifications(false);
-                        if (item.type === 'issue') navigate('/issues');
-                        else if (item.type === 'asset') navigate('/assets');
-                        else if (item.type === 'checklist') navigate('/checklists');
-                      }}
-                      className="w-full px-4 py-3 flex items-start gap-3 hover:bg-surface-hover border-b border-surface-border/50 last:border-0 text-left"
+                      onClick={() => handleNotificationClick(item)}
+                      className={cn(
+                        'w-full px-4 py-3 flex items-start gap-3 hover:bg-surface-hover border-b border-surface-border/50 last:border-0 text-left transition-colors',
+                        !item.read && 'bg-primary/5'
+                      )}
                     >
-                      <div className="mt-0.5">{getActivityIcon(item.type)}</div>
+                      <div className="mt-0.5">
+                        {NOTIFICATION_ICONS[item.type] || <Bell size={16} className="text-text-tertiary" />}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-body-sm text-text-primary truncate">{item.title}</p>
-                        <p className="text-caption text-text-tertiary truncate">{item.description}</p>
-                        {item.projectName && (
-                          <p className="text-caption text-text-tertiary mt-1">{item.projectName}</p>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <p className={cn(
+                            'text-body-sm truncate',
+                            !item.read ? 'text-text-primary font-medium' : 'text-text-secondary'
+                          )}>
+                            {item.title}
+                          </p>
+                          {!item.read && (
+                            <span className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-caption text-text-tertiary truncate">{item.message}</p>
                       </div>
                       <span className="text-tiny text-text-tertiary whitespace-nowrap">
-                        {formatTimeAgo(item.timestamp)}
+                        {formatTimeAgo(item.createdAt)}
                       </span>
                     </button>
                   ))
@@ -351,6 +352,82 @@ export function Header({ sidebarCollapsed = false, isMobile = false, onToggleMob
           )}
         </div>
       </div>
+
+      {/* Notification Detail Popup */}
+      {selectedNotification && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setSelectedNotification(null)}
+          />
+          {/* Popup */}
+          <div className="relative w-full max-w-md mx-4 bg-surface border border-surface-border rounded-xl shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-surface-border">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-surface-secondary flex items-center justify-center">
+                  {NOTIFICATION_ICONS[selectedNotification.type] || <Bell size={18} className="text-text-tertiary" />}
+                </div>
+                <div>
+                  <p className="text-caption text-text-tertiary uppercase tracking-wider">
+                    {selectedNotification.type === 'ISSUE_CREATED' ? 'Issue Created' :
+                     selectedNotification.type === 'TASK_ASSIGNED' ? 'Task Assigned' :
+                     selectedNotification.type === 'COMMENT_ADDED' ? 'Comment Added' :
+                     selectedNotification.type === 'CHECKLIST_COMPLETED' ? 'Checklist Completed' :
+                     selectedNotification.type}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedNotification(null)}
+                className="p-1.5 rounded-md hover:bg-surface-hover text-text-tertiary hover:text-text-secondary transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-5 py-4 space-y-3">
+              <h3 className="text-body font-semibold text-text-primary">
+                {selectedNotification.title}
+              </h3>
+              <p className="text-body-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
+                {selectedNotification.message}
+              </p>
+              <div className="flex items-center gap-1.5 text-caption text-text-tertiary">
+                <Clock size={13} />
+                <span>{formatTimeAgo(selectedNotification.createdAt)}</span>
+                <span className="mx-1">·</span>
+                <span>{new Date(selectedNotification.createdAt).toLocaleString('el-GR')}</span>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-surface-border">
+              <button
+                onClick={() => setSelectedNotification(null)}
+                className="px-4 py-2 text-body-sm text-text-secondary rounded-lg hover:bg-surface-hover transition-colors"
+              >
+                Close
+              </button>
+              {selectedNotification.link && (
+                <button
+                  onClick={() => {
+                    const link = selectedNotification.link!;
+                    setSelectedNotification(null);
+                    navigate(link);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-body-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  <ExternalLink size={14} />
+                  Go to
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR Scanner Modal */}
       <QRScannerModal

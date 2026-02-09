@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../utils/prisma.js';
 import { authenticate, requireRole } from '../middleware/auth.middleware.js';
 import { sendValidationError } from '../utils/errors.js';
+import { createNotification } from '../utils/notifications.js';
 
 const createChecklistSchema = z.object({
   type: z.enum(['CABLING', 'EQUIPMENT', 'CONFIG', 'DOCUMENTATION']),
@@ -405,8 +406,20 @@ export async function checklistRoutes(app: FastifyInstance) {
           orderBy: { order: 'asc' },
         },
         assignedTo: { select: { id: true, name: true } },
+        asset: { select: { name: true } },
       },
     });
+
+    // Notify assigned user
+    if (assignedToId && assignedToId !== (request.user as { id: string }).id) {
+      createNotification({
+        userId: assignedToId,
+        type: 'TASK_ASSIGNED',
+        title: 'Checklist Assigned to You',
+        message: `You were assigned to ${checklist.type} checklist for "${checklist.asset.name}"`,
+        link: `/checklists`,
+      }).catch(() => {});
+    }
 
     return reply.send({ checklist });
   });

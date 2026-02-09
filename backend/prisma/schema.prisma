@@ -92,6 +92,13 @@ model User {
   conversationParticipants ConversationParticipant[]
   sentMessages            Message[]                 @relation("SentMessages")
   feedback                Feedback[]
+  notifications           Notification[]
+
+  // Notification preferences
+  notifyOnIssue      Boolean @default(true)  @map("notify_on_issue")
+  notifyOnAssignment Boolean @default(true)  @map("notify_on_assignment")
+  notifyOnComment    Boolean @default(false) @map("notify_on_comment")
+  notifyDigest       Boolean @default(true)  @map("notify_digest")
 
   @@map("users")
 }
@@ -817,6 +824,32 @@ model CableBundle {
   cables        Cable[]
 
   @@map("cable_bundles")
+}
+
+// ─── Notifications ─────────────────────────────────────────
+
+enum NotificationType {
+  ISSUE_CREATED
+  TASK_ASSIGNED
+  COMMENT_ADDED
+  CHECKLIST_COMPLETED
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("notifications")
 }
 
 enum FeedbackType {

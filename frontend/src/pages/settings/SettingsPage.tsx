@@ -383,6 +383,18 @@ function NotificationSettings() {
     emailOnComment: false,
     emailDigest: true,
   });
+  const [loaded, setLoaded] = useState(false);
+
+  // Load preferences from DB
+  useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: async () => {
+      const res = await api.get<{ settings: typeof settings }>('/users/notifications');
+      setSettings(res.settings);
+      setLoaded(true);
+      return res.settings;
+    },
+  });
 
   const updateNotificationsMutation = useMutation({
     mutationFn: async (data: typeof settings) => {
@@ -403,6 +415,8 @@ function NotificationSettings() {
   const handleSave = () => {
     updateNotificationsMutation.mutate(settings);
   };
+
+  void loaded; // used for initial load
 
   const notificationOptions = [
     { key: 'emailOnIssue' as const, label: 'New Issue Created', description: 'Get notified when a new issue is created in your projects' },

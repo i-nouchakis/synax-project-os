@@ -124,8 +124,33 @@ export async function userRoutes(app: FastifyInstance) {
     return reply.send({ message: 'Password changed successfully' });
   });
 
+  // GET /api/users/notifications - Get notification preferences
+  app.get('/notifications', async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as { id: string };
+
+    const prefs = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        notifyOnIssue: true,
+        notifyOnAssignment: true,
+        notifyOnComment: true,
+        notifyDigest: true,
+      },
+    });
+
+    return reply.send({
+      settings: {
+        emailOnIssue: prefs?.notifyOnIssue ?? true,
+        emailOnAssignment: prefs?.notifyOnAssignment ?? true,
+        emailOnComment: prefs?.notifyOnComment ?? false,
+        emailDigest: prefs?.notifyDigest ?? true,
+      },
+    });
+  });
+
   // PUT /api/users/notifications - Update notification preferences
   app.put('/notifications', async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as { id: string };
     const settings = request.body as {
       emailOnIssue: boolean;
       emailOnAssignment: boolean;
@@ -133,7 +158,16 @@ export async function userRoutes(app: FastifyInstance) {
       emailDigest: boolean;
     };
 
-    // Placeholder - in production, store in database
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        notifyOnIssue: settings.emailOnIssue,
+        notifyOnAssignment: settings.emailOnAssignment,
+        notifyOnComment: settings.emailOnComment,
+        notifyDigest: settings.emailDigest,
+      },
+    });
+
     return reply.send({ message: 'Notification settings saved', settings });
   });
 

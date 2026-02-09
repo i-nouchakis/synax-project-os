@@ -1,17 +1,28 @@
 # Synax Project - Chat History
 
-**Τελευταία Ενημέρωση:** 2026-02-06
+**Τελευταία Ενημέρωση:** 2026-02-07
 
 ---
 
 ## Τρέχουσα Κατάσταση
 
 **Production Server:** Running (Contabo) - deploy triggered after push
-**Local Development:** Working (port 5173) - screenshot feedback confirmed working
+**Local Development:** Working (port 5173)
 **Database (Local):** Rich seed (5 projects, 369 rooms, 702 assets, 500 labels)
 **Database (Cloud):** Needs `prisma db push --force-reset` then seed after deploy
-**Latest Feature:** Mobile Fine-tuning (responsive fixes across 10+ pages)
+**Latest Feature:** Floor Plan Canvas fixes (ResizeObserver, pin labels, download preview)
 **Latest Commit:** `f0f0d8f` - pushed to main (File Sharing + Recurring Events + Drag&Drop)
+**Pending Changes:** Canvas ResizeObserver + pin label backgrounds + download preview fix
+
+### Session (2026-02-07) - Floor Plan Canvas Fixes
+- **Πρόβλημα:** Fullscreen δεν εμφάνιζε κάτοψη, pin labels δυσανάγνωστα, download preview δεν εμφανιζόταν
+- **Root cause:** Μόνο `window.addEventListener('resize')` - δεν ανιχνεύει modal open. Download canvas draw κατά τη διάρκεια CSS animation
+- **Fix (minimal, safe):**
+  - FloorPlanCanvas + RoomPlanCanvas: +ResizeObserver στο resize handler
+  - FloorPlanCanvas + RoomPlanCanvas: +Label/Tag backgrounds στα pin labels (λευκό text σε σκούρο bg)
+  - DownloadFloorplanModal: +setTimeout 300ms redraw μετά modal animation
+- **ΔΕΝ πειράχτηκαν:** Stage rendering, stageSize init, image onload, event handling, drawing tools
+- **Status:** Αναμονή test από χρήστη
 
 ### Session (2026-02-06) - File Sharing, Recurring Events, Drag&Drop, Mobile Fine-tuning
 - **File Sharing in Messenger:** MessageAttachment model, upload endpoint (10MB limit), paperclip button, image thumbnails, file download links, image lightbox

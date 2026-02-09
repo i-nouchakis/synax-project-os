@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "claude-app": {
+      "command": "node",
+      "args": [
+        "/home/administrator/projects/Claude App/backend/src/mcp-server.js"
+      ],
+      "env": {
+        "DATABASE_URL": "postgresql://claudeapp:claudeapp@localhost:5432/claudeapp"
+      }
+    }
+  }
+}

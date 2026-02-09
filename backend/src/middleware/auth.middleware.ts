@@ -8,6 +8,9 @@ export interface JwtUser {
 }
 
 export async function authenticate(request: FastifyRequest, reply: FastifyReply) {
+  // WebSocket upgrades handle auth via query param token in their own handler
+  if (request.headers.upgrade === 'websocket') return;
+
   try {
     await request.jwtVerify();
   } catch (err) {

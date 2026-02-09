@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../utils/prisma.js';
 import { authenticate, requireRole } from '../middleware/auth.middleware.js';
 import { sendValidationError } from '../utils/errors.js';
+import { createNotificationsForUsers } from '../utils/notifications.js';
 
 const createIssueSchema = z.object({
   projectId: z.string(),
@@ -147,6 +148,20 @@ export async function issueRoutes(app: FastifyInstance) {
         },
       });
 
+      // Notify project members about new issue (async, don't block response)
+      const members = await prisma.projectMember.findMany({
+        where: { projectId: data.projectId },
+        select: { userId: true },
+      });
+      createNotificationsForUsers(
+        members.map(m => m.userId),
+        'ISSUE_CREATED',
+        'New Issue Created',
+        `${issue.title} - ${issue.project.name}`,
+        `/issues`,
+        user.id,
+      ).catch(() => {});
+
       return reply.status(201).send({ issue });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -231,6 +246,17 @@ export async function issueRoutes(app: FastifyInstance) {
           user: { select: { id: true, name: true } },
         },
       });
+
+      // Notify issue creator about new comment
+      if (issue.createdById !== user.id) {
+        createNotificationsForUsers(
+          [issue.createdById],
+          'COMMENT_ADDED',
+          'New Comment on Issue',
+          `${comment.user.name} commented on "${issue.title}"`,
+          `/issues`,
+        ).catch(() => {});
+      }
 
       return reply.status(201).send({ comment });
     } catch (error) {

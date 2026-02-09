@@ -27,11 +27,41 @@ export function FeedbackButton() {
   const captureScreenshot = async () => {
     setStep('capturing');
     try {
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, 200));
+
+      // Pre-capture: read real dimensions of responsive containers
+      const chartSizes = new Map<number, { w: number; h: number }>();
+      document.querySelectorAll('.recharts-responsive-container').forEach((el, i) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          chartSizes.set(i, { w: rect.width, h: rect.height });
+        }
+      });
+
       const canvas = await html2canvas(document.body, {
-        scale: 1,
+        scale: 0.75,
         useCORS: true,
-        ignoreElements: (el) => el.id === 'feedback-widget',
+        allowTaint: true,
+        backgroundColor: '#0a0a0f',
+        ignoreElements: (el) => {
+          const htmlEl = el as HTMLElement;
+          return htmlEl.id === 'feedback-widget' || htmlEl.id === 'help-chat-widget';
+        },
+        onclone: (doc) => {
+          // Hide Konva canvas elements (cause rendering issues)
+          doc.querySelectorAll('canvas').forEach((c) => {
+            c.style.display = 'none';
+          });
+          // Fix Recharts: apply real dimensions to cloned containers
+          doc.querySelectorAll('.recharts-responsive-container').forEach((el, i) => {
+            const size = chartSizes.get(i);
+            if (size) {
+              const htmlEl = el as HTMLElement;
+              htmlEl.style.width = `${size.w}px`;
+              htmlEl.style.height = `${size.h}px`;
+            }
+          });
+        },
       });
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob((b) => resolve(b), 'image/png')
@@ -39,9 +69,12 @@ export function FeedbackButton() {
       if (blob && blob.size > 0) {
         setScreenshotBlob(blob);
         setScreenshotUrl(URL.createObjectURL(blob));
+      } else {
+        toast.error('Screenshot capture returned empty image');
       }
     } catch (err) {
       console.error('Screenshot capture failed:', err);
+      toast.error('Could not capture screenshot — feedback will be sent without it');
     }
     setStep('select_type');
   };
