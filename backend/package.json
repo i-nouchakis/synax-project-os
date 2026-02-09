@@ -22,6 +22,7 @@
     "db:seed:mega": "tsx prisma/seed-projects.ts",
     "db:seed:ookea": "tsx prisma/seed-ookea.ts",
     "db:seed:lookups": "tsx prisma/seed-lookups.ts",
+    "db:seed:demo": "tsx prisma/seed-demo.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
