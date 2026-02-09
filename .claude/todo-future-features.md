@@ -1,14 +1,14 @@
 # Synax - Future Features Todo List
 
 **Δημιουργήθηκε:** 2026-01-31
-**Status:** Pending Prioritization
+**Τελευταία ενημέρωση:** 2026-02-09
 
 ---
 
 ## 🔔 Επικοινωνία & Ενημερώσεις
 
-- [ ] **Notifications Center** - Real-time ειδοποιήσεις για issues, assignments, completions. Push notifications στο PWA.
-- [ ] **Team Chat** - In-app messaging ανά project, group chats, file sharing
+- [x] **Notifications Center** - Real-time ειδοποιήσεις για issues, assignments, completions. ✅ Υλοποιήθηκε πλήρως (controller, service, store, unread tracking)
+- [x] **Team Chat (Messenger)** - In-app messaging ανά project, group chats, file sharing. ✅ WebSocket real-time, attachments, typing indicators, read receipts
 - [ ] **@Mentions** - Αναφορά χρηστών σε comments, αυτόματη ειδοποίηση
 - [ ] **Email Digests** - Ημερήσια/εβδομαδιαία περίληψη δραστηριότητας
 
@@ -16,10 +16,10 @@
 
 ## 📅 Scheduling & Planning
 
-- [ ] **Calendar View** - Ημερολόγιο με tasks, deadlines, milestones
+- [x] **Calendar View** - Ημερολόγιο με events, deadlines, milestones. ✅ 6 event types, attendees, overlap detection, color coding
 - [ ] **Gantt Charts** - Timeline visualization με dependencies
 - [ ] **Technician Scheduling** - Διαθεσιμότητα τεχνικών, ανάθεση βάρδιων
-- [ ] **Recurring Tasks** - Επαναλαμβανόμενες εργασίες συντήρησης
+- [x] **Recurring Tasks** - Επαναλαμβανόμενες εργασίες. ✅ DAILY/WEEKLY/MONTHLY/YEARLY recurrence rules στο Calendar
 
 ---
 
@@ -46,7 +46,7 @@
 
 - [ ] **Excel Import/Export** - Bulk import assets, export reports σε Excel
 - [ ] **Project Templates** - Πρότυπα projects με preset floors/rooms
-- [ ] **Equipment Library** - Κεντρική βάση εξοπλισμού με specs, manuals
+- [x] **Equipment Library (Lookups/Dropdowns)** - Κεντρική βάση εξοπλισμού. ✅ Room Types, Manufacturers, Asset Models, Inventory Units, Issue Causes
 - [ ] **Custom Fields** - User-defined fields σε οποιοδήποτε entity
 - [ ] **Activity Audit Log** - Πλήρες ιστορικό "who did what when"
 
@@ -84,17 +84,17 @@
 
 - [ ] **Interactive Tutorials** - Step-by-step onboarding
 - [ ] **Video Guides** - How-to videos per feature
-- [ ] **Knowledge Base** - Searchable documentation
-- [ ] **In-app Help** - Contextual tooltips, guided tours
+- [x] **Knowledge Base** - Searchable documentation. ✅ Help Bot με 12 κατηγορίες, 30+ articles, keyword search
+- [x] **In-app Help** - Contextual tooltips, guided tours. ✅ HelpChatWidget με context-aware help ανά σελίδα
 
 ---
 
 ## 🏢 Client Experience
 
-- [ ] **Client Portal** - Ξεχωριστό UI για πελάτες
+- [x] **Client Management** - Πελατολόγιο με στοιχεία επικοινωνίας. ✅ Full CRUD, σύνδεση με projects
 - [ ] **Progress Updates** - Automated email με status
-- [ ] **Document Sharing** - Secure file sharing με clients
-- [ ] **Feedback System** - Client ratings & comments
+- [x] **Project Files / Document Sharing** - Secure file sharing. ✅ 5 κατηγορίες (Contracts, Drawings, Reports, Photos, Other), MinIO storage
+- [x] **Feedback System** - Client ratings & comments. ✅ BUG/CHANGE types, screenshot upload, admin notes, resolution tracking
 
 ---
 
@@ -108,15 +108,29 @@
 
 ---
 
-## ⭐ Priority Features (Top 5)
+## 🏗️ Πρόσθετα Features (υλοποιήθηκαν χωρίς να ήταν στη λίστα)
+
+- [x] **Buildings CRUD** - Ιεραρχία Project → Building → Floor → Room. Floorplan upload, pin placement στο masterplan
+- [x] **Checklist Templates** - 5 τύποι (General, Cabling, Equipment, Config, Documentation). Template items με required/photo flags
+- [x] **Cable Management** - 8 τύποι καλωδίων, routing modes (Straight/Orthogonal/Auto/Custom), bundling system
+- [x] **Drawing Shapes on Plans** - 7 shape types (Rectangle, Circle, Line, Arrow, Text, Freehand, Polygon), layers, z-index
+- [x] **Admin Password Reset** - Admin μπορεί να κάνει reset κωδικό χρήστη από το Edit User modal
+- [x] **Admin Feedback Type Toggle** - Admin μπορεί να αλλάξει τύπο feedback (BUG ↔ CHANGE) από το detail modal
+- [x] **Demo Environment** - Ανεξάρτητο demo instance στο Contabo (docker-compose.demo.yml) με realistic seed data (6 projects, 586 assets)
+- [x] **Manual/Documentation Page** - Πλήρης σελίδα εγχειριδίου χρήσης με όλες τις ενότητες
+- [x] **Seed Scripts** - seed-demo.ts (6 ρεαλιστικά projects), seed-lookups.ts (dropdowns), seed-ookea.ts
+
+---
+
+## ⭐ Priority Features (Top 5 - Pending)
 
 | Priority | Feature | Complexity | Impact |
 |----------|---------|------------|--------|
-| 1 | Notifications Center | Medium | High |
-| 2 | Excel Import/Export | Medium | High |
-| 3 | Calendar/Gantt | High | High |
-| 4 | Activity Audit Log | Medium | Medium |
-| 5 | Client Portal | High | High |
+| 1 | Excel Import/Export | Medium | High |
+| 2 | Gantt Charts | High | High |
+| 3 | Activity Audit Log | Medium | Medium |
+| 4 | Global Search | Medium | High |
+| 5 | Multi-language (i18n) | High | High |
 
 ---
 
@@ -125,10 +139,12 @@
 - [x] Authentication & Authorization
 - [x] User Management
 - [x] Projects CRUD
+- [x] Buildings CRUD
 - [x] Floors & Rooms CRUD
 - [x] Interactive Floor Plans (Konva.js)
 - [x] Assets CRUD with pins
 - [x] Checklists System
+- [x] Checklist Templates (5 types)
 - [x] Issues Tracking
 - [x] Inventory Management
 - [x] Reports (Summary, Client, Internal)
@@ -142,11 +158,23 @@
 - [x] Settings Page
 - [x] Manual/Documentation
 - [x] DWG → SVG Conversion
-- [x] Password Reset
-- [ ] Time Tracking (removed from v1, see specs below)
+- [x] Password Reset (self + admin reset)
 - [x] Room Floorplan Crop
-
----
+- [x] Notifications Center
+- [x] Team Chat / Messenger (WebSocket)
+- [x] Calendar View + Recurring Events
+- [x] Equipment Library (Lookups/Dropdowns)
+- [x] Cable Management + Bundling
+- [x] Drawing Shapes on Plans
+- [x] Project Files Management
+- [x] Client Management
+- [x] Feedback System (BUG/CHANGE)
+- [x] Help Bot / Knowledge Base
+- [x] Admin Password Reset
+- [x] Admin Feedback Type Toggle
+- [x] Demo Environment (Contabo)
+- [x] Seed Scripts (demo, lookups, ookea)
+- [ ] Time Tracking (removed from v1, specs preserved below)
 
 ---
 
@@ -248,4 +276,4 @@ enum TimeEntryType {
 
 ---
 
-*Last Updated: 2026-02-05*
+*Last Updated: 2026-02-09*

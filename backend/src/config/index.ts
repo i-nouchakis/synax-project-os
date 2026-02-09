@@ -26,9 +26,11 @@ export const config = {
   // File Storage
   storage: {
     endpoint: process.env.STORAGE_ENDPOINT || 'localhost',
-    // Public endpoint for URLs accessible by browser (defaults to localhost for development)
-    publicEndpoint: process.env.STORAGE_PUBLIC_ENDPOINT || process.env.STORAGE_ENDPOINT || 'localhost',
+    // Public endpoint for URLs accessible by browser (hostname only, no http://)
+    publicEndpoint: (process.env.STORAGE_PUBLIC_ENDPOINT || process.env.STORAGE_ENDPOINT || 'localhost').replace(/^https?:\/\//, '').replace(/:\d+$/, ''),
     port: parseInt(process.env.STORAGE_PORT || '9000', 10),
+    // Public port for browser-accessible URLs (may differ from internal port, e.g. demo uses 9002)
+    publicPort: parseInt(process.env.STORAGE_PUBLIC_PORT || process.env.STORAGE_PORT || '9000', 10),
     accessKey: process.env.STORAGE_ACCESS_KEY || 'minioadmin',
     secretKey: process.env.STORAGE_SECRET_KEY || 'minioadmin',
     bucket: process.env.STORAGE_BUCKET || 'synax-files',

@@ -33,7 +33,8 @@ services:
       STORAGE_SECRET_KEY: ${MINIO_SECRET_KEY}
       STORAGE_BUCKET: synax-files
       STORAGE_USE_SSL: "false"
-      STORAGE_PUBLIC_ENDPOINT: ${STORAGE_PUBLIC_ENDPOINT:-}
+      STORAGE_PUBLIC_ENDPOINT: ${STORAGE_PUBLIC_ENDPOINT:-62.171.168.169}
+      STORAGE_PUBLIC_PORT: ${STORAGE_PUBLIC_PORT:-9000}
     depends_on:
       postgres:
         condition: service_healthy

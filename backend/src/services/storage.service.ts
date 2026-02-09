@@ -75,7 +75,7 @@ export const storageService = {
     });
 
     // Generate URL using public endpoint for browser access
-    const url = `http://${config.storage.publicEndpoint}:${config.storage.port}/${BUCKET_NAME}/${key}`;
+    const url = `http://${config.storage.publicEndpoint}:${config.storage.publicPort}/${BUCKET_NAME}/${key}`;
 
     return {
       url,
