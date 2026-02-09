@@ -34,8 +34,13 @@ import {
   FileCheck,
   MousePointer,
   Square,
-  Bot,
   MessageSquarePlus,
+  CalendarDays,
+  MessageSquare,
+  UserCircle,
+  Repeat,
+  GripVertical,
+  Paperclip,
 } from 'lucide-react';
 import {
   Card,
@@ -49,6 +54,7 @@ type ManualSection =
   | 'overview'
   | 'dashboard'
   | 'projects'
+  | 'clients'
   | 'buildings'
   | 'floors'
   | 'rooms'
@@ -57,7 +63,8 @@ type ManualSection =
   | 'checklist-templates'
   | 'issues'
   | 'inventory'
-  | 'time-tracking'
+  | 'calendar'
+  | 'messenger'
   | 'qr-scanner'
   | 'labels'
   | 'signatures'
@@ -67,7 +74,6 @@ type ManualSection =
   | 'settings'
   | 'users'
   | 'roles'
-  | 'help-bot'
   | 'feedback'
   | 'faq';
 
@@ -82,6 +88,7 @@ const sections: Section[] = [
   { id: 'overview', label: 'Overview', icon: <Book size={18} />, category: 'Getting Started' },
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, category: 'Getting Started' },
   { id: 'pwa-offline', label: 'PWA & Offline', icon: <Smartphone size={18} />, category: 'Getting Started' },
+  { id: 'clients', label: 'Clients', icon: <UserCircle size={18} />, category: 'Project Management' },
   { id: 'projects', label: 'Projects', icon: <FolderKanban size={18} />, category: 'Project Management' },
   { id: 'buildings', label: 'Buildings', icon: <Building2 size={18} />, category: 'Project Management' },
   { id: 'floors', label: 'Floors', icon: <Layers size={18} />, category: 'Project Management' },
@@ -92,15 +99,15 @@ const sections: Section[] = [
   { id: 'checklist-templates', label: 'Checklist Templates', icon: <FileCheck size={18} />, category: 'Field Work' },
   { id: 'issues', label: 'Issues', icon: <AlertTriangle size={18} />, category: 'Field Work' },
   { id: 'inventory', label: 'Inventory', icon: <Package size={18} />, category: 'Field Work' },
-  { id: 'time-tracking', label: 'Time Tracking', icon: <Clock size={18} />, category: 'Field Work' },
   { id: 'signatures', label: 'Digital Signatures', icon: <PenTool size={18} />, category: 'Field Work' },
+  { id: 'calendar', label: 'Calendar', icon: <CalendarDays size={18} />, category: 'Collaboration' },
+  { id: 'messenger', label: 'Messenger', icon: <MessageSquare size={18} />, category: 'Collaboration' },
   { id: 'reports', label: 'Reports & PDF', icon: <FileText size={18} />, category: 'Reporting' },
   { id: 'labels', label: 'Label Generation', icon: <Tags size={18} />, category: 'Reporting' },
   { id: 'lookups', label: 'Lookup Tables', icon: <ListFilter size={18} />, category: 'Administration' },
   { id: 'settings', label: 'Settings', icon: <Settings size={18} />, category: 'Administration' },
   { id: 'users', label: 'User Management', icon: <Users size={18} />, category: 'Administration' },
   { id: 'roles', label: 'Roles & Permissions', icon: <Shield size={18} />, category: 'Administration' },
-  { id: 'help-bot', label: 'Help Bot', icon: <Bot size={18} />, category: 'Help' },
   { id: 'feedback', label: 'Feedback', icon: <MessageSquarePlus size={18} />, category: 'Help' },
   { id: 'faq', label: 'FAQ', icon: <HelpCircle size={18} />, category: 'Help' },
 ];
@@ -216,6 +223,7 @@ export function ManualPage() {
           {activeSection === 'overview' && <OverviewSection />}
           {activeSection === 'dashboard' && <DashboardSection />}
           {activeSection === 'pwa-offline' && <PWAOfflineSection />}
+          {activeSection === 'clients' && <ClientsSection />}
           {activeSection === 'projects' && <ProjectsSection />}
           {activeSection === 'buildings' && <BuildingsSection />}
           {activeSection === 'floors' && <FloorsSection />}
@@ -226,15 +234,15 @@ export function ManualPage() {
           {activeSection === 'checklist-templates' && <ChecklistTemplatesSection />}
           {activeSection === 'issues' && <IssuesSection />}
           {activeSection === 'inventory' && <InventorySection />}
-          {activeSection === 'time-tracking' && <TimeTrackingSection />}
           {activeSection === 'signatures' && <SignaturesSection />}
+          {activeSection === 'calendar' && <CalendarSection />}
+          {activeSection === 'messenger' && <MessengerSection />}
           {activeSection === 'reports' && <ReportsSection />}
           {activeSection === 'labels' && <LabelsSection />}
           {activeSection === 'lookups' && <LookupsSection />}
           {activeSection === 'settings' && <SettingsSection />}
           {activeSection === 'users' && <UsersSection />}
           {activeSection === 'roles' && <RolesSection />}
-          {activeSection === 'help-bot' && <HelpBotSection />}
           {activeSection === 'feedback' && <FeedbackSection />}
           {activeSection === 'faq' && <FAQSection />}
         </div>
@@ -386,9 +394,19 @@ function OverviewSection() {
               description: 'Generate comprehensive reports and export to PDF.',
             },
             {
-              icon: <Clock size={20} />,
-              title: 'Time Tracking',
-              description: 'Track work hours with timer or manual entry.',
+              icon: <CalendarDays size={20} />,
+              title: 'Calendar',
+              description: 'Schedule events, meetings, and deadlines with recurring support.',
+            },
+            {
+              icon: <MessageSquare size={20} />,
+              title: 'Messenger',
+              description: 'Real-time team messaging with file sharing.',
+            },
+            {
+              icon: <UserCircle size={20} />,
+              title: 'Client Management',
+              description: 'Manage clients and link them to projects.',
             },
             {
               icon: <QrCode size={20} />,
@@ -409,11 +427,6 @@ function OverviewSection() {
               icon: <Smartphone size={20} />,
               title: 'PWA & Offline',
               description: 'Install as app and work offline with automatic sync.',
-            },
-            {
-              icon: <Bot size={20} />,
-              title: 'Help Bot',
-              description: 'Interactive help assistant with search and context-aware tips.',
             },
             {
               icon: <MessageSquarePlus size={20} />,
@@ -475,6 +488,58 @@ function DashboardSection() {
 
         <Tip>
           The Dashboard updates automatically. Check it regularly to stay informed about project progress.
+        </Tip>
+      </div>
+    </ManualSection>
+  );
+}
+
+function ClientsSection() {
+  return (
+    <ManualSection
+      icon={<UserCircle size={24} />}
+      title="Clients"
+      description="Manage clients and associate them with projects"
+    >
+      <div className="space-y-6">
+        <p className="text-body text-text-primary">
+          Clients represent the companies or individuals commissioning the work. Each project
+          can be linked to a client for better organization and reporting.
+        </p>
+
+        <h3 className="text-h3 text-text-primary">Client Properties</h3>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li><strong>Name</strong> - Client or company name</li>
+          <li><strong>Contact Person</strong> - Primary contact name</li>
+          <li><strong>Email</strong> - Contact email address</li>
+          <li><strong>Phone</strong> - Contact phone number</li>
+          <li><strong>Address</strong> - Client location</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">Managing Clients</h3>
+        <Steps
+          steps={[
+            { title: 'Navigate to Clients', description: 'Click "Clients" in the sidebar.' },
+            { title: 'Add Client', description: 'Click "Add Client" to create a new client.' },
+            { title: 'Fill Details', description: 'Enter client name, contact info, and address.' },
+            { title: 'Save', description: 'Click "Create" to save the client.' },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">Client Detail Page</h3>
+        <p className="text-body text-text-secondary">
+          From the client detail page you can:
+        </p>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li>View all projects linked to this client</li>
+          <li>Edit client information</li>
+          <li>See project statistics and progress</li>
+          <li>Delete the client (only if no linked projects)</li>
+        </ul>
+
+        <Tip>
+          Create clients before creating projects - this makes it easy to link projects
+          to the correct client during project setup.
         </Tip>
       </div>
     </ManualSection>
@@ -1698,48 +1763,54 @@ function QRScannerSection() {
   );
 }
 
-function TimeTrackingSection() {
+function CalendarSection() {
   return (
     <ManualSection
-      icon={<Clock size={24} />}
-      title="Time Tracking"
-      description="Track work hours across projects"
+      icon={<CalendarDays size={24} />}
+      title="Calendar"
+      description="Schedule events, meetings, and deadlines"
     >
       <div className="space-y-6">
         <p className="text-body text-text-primary">
-          The Time Tracking module allows you to record work hours spent on projects.
-          Use the timer for real-time tracking or add entries manually.
+          The Calendar provides a visual overview of scheduled events, meetings, deadlines, and
+          milestones across your projects. Supports month, week, and day views.
         </p>
 
-        <h3 className="text-h3 text-text-primary">Timer Mode</h3>
-        <p className="text-body text-text-secondary">
-          Start a timer when you begin work and stop it when finished:
-        </p>
-        <Steps
-          steps={[
-            { title: 'Select Project', description: 'Choose the project you are working on from the dropdown.' },
-            { title: 'Select Type', description: 'Choose the work type (Installation, Configuration, etc.).' },
-            { title: 'Click Start', description: 'The timer will begin counting your work time.' },
-            { title: 'Click Stop', description: 'When finished, click Stop to save the time entry.' },
+        <h3 className="text-h3 text-text-primary">Calendar Views</h3>
+        <FeatureList
+          features={[
+            {
+              icon: <CalendarDays size={20} />,
+              title: 'Month View',
+              description: 'See all events for the month at a glance.',
+            },
+            {
+              icon: <Clock size={20} />,
+              title: 'Week View',
+              description: 'Detailed hourly view for the current week.',
+            },
+            {
+              icon: <Clock size={20} />,
+              title: 'Day View',
+              description: 'Focus on a single day with all time slots.',
+            },
           ]}
         />
 
-        <h3 className="text-h3 text-text-primary">Manual Entry</h3>
-        <p className="text-body text-text-secondary">
-          Add time entries manually for past work:
-        </p>
+        <h3 className="text-h3 text-text-primary">Creating an Event</h3>
         <Steps
           steps={[
-            { title: 'Click Add Entry', description: 'Open the manual entry form.' },
-            { title: 'Fill Details', description: 'Select project, type, date, and hours worked.' },
-            { title: 'Add Description', description: 'Optionally describe what you worked on.' },
-            { title: 'Save', description: 'Click Save Entry to record the time.' },
+            { title: 'Click "New Event"', description: 'Use the button at the top of the calendar page.' },
+            { title: 'Fill Details', description: 'Enter title, description, date/time, and event type.' },
+            { title: 'Link to Project', description: 'Optionally associate the event with a project.' },
+            { title: 'Add Attendees', description: 'Select team members to invite.' },
+            { title: 'Save', description: 'Click "Create" to save the event.' },
           ]}
         />
 
-        <h3 className="text-h3 text-text-primary">Work Types</h3>
+        <h3 className="text-h3 text-text-primary">Event Types</h3>
         <div className="flex flex-wrap gap-2 my-4">
-          {['INSTALLATION', 'CONFIGURATION', 'TESTING', 'TROUBLESHOOTING', 'TRAVEL', 'MEETING', 'OTHER'].map((type) => (
+          {['MEETING', 'DEADLINE', 'REMINDER', 'MILESTONE', 'SITE_VISIT', 'OTHER'].map((type) => (
             <span
               key={type}
               className="px-3 py-1 rounded-full text-body-sm bg-surface-secondary text-text-secondary"
@@ -1749,28 +1820,98 @@ function TimeTrackingSection() {
           ))}
         </div>
 
-        <h3 className="text-h3 text-text-primary">Time Entries List</h3>
+        <h3 className="text-h3 text-text-primary">Recurring Events</h3>
         <p className="text-body text-text-secondary">
-          View and manage your time entries:
+          Create events that repeat automatically:
         </p>
         <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
-          <li>Filter by project or date range</li>
-          <li>View total hours and weekly summary</li>
-          <li>Delete incorrect entries</li>
+          <li><strong>Daily</strong> - Repeats every day</li>
+          <li><strong>Weekly</strong> - Repeats every week on the same day</li>
+          <li><strong>Monthly</strong> - Repeats every month on the same date</li>
+          <li><strong>Recurrence End</strong> - Set an optional end date for recurring events</li>
         </ul>
 
-        <h3 className="text-h3 text-text-primary">Summary Statistics</h3>
+        <h3 className="text-h3 text-text-primary">Drag & Drop</h3>
         <p className="text-body text-text-secondary">
-          The page displays summary cards showing:
+          Reschedule events quickly by dragging them to a new date or time on the calendar.
+          The event is updated automatically.
+        </p>
+
+        <h3 className="text-h3 text-text-primary">Event Colors</h3>
+        <p className="text-body text-text-secondary">
+          Each event type has a default color, or you can choose a custom color when creating an event.
+          Colors help visually distinguish between different types of activities.
+        </p>
+
+        <Tip>
+          Use the calendar to track project milestones and deadlines. Link events to projects
+          for better organization.
+        </Tip>
+      </div>
+    </ManualSection>
+  );
+}
+
+function MessengerSection() {
+  return (
+    <ManualSection
+      icon={<MessageSquare size={24} />}
+      title="Messenger"
+      description="Real-time team communication"
+    >
+      <div className="space-y-6">
+        <p className="text-body text-text-primary">
+          The Messenger provides real-time communication between team members. Create conversations,
+          send messages, and share files directly within the application.
+        </p>
+
+        <h3 className="text-h3 text-text-primary">Conversations</h3>
+        <FeatureList
+          features={[
+            {
+              icon: <MessageSquare size={20} />,
+              title: 'Direct Messages',
+              description: 'One-on-one conversations with team members.',
+            },
+            {
+              icon: <Users size={20} />,
+              title: 'Group Chats',
+              description: 'Conversations with multiple team members.',
+            },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">Starting a Conversation</h3>
+        <Steps
+          steps={[
+            { title: 'Open Messenger', description: 'Click "Messenger" in the sidebar.' },
+            { title: 'Click New Conversation', description: 'Use the "+" button at the top of the conversation list.' },
+            { title: 'Select Participants', description: 'Choose one or more team members.' },
+            { title: 'Start Chatting', description: 'Type your message and press Enter or click Send.' },
+          ]}
+        />
+
+        <h3 className="text-h3 text-text-primary">Message Features</h3>
+        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
+          <li><strong>Real-time</strong> - Messages appear instantly via WebSocket</li>
+          <li><strong>Read Receipts</strong> - See when messages are delivered and read</li>
+          <li><strong>File Sharing</strong> - Attach files and images to messages</li>
+          <li><strong>Unread Count</strong> - Badge shows unread messages in the sidebar</li>
+        </ul>
+
+        <h3 className="text-h3 text-text-primary">File Sharing</h3>
+        <p className="text-body text-text-secondary">
+          Share files directly in conversations:
         </p>
         <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
-          <li><strong>Total Entries</strong> - Number of recorded time entries</li>
-          <li><strong>Total Hours</strong> - Sum of all hours worked</li>
-          <li><strong>This Week</strong> - Hours worked in the last 7 days</li>
+          <li>Click the paperclip icon to attach a file</li>
+          <li>Supported formats: images, PDFs, documents</li>
+          <li>Files are stored securely and can be downloaded by participants</li>
         </ul>
 
         <Tip>
-          Use the timer for accurate tracking - it automatically calculates the duration when you stop.
+          The Messenger badge in the sidebar shows the total count of unread messages
+          across all conversations.
         </Tip>
       </div>
     </ManualSection>
@@ -1942,98 +2083,6 @@ function LabelsSection() {
   );
 }
 
-function HelpBotSection() {
-  return (
-    <ManualSection
-      icon={<Bot size={24} />}
-      title="Help Bot"
-      description="Get instant help with using the application"
-    >
-      <div className="space-y-6">
-        <p className="text-body text-text-primary">
-          The Help Bot is an interactive assistant that helps you find answers about how to use Synax.
-          It's available on every page via the floating button at the bottom right of the screen.
-        </p>
-
-        <h3 className="text-h3 text-text-primary">Opening the Help Bot</h3>
-        <p className="text-body text-text-secondary">
-          There are two ways to access the Help Bot:
-        </p>
-        <FeatureList
-          features={[
-            {
-              icon: <Bot size={20} />,
-              title: 'Bot Button',
-              description: 'Click the blue bot icon at the bottom right corner of any page.',
-            },
-            {
-              icon: <HelpCircle size={20} />,
-              title: 'Context Help',
-              description: 'Click the "Βοήθεια" button (appears on pages with related help topics).',
-            },
-          ]}
-        />
-
-        <h3 className="text-h3 text-text-primary">Using the Help Bot</h3>
-        <Steps
-          steps={[
-            { title: 'Click the Bot icon', description: 'The help panel opens with a list of categories.' },
-            { title: 'Choose a category', description: 'Select the topic you need help with (Projects, Assets, Drawing, etc.).' },
-            { title: 'Select a question', description: 'Click on the specific question you have.' },
-            { title: 'Read the answer', description: 'Follow the step-by-step instructions provided.' },
-          ]}
-        />
-
-        <h3 className="text-h3 text-text-primary">Search</h3>
-        <p className="text-body text-text-secondary">
-          Use the search bar at the top of the Help Bot to find answers quickly:
-        </p>
-        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
-          <li>Type keywords like "asset", "κάτοψη", "checklist"</li>
-          <li>Results update as you type</li>
-          <li>Click any result to see the full answer</li>
-        </ul>
-
-        <h3 className="text-h3 text-text-primary">Context-Sensitive Help</h3>
-        <p className="text-body text-text-secondary">
-          On certain pages, a "Βοήθεια" button appears next to the bot icon. This shows
-          help topics specific to the current page:
-        </p>
-        <ul className="list-disc list-inside text-body text-text-secondary space-y-2 ml-4">
-          <li><strong>Floors page</strong> - Floor plan upload, room placement, asset placement, drawing</li>
-          <li><strong>Assets page</strong> - Adding assets, QR scanning, installation</li>
-          <li><strong>Rooms page</strong> - Creating rooms, pin placement</li>
-          <li><strong>Projects page</strong> - Creating/editing projects, client assignment</li>
-        </ul>
-
-        <h3 className="text-h3 text-text-primary">Help Categories</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 my-4">
-          {[
-            'Projects & Clients',
-            'Buildings & Floors',
-            'Rooms',
-            'Assets & Equipment',
-            'Drawing & Σχεδίαση',
-            'Checklists & Issues',
-            'Inventory & Αποθήκη',
-            'Reports & Labels',
-            'Calendar & Messenger',
-          ].map((cat) => (
-            <div key={cat} className="p-3 bg-surface-secondary rounded-lg">
-              <p className="text-body-sm text-text-primary">{cat}</p>
-            </div>
-          ))}
-        </div>
-
-        <Tip>
-          If you can't find what you're looking for in the Help Bot, click "Στείλε feedback"
-          at the bottom of the panel to report the missing topic.
-        </Tip>
-      </div>
-    </ManualSection>
-  );
-}
-
 function FeedbackSection() {
   return (
     <ManualSection
@@ -2140,8 +2189,16 @@ function FAQSection() {
             a: 'Click the QR icon in the header to open the scanner. Allow camera access, then point your device at the QR code. You can also enter serial numbers manually.',
           },
           {
-            q: 'How do I track my work hours?',
-            a: 'Go to Time Tracking in the sidebar. Select a project and click Start to begin the timer. Click Stop when finished. You can also add manual entries for past work.',
+            q: 'How do I use the Calendar?',
+            a: 'Go to Calendar in the sidebar. Click "New Event" to create an event. You can set it as a meeting, deadline, milestone, or reminder. Link it to a project and add attendees. Drag events to reschedule them.',
+          },
+          {
+            q: 'How do I send a message to a team member?',
+            a: 'Go to Messenger in the sidebar. Click the "+" button to start a new conversation, select participants, and type your message. Messages are delivered in real-time via WebSocket.',
+          },
+          {
+            q: 'How do I manage clients?',
+            a: 'Go to Clients in the sidebar. Click "Add Client" to create a new client with contact details. You can then link clients to projects during project creation.',
           },
           {
             q: 'How do I create labels?',
@@ -2198,10 +2255,6 @@ function FAQSection() {
           {
             q: 'How do I manage lookup tables like Room Types and Asset Models?',
             a: 'Go to Lookups in the Admin section of the sidebar. Select the tab for the lookup you want to manage, then add, edit, or delete entries as needed.',
-          },
-          {
-            q: 'How do I use the Help Bot?',
-            a: 'Click the blue bot icon at the bottom right corner of any page. Browse categories, search for topics, or use the "Βοήθεια" button for page-specific help. If you can\'t find an answer, click "Στείλε feedback" to ask the team.',
           },
           {
             q: 'How do I report a bug or suggest a change?',
