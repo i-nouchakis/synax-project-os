@@ -105,7 +105,6 @@ export async function assetRoutes(app: FastifyInstance) {
         _count: { select: { checklists: true } },
       },
       orderBy: { createdAt: 'desc' },
-      take: 100,
     });
 
     return reply.send({ assets });
