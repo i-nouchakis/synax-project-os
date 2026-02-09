@@ -13,7 +13,6 @@ import {
   Paperclip,
   FileText,
   Download,
-  Image as ImageIcon,
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
