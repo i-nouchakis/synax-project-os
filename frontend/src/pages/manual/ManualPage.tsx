@@ -38,9 +38,6 @@ import {
   CalendarDays,
   MessageSquare,
   UserCircle,
-  Repeat,
-  GripVertical,
-  Paperclip,
 } from 'lucide-react';
 import {
   Card,
