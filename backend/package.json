@@ -23,6 +23,7 @@
     "db:seed:ookea": "tsx prisma/seed-ookea.ts",
     "db:seed:lookups": "tsx prisma/seed-lookups.ts",
     "db:seed:demo": "tsx prisma/seed-demo.ts",
+    "db:seed:four-seasons": "tsx prisma/seed-four-seasons.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
